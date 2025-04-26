@@ -15,11 +15,14 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from '@/components/ui/sidebar'; // Ensure all sidebar components are imported
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+} from '@/components/ui/sidebar'; // Ensure Sub components are imported
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
-    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard, Target, Landmark, Folder // Added Folder icon
+    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard, Target, Landmark, Folder, GraduationCap, ListPlus // Added Icons
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react'; // Import React
@@ -78,12 +81,32 @@ export default function RootLayout({
 
                  {/* Core Management Modules */}
                  <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Treinamentos">
-                     <Link href="/trainings">
-                       <HardHat />
-                       <span>Treinamentos</span>
-                     </Link>
-                   </SidebarMenuButton>
+                    {/* Button for the main Trainings section */}
+                    <SidebarMenuButton asChild tooltip="Treinamentos">
+                        <Link href="/trainings">
+                          <GraduationCap /> {/* Changed Icon */}
+                          <span>Treinamentos</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    {/* Submenu for Trainings */}
+                    <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild>
+                                <Link href="/trainings">
+                                    <ListChecks /> {/* Icon for Records */}
+                                    <span>Registros</span>
+                                </Link>
+                            </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild>
+                                <Link href="/trainings/types">
+                                    <ListPlus /> {/* Icon for Adding Types */}
+                                    <span>Tipos de Treinamento</span>
+                                </Link>
+                            </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                    </SidebarMenuSub>
                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="EPIs">

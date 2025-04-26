@@ -1,15 +1,16 @@
 
+
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/date-picker'; // Assume this component exists
-import { PlusCircle, Search, Edit, Trash2, AlertTriangle, Users, Award, Eye, Link2 } from 'lucide-react'; // Added Users, Award, Eye, Link2
+import { DatePicker } from '@/components/date-picker';
+import { PlusCircle, Search, Edit, Trash2, AlertTriangle, Users, Award, Eye, Link2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -22,87 +23,121 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { TrainingRecord } from '@/lib/types'; // Import TrainingRecord type
-import { Badge } from "@/components/ui/badge"; // Ensure Badge is imported if used for status
+import type { TrainingRecord as PrismaTrainingRecord, TrainingType as PrismaTrainingType } from '@prisma/client';
+import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
+import { getTrainingRecords, createTrainingRecord, updateTrainingRecord, deleteTrainingRecord, getTrainingTypes } from './actions'; // Import server actions
 
-// Mock data structure - replace with actual data fetching
-const mockTrainings: TrainingRecord[] = [
-  { id: '1', employeeName: 'João Silva', trainingType: 'NR-35 Trabalho em Altura', trainingDate: new Date(2023, 5, 15), expiryDate: new Date(2025, 5, 14), status: 'Válido', attendanceListUrl: '/uploads/attendance/1-nr35-joao.pdf', certificateUrl: '/uploads/certificates/1-nr35-joao.pdf' },
-  { id: '2', employeeName: 'Maria Oliveira', trainingType: 'NR-33 Espaços Confinados', trainingDate: new Date(2022, 10, 20), expiryDate: new Date(2023, 10, 19), status: 'Vencido' },
-  { id: '3', employeeName: 'Carlos Pereira', trainingType: 'Primeiros Socorros', trainingDate: new Date(2024, 0, 10), status: 'Válido', certificateUrl: '/uploads/certificates/3-ps-carlos.pdf' },
-  { id: '4', employeeName: 'Ana Costa', trainingType: 'NR-35 Trabalho em Altura', trainingDate: new Date(2024, 6, 25), expiryDate: new Date(2026, 6, 24), status: 'Próximo ao Vencimento' }, // Adjusted expiry for testing status
-  { id: '5', employeeName: 'Pedro Santos', trainingType: 'NR-10 Eletricidade', trainingDate: new Date(2023, 8, 1), expiryDate: new Date(2025, 7, 31), status: 'Válido', attendanceListUrl: '/uploads/attendance/5-nr10-pedro.pdf' },
-];
+// Extend Prisma type if needed
+type TrainingRecord = PrismaTrainingRecord & { employeeName?: string | null, trainingTypeName?: string | null };
+type TrainingType = PrismaTrainingType; // Assuming we get the full TrainingType object
 
 // Helper function to calculate status based on dates
-const getTrainingStatus = (training: TrainingRecord): TrainingRecord['status'] => {
-  if (!training.expiryDate) return 'Válido'; // Assume valid if no expiry date? Or define logic.
+const getTrainingStatus = (training: PrismaTrainingRecord): PrismaTrainingRecord['status'] => {
+  if (!training.expiryDate) return 'Valido';
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
   const expiry = new Date(training.expiryDate);
-  expiry.setHours(0,0,0,0);
+  expiry.setHours(0, 0, 0, 0);
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(today.getDate() + 30);
-  thirtyDaysFromNow.setHours(0,0,0,0);
+  thirtyDaysFromNow.setHours(0, 0, 0, 0);
 
   if (expiry < today) return 'Vencido';
-  if (expiry <= thirtyDaysFromNow) return 'Próximo ao Vencimento';
-  return 'Válido';
+  if (expiry <= thirtyDaysFromNow) return 'Proximo_ao_Vencimento';
+  return 'Valido';
 };
-
-// Update mock data status dynamically
-const processedTrainings = mockTrainings.map(t => ({ ...t, status: getTrainingStatus(t) }));
 
 
 export default function TrainingsPage() {
-  const [trainings, setTrainings] = useState<TrainingRecord[]>(processedTrainings);
+  const [trainings, setTrainings] = useState<TrainingRecord[]>([]);
+  const [trainingTypes, setTrainingTypes] = useState<TrainingType[]>([]); // State for training types
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTraining, setEditingTraining] = useState<TrainingRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track deleting ID
   const { toast } = useToast();
 
   // Form state
-  const [employeeName, setEmployeeName] = useState('');
-  const [trainingType, setTrainingType] = useState('');
+  const [employeeName, setEmployeeName] = useState(''); // Keep this for display, but save employeeId
+  const [employeeId, setEmployeeId] = useState(''); // Use employeeId
+  const [trainingTypeId, setTrainingTypeId] = useState(''); // Link to TrainingType model
   const [trainingDate, setTrainingDate] = useState<Date | undefined>(undefined);
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
-  const [attendanceListFile, setAttendanceListFile] = useState<File | null>(null); // Added
-  const [certificateFile, setCertificateFile] = useState<File | null>(null); // Added
-  const [currentAttendanceListUrl, setCurrentAttendanceListUrl] = useState<string | undefined>(undefined); // Added
-  const [currentCertificateUrl, setCurrentCertificateUrl] = useState<string | undefined>(undefined); // Added
+  const [attendanceListFile, setAttendanceListFile] = useState<File | null>(null);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [currentAttendanceListUrl, setCurrentAttendanceListUrl] = useState<string | undefined>(undefined);
+  const [currentCertificateUrl, setCurrentCertificateUrl] = useState<string | undefined>(undefined);
+
+   // --- Data Fetching ---
+   const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [fetchedTrainings, fetchedTypes] = await Promise.all([
+          getTrainingRecords(),
+          getTrainingTypes() // Fetch training types
+      ]);
+      // Process trainings to include type name and calculate status
+      const processedTrainings = fetchedTrainings.map(t => {
+          const type = fetchedTypes.find(tt => tt.id === t.trainingTypeId);
+          return {
+              ...t,
+              status: getTrainingStatus(t), // Recalculate status on fetch
+              trainingTypeName: type?.name ?? 'Tipo Desconhecido' // Get name from fetched types
+          };
+      });
+      setTrainings(processedTrainings);
+      setTrainingTypes(fetchedTypes);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({ title: "Erro", description: "Não foi possível buscar os dados.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+   }, [toast]);
+
+   useEffect(() => {
+      fetchData();
+   }, [fetchData]);
+
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
   };
 
-  const filteredTrainings = trainings.filter((training) =>
-    training.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    training.trainingType.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTrainings = useMemo(() => trainings.filter((training) =>
+    (training.employeeName?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+    (training.trainingTypeName?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
+  ), [trainings, searchTerm]);
+
 
   const resetForm = () => {
     setEmployeeName('');
-    setTrainingType('');
+    setEmployeeId('');
+    setTrainingTypeId('');
     setTrainingDate(undefined);
     setExpiryDate(undefined);
-    setAttendanceListFile(null); // Added
-    setCertificateFile(null); // Added
-    setCurrentAttendanceListUrl(undefined); // Added
-    setCurrentCertificateUrl(undefined); // Added
+    setAttendanceListFile(null);
+    setCertificateFile(null);
+    setCurrentAttendanceListUrl(undefined);
+    setCurrentCertificateUrl(undefined);
     setEditingTraining(null);
   };
 
    const handleOpenForm = (training: TrainingRecord | null = null) => {
        if (training) {
            setEditingTraining(training);
-           setEmployeeName(training.employeeName);
-           setTrainingType(training.trainingType);
-           setTrainingDate(training.trainingDate);
-           setExpiryDate(training.expiryDate);
-           setCurrentAttendanceListUrl(training.attendanceListUrl); // Added
-           setCurrentCertificateUrl(training.certificateUrl); // Added
-           setAttendanceListFile(null); // Clear file inputs on edit
-           setCertificateFile(null); // Clear file inputs on edit
+           setEmployeeName(training.employeeName || ''); // Assuming employeeName is populated
+           setEmployeeId(training.employeeId || ''); // Make sure employeeId exists
+           setTrainingTypeId(training.trainingTypeId);
+           setTrainingDate(training.trainingDate ? new Date(training.trainingDate) : undefined);
+           setExpiryDate(training.expiryDate ? new Date(training.expiryDate) : undefined);
+           setCurrentAttendanceListUrl(training.attendanceListUrl || undefined);
+           setCurrentCertificateUrl(training.certificateUrl || undefined);
+           setAttendanceListFile(null);
+           setCertificateFile(null);
        } else {
            resetForm();
        }
@@ -118,114 +153,110 @@ export default function TrainingsPage() {
   const handleAttendanceFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (event.target.files && event.target.files[0]) {
           setAttendanceListFile(event.target.files[0]);
-          setCurrentAttendanceListUrl(undefined); // Clear existing URL if new file selected
+          setCurrentAttendanceListUrl(undefined);
       } else {
           setAttendanceListFile(null);
+          if (editingTraining) setCurrentAttendanceListUrl(editingTraining.attendanceListUrl || undefined);
       }
   };
 
   const handleCertificateFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (event.target.files && event.target.files[0]) {
           setCertificateFile(event.target.files[0]);
-          setCurrentCertificateUrl(undefined); // Clear existing URL if new file selected
+          setCurrentCertificateUrl(undefined);
       } else {
           setCertificateFile(null);
+          if (editingTraining) setCurrentCertificateUrl(editingTraining.certificateUrl || undefined);
       }
   };
 
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!employeeName || !trainingType || !trainingDate) {
+    // Add validation for employeeId and trainingTypeId
+    if (!employeeId || !trainingTypeId || !trainingDate) {
         toast({
             title: "Erro",
-            description: "Por favor, preencha todos os campos obrigatórios.",
+            description: "Colaborador, Tipo de Treinamento e Data são obrigatórios.",
             variant: "destructive",
         });
         return;
     }
+    setIsSubmitting(true);
 
-     // --- Mock File Upload Logic ---
-     let attendanceUrl = currentAttendanceListUrl; // Keep existing URL if editing and no new file
+
+     // --- Mock File Upload Logic (Needs real implementation) ---
+     let attendanceUrl = currentAttendanceListUrl;
      if (attendanceListFile) {
-       // Simulate URL generation (in a real app, this would be the result of an upload)
        attendanceUrl = `/uploads/attendance/${Date.now()}-${encodeURIComponent(attendanceListFile.name)}`;
        console.log(`Simulating upload for attendance list: ${attendanceListFile.name} to ${attendanceUrl}`);
-       toast({ title: "Simulação de Upload", description: `Lista de presença "${attendanceListFile.name}" salva em ${attendanceUrl}`});
        // In a real app: attendanceUrl = await uploadFile(attendanceListFile);
      }
 
-     let certificateUrl = currentCertificateUrl; // Keep existing URL if editing and no new file
+     let certificateUrl = currentCertificateUrl;
      if (certificateFile) {
-        // Simulate URL generation
        certificateUrl = `/uploads/certificates/${Date.now()}-${encodeURIComponent(certificateFile.name)}`;
        console.log(`Simulating upload for certificate: ${certificateFile.name} to ${certificateUrl}`);
-       toast({ title: "Simulação de Upload", description: `Certificado "${certificateFile.name}" salvo em ${certificateUrl}`});
        // In a real app: certificateUrl = await uploadFile(certificateFile);
      }
      // --- End Mock File Upload Logic ---
 
-
-    const newTraining: TrainingRecord = {
-      id: editingTraining ? editingTraining.id : Date.now().toString(), // Simple ID generation
-      employeeName,
-      trainingType,
-      trainingDate,
-      expiryDate,
-      status: 'Válido', // Initial status, will be recalculated
-      attendanceListUrl: attendanceUrl, // Added
-      certificateUrl: certificateUrl, // Added
+    const trainingData = {
+      employeeId: employeeId, // Use employeeId from state
+      trainingTypeId: trainingTypeId,
+      trainingDate: trainingDate,
+      expiryDate: expiryDate || null, // Prisma expects null for optional dates
+      attendanceListUrl: attendanceUrl || null,
+      certificateUrl: certificateUrl || null,
     };
-    newTraining.status = getTrainingStatus(newTraining); // Recalculate status
 
-    if (editingTraining) {
-        // Update existing training
-        setTrainings(trainings.map(t => t.id === editingTraining.id ? newTraining : t));
-        toast({
-            title: "Sucesso",
-            description: "Treinamento atualizado com sucesso.",
-        });
-    } else {
-        // Add new training
-        setTrainings([newTraining, ...trainings]);
-         toast({
-             title: "Sucesso",
-             description: "Treinamento adicionado com sucesso.",
-         });
+    try {
+        let savedRecord;
+        if (editingTraining) {
+            savedRecord = await updateTrainingRecord(editingTraining.id, trainingData);
+            toast({ title: "Sucesso", description: "Treinamento atualizado." });
+        } else {
+            savedRecord = await createTrainingRecord(trainingData);
+            toast({ title: "Sucesso", description: "Treinamento adicionado." });
+        }
+        handleCloseForm();
+        fetchData(); // Re-fetch data
+    } catch (error: any) {
+        console.error("Error saving training:", error);
+        toast({ title: "Erro", description: error.message || "Falha ao salvar o treinamento.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
     }
-
-
-    handleCloseForm();
   };
 
-  const handleDelete = (id: string) => {
-      setTrainings(trainings.filter(t => t.id !== id));
-      toast({
-          title: "Sucesso",
-          description: "Treinamento excluído com sucesso.",
-          variant: "destructive" // Use destructive variant for delete confirmation
-      });
-  };
+ const handleDelete = async (id: string) => {
+     setIsDeleting(id);
+     try {
+         await deleteTrainingRecord(id);
+         toast({ title: "Sucesso", description: "Treinamento excluído.", variant: "destructive" });
+         fetchData(); // Re-fetch data after deletion
+     } catch (error: any) {
+         console.error("Error deleting training:", error);
+         toast({ title: "Erro", description: error.message || "Falha ao excluir o treinamento.", variant: "destructive" });
+     } finally {
+         setIsDeleting(null);
+     }
+ };
 
 
-   const getStatusBadgeVariant = (status: TrainingRecord['status']): "default" | "secondary" | "destructive" | "outline" => {
+   const getStatusBadgeVariant = (status: PrismaTrainingRecord['status']): "default" | "secondary" | "destructive" | "outline" => {
      switch (status) {
-       case 'Válido':
-         return 'default'; // Primary/Green
-       case 'Vencido':
-         return 'destructive'; // Red
-       case 'Próximo ao Vencimento':
-         return 'secondary'; // Orange/Yellow
-       default:
-         return 'outline'; // Grey/Neutral
+       case 'Valido': return 'default';
+       case 'Vencido': return 'destructive';
+       case 'Proximo_ao_Vencimento': return 'secondary';
+       default: return 'outline';
      }
    };
 
    const handleViewFile = (url: string | undefined, fileName: string) => {
         if (url) {
-            // In a real app, you might open the actual URL
+            // In a real app, open the actual URL or trigger download
             // window.open(url, '_blank');
-            // For simulation, show a toast message
             toast({
                 title: "Visualização Simulada",
                 description: `Abriria o arquivo: ${fileName} (${url})`,
@@ -243,53 +274,67 @@ export default function TrainingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de Treinamentos</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de Registros de Treinamentos</h1>
          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
              <DialogTrigger asChild>
-                 <Button onClick={() => handleOpenForm()}>
-                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Treinamento
+                 <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting}>
+                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Registro
                  </Button>
              </DialogTrigger>
-             <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()} > {/* Adjusted width */}
+             <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()} >
                  <DialogHeader>
-                     <DialogTitle>{editingTraining ? 'Editar Treinamento' : 'Adicionar Novo Treinamento'}</DialogTitle>
+                     <DialogTitle>{editingTraining ? 'Editar Registro' : 'Adicionar Novo Registro'}</DialogTitle>
                  </DialogHeader>
                  <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                     {/* Need Employee Select Dropdown - Assuming employees are fetched elsewhere */}
                      <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="employeeName" className="text-right">
-                             Colaborador
+                         <Label htmlFor="employeeId" className="text-right">
+                             Colaborador*
                          </Label>
-                         <Input id="employeeName" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="col-span-3" required />
+                         {/* Replace this Input with a Select dropdown populated with employees */}
+                         <Input
+                            id="employeeName"
+                            value={employeeName}
+                            onChange={(e) => {
+                                setEmployeeName(e.target.value);
+                                // Find and set employeeId based on selected name (or use a proper Select component)
+                                // This part needs a proper Employee Select component implementation
+                                // For now, just use a placeholder or manually set ID
+                                // setEmployeeId(findEmployeeIdByName(e.target.value));
+                            }}
+                            placeholder="Selecione ou digite o nome..."
+                            className="col-span-3" required disabled={isSubmitting} />
+                            {/* Add hidden input or manage employeeId state separately */}
+                            <Input type="hidden" value={employeeId} />
                      </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="trainingType" className="text-right">
-                             Tipo
+                     {/* Training Type Dropdown */}
+                      <div className="grid grid-cols-4 items-center gap-4">
+                         <Label htmlFor="trainingTypeId" className="text-right">
+                             Tipo*
                          </Label>
-                          <Select value={trainingType} onValueChange={setTrainingType} required>
-                             <SelectTrigger id="trainingType" className="col-span-3">
-                                 <SelectValue placeholder="Selecione o tipo" />
+                         <Select value={trainingTypeId} onValueChange={setTrainingTypeId} required disabled={isSubmitting || isLoading}>
+                             <SelectTrigger id="trainingTypeId" className="col-span-3">
+                                 <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o tipo"} />
                              </SelectTrigger>
                              <SelectContent>
-                                 <SelectItem value="NR-35 Trabalho em Altura">NR-35 Trabalho em Altura</SelectItem>
-                                 <SelectItem value="NR-33 Espaços Confinados">NR-33 Espaços Confinados</SelectItem>
-                                 <SelectItem value="Primeiros Socorros">Primeiros Socorros</SelectItem>
-                                 <SelectItem value="NR-10 Eletricidade">NR-10 Eletricidade</SelectItem>
-                                 <SelectItem value="Outro">Outro (especificar)</SelectItem>
+                                {trainingTypes.map(type => (
+                                    <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                                ))}
+                                {trainingTypes.length === 0 && !isLoading && <SelectItem value="" disabled>Nenhum tipo cadastrado</SelectItem>}
                              </SelectContent>
                          </Select>
-                     </div>
-                      {/* Add input for 'Other' training type if needed */}
+                      </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                          <Label htmlFor="trainingDate" className="text-right">
-                             Data
+                             Data*
                          </Label>
-                         <DatePicker date={trainingDate} setDate={setTrainingDate} className="col-span-3" required />
+                         <DatePicker date={trainingDate} setDate={setTrainingDate} className="col-span-3" required disabled={isSubmitting} />
                      </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                          <Label htmlFor="expiryDate" className="text-right">
                              Vencimento
                          </Label>
-                         <DatePicker date={expiryDate} setDate={setExpiryDate} className="col-span-3" />
+                         <DatePicker date={expiryDate} setDate={setExpiryDate} className="col-span-3" disabled={isSubmitting}/>
                      </div>
                      {/* Attendance List Upload */}
                       <div className="grid grid-cols-4 items-center gap-4">
@@ -297,16 +342,14 @@ export default function TrainingsPage() {
                               Lista Presença
                           </Label>
                           <div className="col-span-3 flex items-center gap-2">
-                              <Input id="attendanceFile" type="file" onChange={handleAttendanceFileChange} className="flex-1" accept=".pdf,.doc,.docx,.jpg,.png" />
+                              <Input id="attendanceFile" type="file" onChange={handleAttendanceFileChange} className="flex-1" accept=".pdf,.doc,.docx,.jpg,.png" disabled={isSubmitting}/>
                               {currentAttendanceListUrl && !attendanceListFile && (
                                   <Button
-                                      type="button"
-                                      variant="link"
-                                      size="sm"
+                                      type="button" variant="link" size="sm"
                                       className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
                                       onClick={() => handleViewFile(currentAttendanceListUrl, 'lista de presença atual')}
                                       title={`Ver lista atual: ${currentAttendanceListUrl.split('/').pop()}`}
-                                  >
+                                      disabled={isSubmitting} >
                                       Ver atual
                                   </Button>
                               )}
@@ -323,16 +366,14 @@ export default function TrainingsPage() {
                                Certificado
                            </Label>
                            <div className="col-span-3 flex items-center gap-2">
-                               <Input id="certificateFile" type="file" onChange={handleCertificateFileChange} className="flex-1" accept=".pdf,.jpg,.png" />
+                               <Input id="certificateFile" type="file" onChange={handleCertificateFileChange} className="flex-1" accept=".pdf,.jpg,.png" disabled={isSubmitting}/>
                                {currentCertificateUrl && !certificateFile && (
                                     <Button
-                                      type="button"
-                                      variant="link"
-                                      size="sm"
+                                      type="button" variant="link" size="sm"
                                       className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
                                       onClick={() => handleViewFile(currentCertificateUrl, 'certificado atual')}
                                       title={`Ver certificado atual: ${currentCertificateUrl.split('/').pop()}`}
-                                    >
+                                      disabled={isSubmitting}>
                                        Ver atual
                                    </Button>
                                )}
@@ -346,9 +387,16 @@ export default function TrainingsPage() {
 
                      <DialogFooter>
                           <DialogClose asChild>
-                              <Button type="button" variant="outline" onClick={handleCloseForm}>Cancelar</Button>
+                              <Button type="button" variant="outline" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
                           </DialogClose>
-                         <Button type="submit">{editingTraining ? 'Salvar Alterações' : 'Adicionar Treinamento'}</Button>
+                         <Button type="submit" disabled={isSubmitting}>
+                             {isSubmitting ? (
+                                <>
+                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...
+                                </>
+                             ) : editingTraining ? 'Salvar Alterações' : 'Adicionar Registro'
+                             }
+                         </Button>
                      </DialogFooter>
                  </form>
              </DialogContent>
@@ -364,6 +412,7 @@ export default function TrainingsPage() {
           className="pl-8 w-full sm:w-1/2 md:w-1/3"
           value={searchTerm}
           onChange={handleSearch}
+          disabled={isLoading}
         />
       </div>
 
@@ -381,48 +430,56 @@ export default function TrainingsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTrainings.length > 0 ? (
+             {isLoading ? (
+                 <TableRow>
+                     <TableCell colSpan={6} className="h-24 text-center">
+                         <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                         Carregando...
+                     </TableCell>
+                 </TableRow>
+             ) : filteredTrainings.length > 0 ? (
               filteredTrainings.map((training) => (
-                <TableRow key={training.id}>
-                  <TableCell className="font-medium">{training.employeeName}</TableCell>
-                  <TableCell>{training.trainingType}</TableCell>
-                  <TableCell>{training.trainingDate.toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell>{training.expiryDate ? training.expiryDate.toLocaleDateString('pt-BR') : 'N/A'}</TableCell>
+                <TableRow key={training.id} className={isDeleting === training.id ? 'opacity-50' : ''}>
+                  <TableCell className="font-medium">{training.employeeName ?? 'N/A'}</TableCell>
+                  <TableCell>{training.trainingTypeName ?? 'N/A'}</TableCell>
+                  <TableCell>{format(new Date(training.trainingDate), 'dd/MM/yyyy')}</TableCell>
+                  <TableCell>{training.expiryDate ? format(new Date(training.expiryDate), 'dd/MM/yyyy') : 'N/A'}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusBadgeVariant(training.status)}>
-                      {training.status === 'Próximo ao Vencimento' || training.status === 'Vencido' ? <AlertTriangle className="inline-block h-3 w-3 mr-1" /> : null}
-                      {training.status}
+                      {(training.status === 'Proximo_ao_Vencimento' || training.status === 'Vencido') && <AlertTriangle className="inline-block h-3 w-3 mr-1" />}
+                      {training.status.replace('_', ' ')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                      {/* View Buttons */}
-                    <Button variant="ghost" size="icon" title="Ver Lista de Presença" onClick={() => handleViewFile(training.attendanceListUrl, 'lista de presença')} disabled={!training.attendanceListUrl}>
+                    <Button variant="ghost" size="icon" title="Ver Lista de Presença" onClick={() => handleViewFile(training.attendanceListUrl || undefined, 'lista de presença')} disabled={!training.attendanceListUrl || isSubmitting || !!isDeleting}>
                          <Users className={training.attendanceListUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
                        </Button>
-                     <Button variant="ghost" size="icon" title="Ver Certificado" onClick={() => handleViewFile(training.certificateUrl, 'certificado')} disabled={!training.certificateUrl}>
+                     <Button variant="ghost" size="icon" title="Ver Certificado" onClick={() => handleViewFile(training.certificateUrl || undefined, 'certificado')} disabled={!training.certificateUrl || isSubmitting || !!isDeleting}>
                          <Award className={training.certificateUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
                        </Button>
                      {/* Edit and Delete Buttons */}
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(training)} title="Editar">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(training)} title="Editar" disabled={isSubmitting || !!isDeleting}>
                       <Edit className="h-4 w-4" />
                     </Button>
                      <AlertDialog>
                          <AlertDialogTrigger asChild>
-                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Excluir">
-                                 <Trash2 className="h-4 w-4" />
+                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Excluir" disabled={isSubmitting || !!isDeleting}>
+                                  {isDeleting === training.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
                              </Button>
                          </AlertDialogTrigger>
                          <AlertDialogContent>
                              <AlertDialogHeader>
                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                  <AlertDialogDescription>
-                                     Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro de treinamento para <span className="font-medium">{training.employeeName}</span>.
+                                     Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro de treinamento para <span className="font-medium">{training.employeeName}</span> ({training.trainingTypeName}).
                                  </AlertDialogDescription>
                              </AlertDialogHeader>
                              <AlertDialogFooter>
-                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                 <AlertDialogAction onClick={() => handleDelete(training.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                     Excluir
+                                 <AlertDialogCancel disabled={!!isDeleting}>Cancelar</AlertDialogCancel>
+                                 <AlertDialogAction onClick={() => handleDelete(training.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={!!isDeleting}>
+                                     {isDeleting === training.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                     {isDeleting === training.id ? 'Excluindo...' : 'Excluir'}
                                  </AlertDialogAction>
                              </AlertDialogFooter>
                          </AlertDialogContent>
