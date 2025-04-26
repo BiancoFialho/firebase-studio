@@ -50,19 +50,22 @@ export const metadata: Metadata = {
 function AppLayout({ children }: { children: React.ReactNode }) {
   const authContext = useContext(AuthContext);
 
-  if (!authContext) {
-    // This case should ideally be handled by AuthProvider structure
-    // or show a loading state if auth check is async.
-    return <div className="flex min-h-screen items-center justify-center">Carregando...</div>; // Or a loading indicator
+  // Add a check in case context is somehow undefined during render cycle
+  if (authContext === undefined) {
+      console.error("AuthContext is undefined in AppLayout. Check Provider.");
+      // Return loading or error state, or potentially null if safe
+      return <div className="flex min-h-screen items-center justify-center">Carregando Auth...</div>;
   }
 
+
   const { isAuthenticated } = authContext;
+  // console.log("AppLayout rendering, isAuthenticated:", isAuthenticated); // Debug log
 
   return (
     <>
       {isAuthenticated ? (
         <SidebarProvider>
-          {/* Sidebar component itself was missing */}
+          {/* Sidebar component itself */}
           <Sidebar collapsible="icon" variant="sidebar" side="left">
             <SidebarHeader className="flex items-center justify-between p-4">
               <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">

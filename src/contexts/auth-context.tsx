@@ -27,13 +27,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   //   // Check for a token/session in localStorage/sessionStorage on initial load
   //   const storedAuth = sessionStorage.getItem('isAuthenticated');
   //   if (storedAuth === 'true') {
+  //     console.log("AuthProvider: Setting auth state from storage."); // Debug log
   //     setIsAuthenticated(true);
+  //   } else {
+  //     console.log("AuthProvider: No auth state found in storage."); // Debug log
   //   }
   // }, []);
   // --- End Placeholder ---
 
 
   const login = () => {
+    console.log("AuthProvider: login called, setting isAuthenticated to true."); // Debug log
     setIsAuthenticated(true);
     // --- Persistence Placeholder ---
     // sessionStorage.setItem('isAuthenticated', 'true'); // Example persistence
@@ -41,6 +45,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const logout = () => {
+    console.log("AuthProvider: logout called, setting isAuthenticated to false."); // Debug log
     setIsAuthenticated(false);
      // --- Persistence Placeholder ---
      // sessionStorage.removeItem('isAuthenticated');
@@ -48,6 +53,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
      // Optionally redirect to login page:
      // window.location.href = '/login';
   };
+
+   // Add useEffect to log state changes
+   useEffect(() => {
+      console.log("AuthProvider: isAuthenticated state changed to:", isAuthenticated);
+   }, [isAuthenticated]);
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
