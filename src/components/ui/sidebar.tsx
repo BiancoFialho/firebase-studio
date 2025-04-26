@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -549,6 +550,7 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
+      children, // Explicitly receive children
       ...props
     },
     ref
@@ -563,8 +565,10 @@ const SidebarMenuButton = React.forwardRef<
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
-      />
+        {...props} // Spread remaining props, excluding children if handled
+      >
+        {children} {/* Render children explicitly */}
+      </Comp>
     )
 
     if (!tooltip) {
@@ -761,3 +765,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
