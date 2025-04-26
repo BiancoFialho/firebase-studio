@@ -214,7 +214,7 @@ export default function RootLayout({
            <title>SSMA Control</title>
            <meta name="description" content="Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica" />
        </head>
-      <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')}>
+      <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')} suppressHydrationWarning={true}>
           <AuthProvider> {/* Wrap with AuthProvider */}
               <AppLayout>{children}</AppLayout> {/* Use the conditional layout component */}
           </AuthProvider>
