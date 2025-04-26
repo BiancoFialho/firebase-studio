@@ -1,65 +1,308 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite" // Using SQLite for local development
+  provider = "sqlite"
   url      = "file:./dev.db"
 }
 
-
-// --- Core Models ---
-
+// Model for Employees (referenced by other models)
 model Employee {
-  id            String    @id @default(cuid())
-  name          String
-  department    String? // Optional
-  // Add other fields as needed: position, admissionDate, etc.
-  accidents     AccidentRecord[] // Relation to accidents involving this employee
-  // Add relations to other modules if needed: trainings, ppe, asos, etc.
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String  @id @default(cuid())
+  name              String
+  department        String?
+  trainings         TrainingRecord[]
+  ppeRecords        PpeRecord[]
+  asos              AsoRecord[]
+  occupationalDiseases OccupationalDiseaseRecord[]
+  accidents         AccidentRecord[]
+  cipaParticipantIn CipaMeeting[] @relation("CipaParticipants")
 }
 
-
-// --- Statistics & Health ---
-
-model AccidentRecord {
-  id                  String      @id @default(cuid())
-  date                DateTime
-  time                String?
-  employeeId          String      // Foreign key to Employee
-  employeeName        String?     // Denormalized for easier access, updated via logic
-  employee            Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade) // Relation to Employee
-  department          String
-  location            String
-  type                AccidentType
-  cause               AccidentCause
-  causeDetails        String?
-  daysOff             Int         @default(0)
-  description         String
-  cid10Code           String?
-  catIssued           Boolean     @default(false)
-  investigationStatus InvestigationStatus @default(Pendente)
-  reportUrl           String?
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+// Model for Training Records
+model TrainingRecord {
+  id                 String    @id @default(cuid())
+  employeeId         String
+  employeeName       String // Denormalized for easier display, sync with Employee name
+  employee           Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  trainingType       String
+  trainingDate       DateTime
+  expiryDate         DateTime?
+  status             String // "Válido", "Vencido", "Próximo ao Vencimento" - Calculated field, store for caching/querying? Or calculate on fetch.
+  attendanceListUrl  String?
+  certificateUrl     String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
+// Model for PPE Records
+model PpeRecord {
+  id             String   @id @default(cuid())
+  employeeId     String
+  employeeName   String // Denormalized
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  ppeType        String
+  deliveryDate   DateTime
+  caNumber       String?
+  quantity       Int
+  returnDate     DateTime?
+  status         String // "Em uso", "Devolvido", "Descartado"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// Enum for ASO Exam Types
+enum AsoExamType {
+  Admissional
+  Periodico
+  Demissional
+  Mudanca_Risco
+  Retorno_Trabalho
+}
+
+// Enum for ASO Results
+enum AsoResult {
+  Apto
+  Inapto
+  Apto_Restricoes
+}
+
+// Model for ASO Records
+model AsoRecord {
+  id           String       @id @default(cuid())
+  employeeId   String
+  employeeName String // Denormalized
+  employee     Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  examType     AsoExamType
+  examDate     DateTime
+  expiryDate   DateTime
+  result       AsoResult
+  status       String // "Válido", "Vencido", "Próximo ao Vencimento" - Calculated
+  attachmentUrl String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+// Enum for Chemical Units
+enum ChemicalUnit {
+  kg
+  L
+  g
+  mL
+  unid
+}
+
+// Model for Chemical Inventory
+model ChemicalRecord {
+  id           String        @id @default(cuid())
+  productName  String
+  casNumber    String?
+  location     String
+  quantity     Float // Use Float for quantities like 1.5 L
+  unit         ChemicalUnit
+  sdsUrl       String?
+  lastUpdated  DateTime
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// Enum for JSA Status
+enum JsaStatus {
+  Ativo
+  Em_Revisao
+  Arquivado
+}
+
+// Model for JSA Records
+model JsaRecord {
+  id           String    @id @default(cuid())
+  taskName     String
+  department   String
+  analysisDate DateTime
+  reviewDate   DateTime?
+  status       JsaStatus
+  attachmentUrl String?
+  risks        RiskItem[] // Relation to Risk Items
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// Model for individual Risks within a JSA
+model RiskItem {
+  id          String    @id @default(cuid())
+  description String
+  controls    String
+  jsaId       String
+  jsa         JsaRecord @relation(fields: [jsaId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Enum for CIPA Meeting Status
+enum CipaMeetingStatus {
+  Agendada
+  Realizada
+  Cancelada
+}
+
+// Enum for Action Status (used in multiple places)
+enum ActionStatus {
+  Pendente
+  Em_Andamento
+  Concluida
+  Atrasada // Added Atrasada for Preventive Actions
+}
+
+// Model for CIPA Meetings
+model CipaMeeting {
+  id             String       @id @default(cuid())
+  date           DateTime
+  participants   Employee[]   @relation("CipaParticipants") // Many-to-many requires explicit relation table or use participantNames: String[]
+  participantNames String[] // Simpler alternative if full employee relation isn't needed immediately
+  agenda         String
+  minutesUrl     String?
+  actionsDefined CipaAction[]
+  status         CipaMeetingStatus
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// Model for Actions defined in CIPA Meetings
+model CipaAction {
+  id          String        @id @default(cuid())
+  description String
+  responsible String
+  deadline    DateTime?
+  status      ActionStatus
+  meetingId   String
+  meeting     CipaMeeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// Enum for Preventive Action Categories
+enum PreventiveActionCategory {
+  Inspecao
+  Treinamento
+  Manutencao
+  EPI
+  Procedimento
+  Outro
+}
+
+// Enum for Preventive Action Frequencies
+enum PreventiveActionFrequency {
+  Diaria
+  Semanal
+  Mensal
+  Trimestral
+  Semestral
+  Anual
+  Unica
+}
+
+// Model for Preventive Actions (Checklist)
+model PreventiveAction {
+  id                String                    @id @default(cuid())
+  description       String
+  category          PreventiveActionCategory
+  responsible       String
+  frequency         PreventiveActionFrequency?
+  dueDate           DateTime?
+  lastCompletedDate DateTime?
+  status            ActionStatus // Reusing ActionStatus enum
+  evidenceUrl       String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+}
+
+// Enum for Document Types
+enum DocumentType {
+  PGR
+  PCMSO
+  PCA
+  Laudo_Ergonomico
+  Laudo_Insalubridade
+  Laudo_Periculosidade
+  Outro
+}
+
+// Enum for Document Status
+enum DocumentStatus {
+  Valido
+  Vencido
+  Proximo_Vencimento
+  Em_Revisao
+}
+
+// Model for Documents
+model DocumentRecord {
+  id             String         @id @default(cuid())
+  documentType   DocumentType
+  title          String
+  issueDate      DateTime
+  expiryDate     DateTime
+  responsible    String
+  status         DocumentStatus
+  attachmentUrl  String?
+  relatedActions DocumentAction[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+// Model for Actions related to Documents
+model DocumentAction {
+  id          String        @id @default(cuid())
+  description String
+  responsible String
+  deadline    DateTime?
+  status      ActionStatus // Reusing ActionStatus enum
+  documentId  String
+  document    DocumentRecord @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// Enum for Lawsuit Status
+enum LawsuitStatus {
+  Em_Andamento
+  Acordo
+  Finalizado_Favoravel
+  Finalizado_Desfavoravel
+}
+
+// Model for Lawsuits
+model LawsuitRecord {
+  id            String        @id @default(cuid())
+  processNumber String        @unique
+  plaintiff     String
+  subject       String
+  status        LawsuitStatus
+  filingDate    DateTime
+  hearingDate   DateTime?
+  estimatedCost Float?
+  finalCost     Float?
+  lawyer        String?
+  details       String
+  relatedNRs    String[] // Store as an array of strings
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+// Enum for Accident Types
 enum AccidentType {
   Leve
   Grave
   Fatal
-  Trajeto
-  Tipico
+  Trajeto // Commute accident
+  Tipico // Typical work accident
 }
 
+// Enum for Accident Causes
 enum AccidentCause {
   Queda
   Choque_Eletrico
@@ -72,72 +315,53 @@ enum AccidentCause {
   Outro
 }
 
+// Enum for Investigation Status
 enum InvestigationStatus {
   Pendente
   Em_Andamento
-  Concluida // Note: Prisma uses underscores for enum values with spaces/special chars
+  Concluida
 }
 
-// --- Document Management ---
 
-model DocumentRecord {
-  id            String         @id @default(cuid())
-  documentType  DocumentType
-  title         String
-  issueDate     DateTime
-  expiryDate    DateTime
-  responsible   String
-  status        DocumentStatus
-  attachmentUrl String?
-  // relatedActions Json? // Storing actions as JSON might be simpler for now
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+// Model for Accident Records
+model AccidentRecord {
+  id                  String              @id @default(cuid())
+  date                DateTime
+  time                String? // Store as string HH:MM
+  employeeId          String
+  employeeName        String // Denormalized
+  employee            Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department          String
+  location            String
+  type                AccidentType
+  cause               AccidentCause
+  causeDetails        String?
+  daysOff             Int
+  description         String
+  cid10Code           String?
+  catIssued           Boolean             @default(false)
+  investigationStatus InvestigationStatus @default(Pendente)
+  reportUrl           String? // Link to investigation report
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 }
 
-enum DocumentType {
-  PGR
-  PCMSO
-  PCA
-  Laudo_Ergonomico
-  Laudo_Insalubridade
-  Laudo_Periculosidade
-  Outro
+// Model for Occupational Diseases
+model OccupationalDiseaseRecord {
+    id                String        @id @default(cuid())
+    employeeId        String
+    employeeName      String // Denormalized
+    employee          Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+    diseaseType       String
+    cid10Code         String
+    diagnosisDate     DateTime
+    relatedTask       String?
+    medicalReportUrl  String?
+    daysOff           Int
+    status            String // "Ativo", "Recuperado", "Afastado"
+    pcmsoLink         String?
+    createdAt         DateTime      @default(now())
+    updatedAt         DateTime      @updatedAt
 }
 
-enum DocumentStatus {
-  Valido              // Corrected: Use "Valido" instead of "Válido"
-  Vencido
-  Proximo_ao_Vencimento // Corrected: Use underscores
-  Em_Revisao            // Corrected: Use underscores
-}
-
-// Potentially add a separate Action model if more complex relationships are needed
-// model ActionItem {
-//   id          String      @id @default(cuid())
-//   description String
-//   responsible String
-//   deadline    DateTime?
-//   status      ActionStatus
-//   documentId  String?     // Link to DocumentRecord
-//   document    DocumentRecord? @relation(fields: [documentId], references: [id])
-//   // Add links to CIPA meetings, JSA, etc. if needed
-//   createdAt   DateTime    @default(now())
-//   updatedAt   DateTime    @updatedAt
-// }
-
-// enum ActionStatus {
-//   Pendente
-//   Em_Andamento
-//   Concluida
-// }
-
-
-// --- Future Models (Placeholders) ---
-// model TrainingRecord { ... }
-// model PpeRecord { ... }
-// model AsoRecord { ... }
-// model ChemicalRecord { ... }
-// model JsaRecord { ... }
-// model LawsuitRecord { ... }
-// model CipaMeetingRecord { ... }
-// model PreventiveAction { ... }
+    

@@ -1,141 +1,68 @@
 // src/lib/types.ts
-import type { Prisma } from '@prisma/client'; // Import Prisma types if needed
+import type {
+    Prisma,
+    Employee as PrismaEmployee,
+    TrainingRecord as PrismaTrainingRecord,
+    PpeRecord as PrismaPpeRecord,
+    AsoRecord as PrismaAsoRecord,
+    ChemicalRecord as PrismaChemicalRecord,
+    JsaRecord as PrismaJsaRecord,
+    RiskItem as PrismaRiskItem,
+    CipaMeeting as PrismaCipaMeeting,
+    CipaAction as PrismaCipaAction,
+    PreventiveAction as PrismaPreventiveAction,
+    DocumentRecord as PrismaDocumentRecord,
+    DocumentAction as PrismaDocumentAction,
+    LawsuitRecord as PrismaLawsuitRecord,
+    AccidentRecord as PrismaAccidentRecord,
+    OccupationalDiseaseRecord as PrismaOccupationalDiseaseRecord,
+} from '@prisma/client';
 
-// Existing types (assuming they might exist or be added later)
-export interface Employee {
-  id: string;
-  name: string;
-  department: string;
-  // other employee details
-}
+// --- Re-export Prisma types or create custom types based on them ---
 
-export interface TrainingRecord {
-  id: string;
-  employeeName: string;
-  trainingType: string;
-  trainingDate: Date;
-  expiryDate?: Date;
-  status: 'Válido' | 'Vencido' | 'Próximo ao Vencimento';
-  attendanceListUrl?: string; // Added: Link to attendance list
-  certificateUrl?: string; // Added: Link to certificate
-}
-
-export interface PpeRecord {
-  id: string;
-  employeeName: string;
-  ppeType: string;
-  deliveryDate: Date;
-  caNumber?: string;
-  quantity: number;
-  returnDate?: Date;
-  status: 'Em uso' | 'Devolvido' | 'Descartado';
-}
-
-export interface AsoRecord {
-  id: string;
-  employeeName: string;
-  examType: 'Admissional' | 'Periódico' | 'Demissional' | 'Mudança de Risco' | 'Retorno ao Trabalho';
-  examDate: Date;
-  expiryDate: Date;
-  result: 'Apto' | 'Inapto' | 'Apto com Restrições';
-  status: 'Válido' | 'Vencido' | 'Próximo ao Vencimento';
-  attachmentUrl?: string;
-}
-
-export interface ChemicalRecord {
-  id: string;
-  productName: string;
-  casNumber?: string;
-  location: string;
-  quantity: number;
-  unit: 'kg' | 'L' | 'g' | 'mL' | 'unid.';
-  sdsUrl?: string;
-  lastUpdated: Date;
-}
-
-export interface JsaRecord {
-  id: string;
-  taskName: string;
-  department: string;
-  analysisDate: Date;
-  reviewDate?: Date;
-  status: 'Ativo' | 'Em Revisão' | 'Arquivado';
-  attachmentUrl?: string;
-  risks: { id: string; description: string; controls: string }[];
-}
+// Use Prisma types directly for models that don't need frontend-specific additions yet
+export type Employee = PrismaEmployee;
+export type TrainingRecord = PrismaTrainingRecord & { employeeName?: string | null }; // Add potential denormalized fields if needed
+export type PpeRecord = PrismaPpeRecord & { employeeName?: string | null };
+export type AsoRecord = PrismaAsoRecord & { employeeName?: string | null };
+export type ChemicalRecord = PrismaChemicalRecord;
+export type JsaRecord = PrismaJsaRecord & { risks: RiskItem[] }; // Include related risks
+export type RiskItem = PrismaRiskItem;
+export type CipaMeetingRecord = PrismaCipaMeeting & { actionsDefined: CipaAction[] }; // Include related actions
+export type CipaAction = PrismaCipaAction;
+export type PreventiveAction = PrismaPreventiveAction;
+export type DocumentRecord = PrismaDocumentRecord & { relatedActions: DocumentAction[] }; // Include related actions
+export type DocumentAction = PrismaDocumentAction;
+export type LawsuitRecord = PrismaLawsuitRecord;
+export type AccidentRecord = PrismaAccidentRecord & { employeeName?: string | null }; // Use Prisma type, add optional name
+export type OccupationalDiseaseRecord = PrismaOccupationalDiseaseRecord & { employeeName?: string | null };
 
 
-// Using Prisma types for consistency (assuming Prisma schema is defined)
-export type AccidentRecord = Prisma.AccidentRecord; // Use Prisma-generated type
+// --- Keep Enums (if not directly using Prisma Enums on client, or for clarity) ---
+// You can often import Enums directly from @prisma/client where needed
+// Example: import { AccidentType } from '@prisma/client';
 
-export interface OccupationalDiseaseRecord {
-  id: string;
-  employeeName: string;
-  diseaseType: string; // e.g., LER/DORT, Perda Auditiva, Dermatose
-  cid10Code: string;
-  diagnosisDate: Date;
-  relatedTask?: string; // Task associated with the disease
-  medicalReportUrl?: string;
-  daysOff: number;
-  status: 'Ativo' | 'Recuperado' | 'Afastado'; // Current status
-  pcmsoLink?: string; // Placeholder for PCMSO integration link/ID
-}
-
-export interface LawsuitRecord {
-    id: string;
-    processNumber: string;
-    plaintiff: string; // Employee name or other party
-    subject: string; // e.g., Insalubridade, Falta de EPI, Acidente
-    status: 'Em Andamento' | 'Acordo' | 'Finalizado - Favorável' | 'Finalizado - Desfavorável';
-    filingDate: Date;
-    hearingDate?: Date;
-    estimatedCost?: number;
-    finalCost?: number;
-    lawyer?: string;
-    details: string;
-    relatedNRs?: string[]; // e.g., ['NR-6', 'NR-15']
-}
-
-export interface CipaMeetingRecord {
-    id: string;
-    date: Date;
-    participants: string[]; // List of employee names or IDs
-    agenda: string; // Topics discussed
-    minutesUrl?: string; // Link to digital minutes
-    actionsDefined: { id: string; description: string; responsible: string; deadline?: Date; status: 'Pendente' | 'Em Andamento' | 'Concluída' }[]; // Added ID to actions
-    status: 'Agendada' | 'Realizada' | 'Cancelada';
-}
-
-export interface PreventiveAction {
-    id: string;
-    description: string;
-    category: 'Inspeção' | 'Treinamento' | 'Manutenção' | 'EPI' | 'Procedimento' | 'Outro';
-    responsible: string; // Department or employee name
-    frequency?: 'Diária' | 'Semanal' | 'Mensal' | 'Trimestral' | 'Semestral' | 'Anual' | 'Única';
-    dueDate?: Date; // For unique actions
-    lastCompletedDate?: Date;
-    status: 'Pendente' | 'Em Andamento' | 'Concluída' | 'Atrasada';
-    evidenceUrl?: string; // Link to evidence of completion
-}
-
-// Type for Document Management
-export type DocumentType = 'PGR' | 'PCMSO' | 'PCA' | 'Laudo Ergonômico' | 'Laudo Insalubridade' | 'Laudo Periculosidade' | 'Outro';
-export type DocumentStatus = 'Válido' | 'Vencido' | 'Próximo ao Vencimento' | 'Em Revisão';
-
-export interface DocumentRecord {
-    id: string;
-    documentType: DocumentType;
-    title: string; // e.g., "PGR Nery Mecatrônica 2024"
-    issueDate: Date;
-    expiryDate: Date; // Expiration or next review date
-    responsible: string; // e.g., "SESMT", "Eng. Bianco"
-    status: DocumentStatus;
-    attachmentUrl?: string; // Link to the actual document
-    relatedActions: { id: string; description: string; responsible: string; deadline?: Date; status: 'Pendente' | 'Em Andamento' | 'Concluída' }[]; // Simplified action tracking
-}
+// Enum types (can be replaced by importing from @prisma/client in components)
+export type {
+    AsoExamType,
+    AsoResult,
+    ChemicalUnit,
+    JsaStatus,
+    CipaMeetingStatus,
+    ActionStatus,
+    PreventiveActionCategory,
+    PreventiveActionFrequency,
+    DocumentType,
+    DocumentStatus,
+    LawsuitStatus,
+    AccidentType,
+    AccidentCause,
+    InvestigationStatus,
+} from '@prisma/client';
 
 
-// For Statistics calculation
+// --- Statistics Type ---
+// Keep this custom type as it aggregates data
 export interface StatisticsData {
     totalHoursWorked: number;
     numberOfAccidents: number;
@@ -148,3 +75,8 @@ export interface StatisticsData {
     cipaMeetingsHeld?: number; // Optional KPI
     occupationalDiseases?: number; // Optional KPI
 }
+
+// Type for simplified Employee used in dropdowns
+export type EmployeeSelectItem = Pick<PrismaEmployee, 'id' | 'name'>;
+
+    

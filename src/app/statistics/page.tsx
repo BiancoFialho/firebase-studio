@@ -1,7 +1,7 @@
 // src/app/statistics/page.tsx
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from '@/components/date-picker';
-import { PlusCircle, Search, Edit, Trash2, TrendingUp, BarChartHorizontalBig, AlertCircle, Calculator } from 'lucide-react';
+import { PlusCircle, Search, Edit, Trash2, TrendingUp, BarChartHorizontalBig, AlertCircle, Calculator, Loader2 } from 'lucide-react'; // Added Loader2
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -31,27 +31,31 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { Prisma, AccidentRecord as PrismaAccidentRecord, AccidentType, AccidentCause, InvestigationStatus } from '@prisma/client'; // Import Prisma types
+import { Prisma, AccidentRecord as PrismaAccidentRecord, Employee as PrismaEmployee, AccidentType, AccidentCause, InvestigationStatus } from '@prisma/client';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
 import { format } from 'date-fns';
-import { createAccident, getAccidents, updateAccident, deleteAccident } from '@/app/statistics/actions'; // Import server actions
+import { createAccident, getAccidents, updateAccident, deleteAccident, getEmployees } from '@/app/statistics/actions'; // Import server actions
 
 // Extend Prisma type if needed, or use directly
-type AccidentRecord = PrismaAccidentRecord;
+// type AccidentRecord = PrismaAccidentRecord;
+type AccidentRecordWithEmployee = PrismaAccidentRecord & {
+    employeeName?: string | null; // Prisma action will add this
+};
+type Employee = Pick<PrismaEmployee, 'id' | 'name'>; // Simplified Employee type for dropdown
 
 // --- Form Validation Schema ---
 const accidentSchema = z.object({
   id: z.string().optional(), // Optional for creation
   date: z.date({ required_error: "Data é obrigatória." }),
   time: z.string().optional(),
-  employeeId: z.string().min(1, "Colaborador é obrigatório."), // Assuming IDs are stored
-  employeeName: z.string().min(1, "Nome do colaborador é obrigatório."), // For display/selection
+  employeeId: z.string().min(1, "Colaborador é obrigatório."), // Use ID for relation
+  // employeeName: z.string().min(1, "Nome do colaborador é obrigatório."), // No longer needed directly in schema
   department: z.string().min(1, "Departamento é obrigatório."),
   location: z.string().min(1, "Local é obrigatório."),
   type: z.nativeEnum(AccidentType, { errorMap: () => ({ message: "Tipo é obrigatório." }) }),
   cause: z.nativeEnum(AccidentCause, { errorMap: () => ({ message: "Causa é obrigatória." }) }),
   causeDetails: z.string().optional(),
-  daysOff: z.number().min(0, "Dias de afastamento não pode ser negativo.").default(0),
+  daysOff: z.coerce.number().min(0, "Dias de afastamento não pode ser negativo.").default(0), // Use coerce for number conversion
   description: z.string().min(1, "Descrição é obrigatória."),
   cid10Code: z.string().optional(),
   catIssued: z.boolean().default(false),
@@ -61,62 +65,60 @@ const accidentSchema = z.object({
 
 type AccidentFormData = z.infer<typeof accidentSchema>;
 
-
-// Mock data for employees (replace with actual fetching)
-const mockEmployees = [
-    { id: 'emp1', name: 'João Silva' },
-    { id: 'emp2', name: 'Maria Oliveira' },
-    { id: 'emp3', name: 'Carlos Pereira' },
-    { id: 'emp4', name: 'Ana Costa' },
-    { id: 'emp5', name: 'Pedro Santos' },
-];
-
 // Mock total hours worked (replace with fetching or input)
 const mockHoursWorked = 500000;
 
 export default function StatisticsPage() {
-  const [accidents, setAccidents] = useState<AccidentRecord[]>([]);
+  const [accidents, setAccidents] = useState<AccidentRecordWithEmployee[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false); // For form submission state
+  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track deleting ID
   const [totalHoursWorked, setTotalHoursWorked] = useState<number>(mockHoursWorked);
 
 
-  const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<AccidentFormData>({
+  const { register, handleSubmit, control, reset, setValue, formState: { errors, isDirty } } = useForm<AccidentFormData>({
     resolver: zodResolver(accidentSchema),
     defaultValues: {
         date: new Date(),
         employeeId: '',
-        employeeName: '',
         department: '',
         location: '',
+        type: undefined, // Explicitly set to undefined initially
+        cause: undefined, // Explicitly set to undefined initially
         daysOff: 0,
         description: '',
         catIssued: false,
         investigationStatus: InvestigationStatus.Pendente,
-        // type and cause will be set via Select dropdowns
     }
   });
 
 
   // --- Data Fetching ---
-  useEffect(() => {
-    const fetchAccidents = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedAccidents = await getAccidents();
-        setAccidents(fetchedAccidents);
-      } catch (error) {
-        console.error("Error fetching accidents:", error);
-        toast({ title: "Erro", description: "Não foi possível buscar os registros de acidentes.", variant: "destructive" });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAccidents();
+  const fetchAccidents = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [fetchedAccidents, fetchedEmployees] = await Promise.all([
+        getAccidents(),
+        getEmployees() // Fetch employees for the dropdown
+      ]);
+      setAccidents(fetchedAccidents);
+      setEmployees(fetchedEmployees.map(emp => ({ id: emp.id, name: emp.name }))); // Map to simplified Employee type
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({ title: "Erro", description: "Não foi possível buscar os dados iniciais.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   }, [toast]);
+
+  useEffect(() => {
+    fetchAccidents();
+  }, [fetchAccidents]); // Fetch data on initial load
 
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,37 +126,52 @@ export default function StatisticsPage() {
   };
 
    const filteredAccidents = useMemo(() => accidents.filter((record) =>
-       record.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) || // Use optional chaining
+       record.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
        record.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
        record.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
        record.cause.toLowerCase().includes(searchTerm.toLowerCase())
    ), [accidents, searchTerm]);
 
 
-  const handleOpenForm = (record: AccidentRecord | null = null) => {
+  const handleOpenForm = (record: AccidentRecordWithEmployee | null = null) => {
     if (record) {
       setEditingRecordId(record.id);
       // Use setValue to populate the form fields correctly
-      setValue('id', record.id);
-      setValue('date', new Date(record.date)); // Ensure it's a Date object
-      setValue('time', record.time || '');
-      setValue('employeeId', record.employeeId || ''); // Handle potential null/undefined
-      setValue('employeeName', record.employeeName || ''); // Populate name for display
-      setValue('department', record.department);
-      setValue('location', record.location);
-      setValue('type', record.type);
-      setValue('cause', record.cause);
-      setValue('causeDetails', record.causeDetails || '');
-      setValue('daysOff', record.daysOff);
-      setValue('description', record.description);
-      setValue('cid10Code', record.cid10Code || '');
-      setValue('catIssued', record.catIssued);
-      setValue('investigationStatus', record.investigationStatus);
-      setValue('reportUrl', record.reportUrl || '');
+      reset({ // Use reset to ensure all fields are updated
+        id: record.id,
+        date: new Date(record.date), // Ensure it's a Date object
+        time: record.time || undefined,
+        employeeId: record.employeeId || '', // Use employeeId
+        department: record.department,
+        location: record.location,
+        type: record.type,
+        cause: record.cause,
+        causeDetails: record.causeDetails || undefined,
+        daysOff: record.daysOff,
+        description: record.description,
+        cid10Code: record.cid10Code || undefined,
+        catIssued: record.catIssued,
+        investigationStatus: record.investigationStatus,
+        reportUrl: record.reportUrl || undefined,
+      });
     } else {
       setEditingRecordId(null);
-      reset(); // Reset form to default values
-      setValue('date', new Date()); // Ensure date is reset to today
+      reset({ // Reset form to default values for creation
+            date: new Date(),
+            employeeId: '',
+            department: '',
+            location: '',
+            type: undefined,
+            cause: undefined,
+            daysOff: 0,
+            description: '',
+            catIssued: false,
+            investigationStatus: InvestigationStatus.Pendente,
+            time: undefined,
+            causeDetails: undefined,
+            cid10Code: undefined,
+            reportUrl: undefined,
+      });
     }
     setIsFormOpen(true);
   };
@@ -166,60 +183,61 @@ export default function StatisticsPage() {
   };
 
   const onSubmit: SubmitHandler<AccidentFormData> = async (data) => {
+    setIsSubmitting(true); // Indicate submission start
     try {
-      setIsLoading(true);
-      let savedAccident: AccidentRecord;
-
-      // Find selected employee name based on ID for saving
-      const selectedEmployee = mockEmployees.find(emp => emp.id === data.employeeId);
-       const employeeNameToSave = selectedEmployee ? selectedEmployee.name : data.employeeName; // Fallback if needed
-
-
-       // Prepare data, ensuring correct types
-      const dataToSave = {
-           ...data,
-           employeeName: employeeNameToSave, // Save the name
-           daysOff: Number(data.daysOff) || 0, // Ensure daysOff is a number
-       };
-
+       // Prepare data for Prisma (ensure correct types, especially for relations)
+        const dataToSave = {
+            date: data.date,
+            time: data.time || null, // Use null if optional string is empty
+            department: data.department,
+            location: data.location,
+            type: data.type,
+            cause: data.cause,
+            causeDetails: data.causeDetails || null,
+            daysOff: data.daysOff, // Already coerced to number by zod
+            description: data.description,
+            cid10Code: data.cid10Code || null,
+            catIssued: data.catIssued,
+            investigationStatus: data.investigationStatus,
+            reportUrl: data.reportUrl || null,
+            // employee relation handled separately
+        };
 
       if (editingRecordId) {
         // Update
-        savedAccident = await updateAccident(editingRecordId, dataToSave);
-        setAccidents(accidents.map(r => r.id === editingRecordId ? savedAccident : r));
+        await updateAccident(editingRecordId, { ...dataToSave, employeeId: data.employeeId }); // Pass employeeId for connection
         toast({ title: "Sucesso", description: "Registro de acidente atualizado." });
       } else {
         // Create
-         const { id, ...createData } = dataToSave; // Remove id for creation
-        savedAccident = await createAccident(createData);
-        setAccidents([savedAccident, ...accidents]);
+        await createAccident({ ...dataToSave, employeeId: data.employeeId }); // Pass employeeId for connection
         toast({ title: "Sucesso", description: "Novo acidente registrado." });
       }
       handleCloseForm();
-    } catch (error) {
+      fetchAccidents(); // Re-fetch data to show the new/updated record
+    } catch (error: any) {
       console.error("Error saving accident:", error);
-      toast({ title: "Erro", description: "Falha ao salvar o registro do acidente.", variant: "destructive" });
+      toast({ title: "Erro", description: error.message || "Falha ao salvar o registro do acidente.", variant: "destructive" });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false); // Indicate submission end
     }
   };
 
   const handleDelete = async (id: string) => {
+     setIsDeleting(id); // Indicate which record is being deleted
      try {
-       setIsLoading(true);
        await deleteAccident(id);
-       setAccidents(accidents.filter(r => r.id !== id));
+       setAccidents(accidents.filter(r => r.id !== id)); // Optimistic UI update
        toast({ title: "Sucesso", description: "Registro de acidente excluído.", variant: "destructive" });
-     } catch (error) {
+     } catch (error: any) {
         console.error("Error deleting accident:", error);
-        toast({ title: "Erro", description: "Falha ao excluir o registro do acidente.", variant: "destructive" });
+        toast({ title: "Erro", description: error.message || "Falha ao excluir o registro do acidente.", variant: "destructive" });
      } finally {
-        setIsLoading(false);
+        setIsDeleting(null); // Reset deleting state
      }
   };
 
   // --- Statistics Calculation ---
-   const statistics = useMemo((): any => { // Using 'any' temporarily
+   const statistics = useMemo(() => {
        const periodAccidents = filteredAccidents; // Use filtered accidents for consistency
        const numberOfAccidents = periodAccidents.length;
        const accidentsWithLostTime = periodAccidents.filter(a => a.daysOff > 0).length;
@@ -243,24 +261,25 @@ export default function StatisticsPage() {
 
   // --- Chart Data Preparation ---
    const accidentsByType = useMemo(() => {
-       const counts: { [key in AccidentType]: number } = { Leve: 0, Grave: 0, Fatal: 0, Trajeto: 0, Tipico: 0 };
+       const counts: { [key in AccidentType]?: number } = {}; // Optional properties
        filteredAccidents.forEach(acc => {
-         counts[acc.type] = (counts[acc.type] || 0) + 1;
+           counts[acc.type] = (counts[acc.type] || 0) + 1;
        });
-       return Object.entries(counts)
-         .map(([name, value]) => ({ name: name as AccidentType, value })) // Cast name back to enum
+       return (Object.entries(counts) as [AccidentType, number][]) // Type assertion
+         .map(([name, value]) => ({ name: name, value }))
          .filter(item => item.value > 0);
    }, [filteredAccidents]);
+
 
    const accidentsByCause = useMemo(() => {
        const counts: { [key in AccidentCause]?: number } = {};
        filteredAccidents.forEach(acc => {
          counts[acc.cause] = (counts[acc.cause] || 0) + 1;
        });
-       return Object.entries(counts)
-         .map(([name, value]) => ({ name: name as AccidentCause, value: value! })) // Assert value is not undefined
+       return (Object.entries(counts) as [AccidentCause, number][]) // Type assertion
+         .map(([name, value]) => ({ name: name, value: value! }))
          .sort((a, b) => b.value - a.value)
-         .slice(0, 5);
+         .slice(0, 5); // Top 5
    }, [filteredAccidents]);
 
 
@@ -327,7 +346,7 @@ export default function StatisticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{statistics.tf?.toFixed(2) ?? 'N/A'}</div>
-              <p className="text-xs text-muted-foreground">Acidentes (com afast.) x 1M / HHT</p>
+              <p className="text-xs text-muted-foreground">Acidentes (c/ afast.) x 1M / HHT</p>
             </CardContent>
           </Card>
           <Card>
@@ -352,7 +371,7 @@ export default function StatisticsPage() {
                   onChange={(e) => setTotalHoursWorked(Number(e.target.value) || 0)}
                   className="max-w-[200px]"
                   placeholder="Total de horas"
-                  disabled={isLoading} // Disable input while loading
+                  disabled={isLoading || isSubmitting} // Disable while loading or submitting
                 />
                  <span className="text-sm text-muted-foreground">horas</span>
               </CardContent>
@@ -373,10 +392,10 @@ export default function StatisticsPage() {
                      <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} className="text-xs" />
                      <XAxis type="number" />
                       <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                     <Legend content={({ payload }) => <ChartLegendContent payload={payload} nameKey="name" className="flex flex-wrap gap-x-4 gap-y-1 justify-center mt-2" />} />
+                     {/* <Legend content={({ payload }) => <ChartLegendContent payload={payload} nameKey="name" className="flex flex-wrap gap-x-4 gap-y-1 justify-center mt-2" />} /> */}
                       <Bar dataKey="value" layout="vertical" radius={5}>
                           {accidentsByType.map((entry) => (
-                            <Cell key={`cell-${entry.name}`} fill={typeChartConfig[entry.name]?.color ?? "hsl(var(--muted))"} />
+                            <Cell key={`cell-${entry.name}`} fill={typeChartConfig[entry.name as keyof typeof typeChartConfig]?.color ?? "hsl(var(--muted))"} />
                           ))}
                       </Bar>
                    </BarChart>
@@ -397,7 +416,7 @@ export default function StatisticsPage() {
                        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                         <Bar dataKey="value" layout="vertical" radius={4}>
                            {accidentsByCause.map((entry) => (
-                              <Cell key={`cell-${entry.name}`} fill={causeChartConfig[entry.name]?.color ?? "hsl(var(--muted))"} />
+                              <Cell key={`cell-${entry.name}`} fill={causeChartConfig[entry.name as keyof typeof causeChartConfig]?.color ?? "hsl(var(--muted))"} />
                            ))}
                         </Bar>
                      </BarChart>
@@ -412,11 +431,11 @@ export default function StatisticsPage() {
           <h2 className="text-2xl font-semibold">Registros de Acidentes</h2>
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => handleOpenForm()}>
+              <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Registrar Acidente
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle>{editingRecordId ? 'Editar Registro de Acidente' : 'Registrar Novo Acidente'}</DialogTitle>
               </DialogHeader>
@@ -429,7 +448,7 @@ export default function StatisticsPage() {
                           control={control}
                           name="date"
                           render={({ field }) => (
-                             <DatePicker date={field.value} setDate={field.onChange} required />
+                             <DatePicker date={field.value} setDate={field.onChange} required disabled={isSubmitting}/>
                            )}
                       />
                        {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
@@ -437,7 +456,7 @@ export default function StatisticsPage() {
                    {/* Time */}
                    <div className="space-y-1">
                       <Label htmlFor="time">Hora (Opcional)</Label>
-                      <Input id="time" type="time" {...register('time')} />
+                      <Input id="time" type="time" {...register('time')} disabled={isSubmitting}/>
                    </div>
                    {/* Employee Name (Dropdown) */}
                    <div className="space-y-1">
@@ -446,12 +465,13 @@ export default function StatisticsPage() {
                             control={control}
                             name="employeeId"
                             render={({ field }) => (
-                                <Select value={field.value} onValueChange={field.onChange} required>
-                                     <SelectTrigger id="employeeId"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <Select value={field.value} onValueChange={field.onChange} required disabled={isSubmitting || isLoading}>
+                                     <SelectTrigger id="employeeId"><SelectValue placeholder={isLoading ? "Carregando..." : "Selecione..."} /></SelectTrigger>
                                      <SelectContent>
-                                         {mockEmployees.map(emp => (
+                                         {employees.map(emp => (
                                              <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
                                          ))}
+                                         {employees.length === 0 && !isLoading && <SelectItem value="" disabled>Nenhum colaborador encontrado</SelectItem>}
                                      </SelectContent>
                                  </Select>
                             )}
@@ -461,13 +481,13 @@ export default function StatisticsPage() {
                     {/* Department */}
                    <div className="space-y-1">
                       <Label htmlFor="department">Departamento*</Label>
-                      <Input id="department" {...register('department')} required />
+                      <Input id="department" {...register('department')} required disabled={isSubmitting}/>
                        {errors.department && <p className="text-xs text-destructive">{errors.department.message}</p>}
                    </div>
                    {/* Location */}
                    <div className="space-y-1">
                       <Label htmlFor="location">Local Específico*</Label>
-                      <Input id="location" {...register('location')} required />
+                      <Input id="location" {...register('location')} required disabled={isSubmitting}/>
                        {errors.location && <p className="text-xs text-destructive">{errors.location.message}</p>}
                    </div>
                    {/* Type */}
@@ -477,10 +497,10 @@ export default function StatisticsPage() {
                         control={control}
                         name="type"
                         render={({ field }) => (
-                            <Select value={field.value} onValueChange={field.onChange} required>
+                            <Select value={field.value} onValueChange={field.onChange} required disabled={isSubmitting}>
                                <SelectTrigger id="type"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                <SelectContent>
-                                 {Object.values(AccidentType).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                 {Object.values(AccidentType).map(t => <SelectItem key={t} value={t}>{t.replace('_', ' ')}</SelectItem>)}
                                </SelectContent>
                             </Select>
                         )}
@@ -494,10 +514,10 @@ export default function StatisticsPage() {
                         control={control}
                         name="cause"
                         render={({ field }) => (
-                          <Select value={field.value} onValueChange={field.onChange} required>
+                          <Select value={field.value} onValueChange={field.onChange} required disabled={isSubmitting}>
                              <SelectTrigger id="cause"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                              <SelectContent>
-                                 {Object.values(AccidentCause).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                 {Object.values(AccidentCause).map(c => <SelectItem key={c} value={c}>{c.replace('_', ' ')}</SelectItem>)}
                              </SelectContent>
                           </Select>
                         )}
@@ -507,18 +527,18 @@ export default function StatisticsPage() {
                    {/* Cause Details */}
                    <div className="space-y-1 lg:col-span-2">
                       <Label htmlFor="causeDetails">Detalhes Adicionais da Causa</Label>
-                      <Input id="causeDetails" {...register('causeDetails')} placeholder="Ex: Falta de EPI, condição insegura" />
+                      <Input id="causeDetails" {...register('causeDetails')} placeholder="Ex: Falta de EPI, condição insegura" disabled={isSubmitting}/>
                    </div>
                    {/* Days Off */}
                    <div className="space-y-1">
                        <Label htmlFor="daysOff">Dias de Afastamento*</Label>
-                       <Input id="daysOff" type="number" min="0" {...register('daysOff', { valueAsNumber: true })} required />
+                       <Input id="daysOff" type="number" min="0" {...register('daysOff')} required disabled={isSubmitting}/>
                        {errors.daysOff && <p className="text-xs text-destructive">{errors.daysOff.message}</p>}
                    </div>
                    {/* CID-10 */}
                    <div className="space-y-1">
                       <Label htmlFor="cid10Code">CID-10 (se aplicável)</Label>
-                      <Input id="cid10Code" {...register('cid10Code')} placeholder="Opcional" />
+                      <Input id="cid10Code" {...register('cid10Code')} placeholder="Opcional" disabled={isSubmitting}/>
                    </div>
                     {/* Investigation Status */}
                     <div className="space-y-1">
@@ -527,19 +547,20 @@ export default function StatisticsPage() {
                             control={control}
                             name="investigationStatus"
                             render={({ field }) => (
-                               <Select value={field.value} onValueChange={field.onChange} required>
+                               <Select value={field.value} onValueChange={field.onChange} required disabled={isSubmitting}>
                                    <SelectTrigger id="investigationStatus"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                    <SelectContent>
-                                     {Object.values(InvestigationStatus).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                     {Object.values(InvestigationStatus).map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
                                    </SelectContent>
                                 </Select>
                             )}
                          />
+                         {errors.investigationStatus && <p className="text-xs text-destructive">{errors.investigationStatus.message}</p>}
                      </div>
                      {/* Report URL */}
                     <div className="space-y-1">
                        <Label htmlFor="reportUrl">Link Relatório Análise (Opcional)</Label>
-                       <Input id="reportUrl" type="url" {...register('reportUrl')} placeholder="http://..." />
+                       <Input id="reportUrl" type="url" {...register('reportUrl')} placeholder="http://..." disabled={isSubmitting}/>
                     </div>
                      {/* CAT Issued */}
                     <div className="flex items-center space-x-2 pt-4 lg:col-span-3">
@@ -547,7 +568,7 @@ export default function StatisticsPage() {
                             control={control}
                             name="catIssued"
                             render={({ field }) => (
-                               <Checkbox id="catIssued" checked={field.value} onCheckedChange={field.onChange} />
+                               <Checkbox id="catIssued" checked={field.value} onCheckedChange={field.onChange} disabled={isSubmitting}/>
                             )}
                          />
                          <Label htmlFor="catIssued">Comunicação de Acidente de Trabalho (CAT) Emitida?</Label>
@@ -557,14 +578,22 @@ export default function StatisticsPage() {
                 {/* Description */}
                 <div className="space-y-1 mt-4">
                    <Label htmlFor="description">Descrição Detalhada do Acidente*</Label>
-                   <Textarea id="description" {...register('description')} rows={4} required />
+                   <Textarea id="description" {...register('description')} rows={4} required disabled={isSubmitting}/>
                    {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
                 </div>
                 <DialogFooter className="mt-4">
                   <DialogClose asChild>
-                    <Button type="button" variant="outline" onClick={handleCloseForm}>Cancelar</Button>
+                    <Button type="button" variant="outline" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
                   </DialogClose>
-                  <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : editingRecordId ? 'Salvar Alterações' : 'Registrar'}</Button>
+                  <Button type="submit" disabled={isSubmitting || !isDirty}> {/* Disable if submitting or form hasn't changed */}
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Salvando...
+                        </>
+                        ) : editingRecordId ? 'Salvar Alterações' : 'Registrar'
+                    }
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -600,34 +629,37 @@ export default function StatisticsPage() {
             <TableBody>
               {isLoading ? (
                  <TableRow>
-                     <TableCell colSpan={9} className="h-24 text-center">Carregando...</TableCell>
+                     <TableCell colSpan={9} className="h-24 text-center">
+                         <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                         Carregando...
+                     </TableCell>
                  </TableRow>
               ) : filteredAccidents.length > 0 ? (
                 filteredAccidents.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell>{format(new Date(record.date), 'dd/MM/yyyy')}</TableCell> {/* Format date */}
-                    <TableCell className="font-medium">{record.employeeName || record.employeeId}</TableCell> {/* Display name or ID */}
+                  <TableRow key={record.id} className={isDeleting === record.id ? 'opacity-50' : ''}>
+                    <TableCell>{format(new Date(record.date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell className="font-medium">{record.employeeName ?? 'N/A'}</TableCell>
                     <TableCell>{record.department}</TableCell>
                     <TableCell>
-                        <Badge variant={record.type === 'Fatal' ? 'destructive' : record.type === 'Grave' ? 'secondary' : 'default'}>{record.type}</Badge>
+                        <Badge variant={record.type === 'Fatal' ? 'destructive' : record.type === 'Grave' ? 'secondary' : 'default'}>{record.type.replace('_', ' ')}</Badge>
                     </TableCell>
-                    <TableCell>{record.cause}</TableCell>
+                    <TableCell>{record.cause.replace('_', ' ')}</TableCell>
                     <TableCell>{record.daysOff}</TableCell>
                     <TableCell>{record.catIssued ? 'Sim' : 'Não'}</TableCell>
                     <TableCell>
                          <Badge variant={record.investigationStatus === 'Concluida' ? 'default' : record.investigationStatus === 'Em_Andamento' ? 'secondary' : 'outline'}>
-                             {record.investigationStatus.replace('_', ' ')} {/* Display status prettily */}
+                             {record.investigationStatus.replace('_', ' ')}
                          </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)} disabled={isSubmitting || !!isDeleting}>
                         <Edit className="h-4 w-4" />
                         <span className="sr-only">Editar</span>
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" disabled={isSubmitting || !!isDeleting}>
+                            {isDeleting === record.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
                             <span className="sr-only">Excluir</span>
                           </Button>
                         </AlertDialogTrigger>
@@ -639,9 +671,10 @@ export default function StatisticsPage() {
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isLoading}>
-                                {isLoading ? 'Excluindo...' : 'Excluir'}
+                            <AlertDialogCancel disabled={!!isDeleting}>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={!!isDeleting}>
+                                {isDeleting === record.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+                                {isDeleting === record.id ? 'Excluindo...' : 'Excluir'}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -663,3 +696,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
