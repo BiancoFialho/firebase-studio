@@ -587,14 +587,8 @@ const SidebarMenuButton = React.forwardRef<
 
     return (
       <Tooltip>
-        <TooltipTrigger asChild={asChild}>
-          {/*
-            * When asChild is true, TooltipTrigger expects a single React element child.
-            * `button` is already the element (either Slot or button).
-            * We don't need an extra wrapping div or fragment.
-            */
-          }
-          {button}
+        <TooltipTrigger asChild>
+           {button}
         </TooltipTrigger>
         <TooltipContent
           side="right"
