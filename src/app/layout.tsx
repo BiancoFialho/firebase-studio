@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList, BarChart3, Settings, LayoutDashboard } from 'lucide-react'; // Added LayoutDashboard
+import { HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList, BarChart3, Settings, LayoutDashboard } from 'lucide-react'; // Added FlaskConical, ClipboardList
 import { Toaster } from '@/components/ui/toaster';
 
 
@@ -61,12 +61,28 @@ export default function RootLayout({
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Dashboard BI">
+                     <Link href="/dashboard">
+                       <BarChart3 />
+                       <span>Dashboard BI</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Treinamentos">
                      <Link href="/trainings">
                       <HardHat />
                       <span>Treinamentos</span>
                      </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="ASOs">
+                    <Link href="/asos">
+                      <Stethoscope />
+                      <span>ASOs</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -77,25 +93,15 @@ export default function RootLayout({
                       </Link>
                    </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="ASOs">
-                    <Link href="/asos">
-                      <Stethoscope />
-                      <span>ASOs</span>
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Inventário Químico">
+                     <Link href="/chemicals">
+                      <FlaskConical />
+                      <span>Inventário Químico</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                  <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Dashboard BI">
-                     <Link href="/dashboard">
-                       <BarChart3 />
-                       <span>Dashboard BI</span>
-                     </Link>
-                   </SidebarMenuButton>
-                 </SidebarMenuItem>
-                 {/* Future placeholders - can be uncommented later */}
-                {/*
-                <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
                     <Link href="/jsa">
                       <ClipboardList />
@@ -103,6 +109,8 @@ export default function RootLayout({
                     </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
+                 {/* Future placeholders - can be uncommented later */}
+                {/*
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Programas (PGR, PCMSO, PCA)">
                     <Link href="/programs">
@@ -117,14 +125,6 @@ export default function RootLayout({
                        {/* Need a suitable icon for Ergonomics - using ClipboardList for now */}
                        {/* <ClipboardList />
                       <span>Laudo Ergonômico</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Inventário Químico">
-                     <Link href="/chemicals">
-                      <FlaskConical />
-                      <span>Inventário Químico</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
