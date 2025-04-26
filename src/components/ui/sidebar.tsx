@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -558,7 +559,7 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button";
     const { isMobile, state } = useSidebar();
 
-    const buttonElement = (
+    const button = (
       <Comp
         ref={ref as any}
         data-sidebar="menu-button"
@@ -574,7 +575,7 @@ const SidebarMenuButton = React.forwardRef<
     );
 
     if (!tooltip) {
-      return buttonElement;
+      return button;
     }
 
     let tooltipProps: React.ComponentProps<typeof TooltipContent> = {};
@@ -584,15 +585,16 @@ const SidebarMenuButton = React.forwardRef<
       tooltipProps = tooltip;
     }
 
-    // Wrap the buttonElement with TooltipTrigger.
-    // If asChild is true for the SidebarMenuButton, the TooltipTrigger should also use asChild.
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          {/* Pass the buttonElement directly.
-              If Comp is Slot, TooltipTrigger wraps the actual child passed to SidebarMenuButton.
-              If Comp is 'button', TooltipTrigger wraps the button. */}
-          {buttonElement}
+        <TooltipTrigger asChild={asChild}>
+          {/*
+            * When asChild is true, TooltipTrigger expects a single React element child.
+            * `button` is already the element (either Slot or button).
+            * We don't need an extra wrapping div or fragment.
+            */
+          }
+          {button}
         </TooltipTrigger>
         <TooltipContent
           side="right"

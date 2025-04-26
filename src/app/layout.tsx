@@ -1,3 +1,4 @@
+
 'use client'; // Add 'use client' directive
 
 import type { Metadata } from 'next';
@@ -19,7 +20,7 @@ import {
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
-    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LogIn, LayoutDashboard
+    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LogIn, LogOut, LayoutDashboard, UserPlus // Added LogOut
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider, AuthContext } from '@/contexts/auth-context'; // Import AuthProvider and AuthContext
@@ -58,7 +59,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
 
-  const { isAuthenticated } = authContext;
+  const { isAuthenticated, logout } = authContext;
   // console.log("AppLayout rendering, isAuthenticated:", isAuthenticated); // Debug log
 
   return (
@@ -79,7 +80,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenu>
                 {/* Dashboard Link */}
                 <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Dashboard BI" isActive={true}>
+                   <SidebarMenuButton asChild tooltip="Dashboard BI"> {/* Removed isActive={true} for now */}
                     <Link href="/">
                       <LayoutDashboard />
                       <span>Dashboard BI</span>
@@ -163,7 +164,6 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-
                 {/* Future placeholders */}
                 {/* ... other future links ... */}
               </SidebarMenu>
@@ -178,18 +178,29 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                 {/* Optional: Add Logout button here */}
-                 {/* <SidebarMenuItem> ... Logout Button ... </SidebarMenuItem> */}
+                 {/* Add Logout button here */}
+                 <SidebarMenuItem>
+                   <SidebarMenuButton tooltip="Sair" onClick={logout} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                      <LogOut />
+                      <span>Sair</span>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarFooter>
           </Sidebar>
           {/* SidebarInset should contain the main content area */}
           <SidebarInset>
-            <header className="flex items-center justify-between p-4 border-b md:border-none">
+            <header className="flex items-center justify-between p-4 border-b md:border-none sticky top-0 bg-background/80 backdrop-blur-sm z-10">
                {/* Trigger for desktop */}
                <SidebarTrigger className="hidden md:flex"/>
               {/* Placeholder for potential header content like user profile */}
-              <div></div>
+              <div className="flex items-center gap-4">
+                  {/* User Profile / Logout for Header - Optional */}
+                  <span className="text-sm text-muted-foreground hidden sm:inline">Usuário: Bianco</span>
+                  <Button variant="ghost" size="sm" onClick={logout} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" /> Sair
+                  </Button>
+              </div>
             </header>
             <main className="flex-1 p-4 md:p-6 overflow-auto">
               {children}
