@@ -15,11 +15,11 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from '@/components/ui/sidebar';
+} from '@/components/ui/sidebar'; // Ensure all sidebar components are imported
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
-    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LogIn, LayoutDashboard // Keep LayoutDashboard
+    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LogIn, LayoutDashboard
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider, AuthContext } from '@/contexts/auth-context'; // Import AuthProvider and AuthContext
@@ -62,20 +62,21 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     <>
       {isAuthenticated ? (
         <SidebarProvider>
+          {/* Sidebar component itself was missing */}
           <Sidebar collapsible="icon" variant="sidebar" side="left">
             <SidebarHeader className="flex items-center justify-between p-4">
               <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
                 <HardHat className="h-6 w-6 text-primary" />
                 <span className="font-semibold text-lg text-primary">SSMA Control</span>
               </Link>
-              <SidebarTrigger className="md:hidden"/>
+               {/* Ensure trigger is inside header */}
+               <SidebarTrigger className="md:hidden" />
             </SidebarHeader>
             <SidebarContent className="p-2">
               <SidebarMenu>
                 {/* Dashboard Link */}
                 <SidebarMenuItem>
-                   {/* Changed href to "/" for dashboard/home */}
-                   <SidebarMenuButton asChild tooltip="Dashboard BI" isActive={true}> {/* Example: Mark dashboard active */}
+                   <SidebarMenuButton asChild tooltip="Dashboard BI" isActive={true}>
                     <Link href="/">
                       <LayoutDashboard />
                       <span>Dashboard BI</span>
@@ -179,9 +180,11 @@ function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenu>
             </SidebarFooter>
           </Sidebar>
+          {/* SidebarInset should contain the main content area */}
           <SidebarInset>
             <header className="flex items-center justify-between p-4 border-b md:border-none">
-              <SidebarTrigger className="hidden md:flex"/>
+               {/* Trigger for desktop */}
+               <SidebarTrigger className="hidden md:flex"/>
               {/* Placeholder for potential header content like user profile */}
               <div></div>
             </header>
@@ -214,6 +217,7 @@ export default function RootLayout({
            <title>SSMA Control</title>
            <meta name="description" content="Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica" />
        </head>
+       {/* Added suppressHydrationWarning={true} to body tag */}
       <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')} suppressHydrationWarning={true}>
           <AuthProvider> {/* Wrap with AuthProvider */}
               <AppLayout>{children}</AppLayout> {/* Use the conditional layout component */}

@@ -535,13 +535,11 @@ const sidebarMenuButtonVariants = cva(
 )
 
 const SidebarMenuButton = React.forwardRef<
-  // The element type depends on whether asChild is true or not
-  // We'll use a common type like HTMLElement for simplicity, or handle specifics if needed
   HTMLElement,
-  React.HTMLAttributes<HTMLElement> & { // Use HTMLAttributes for broader compatibility
-    asChild?: boolean
-    isActive?: boolean
-    tooltip?: string | React.ComponentProps<typeof TooltipContent>
+  React.HTMLAttributes<HTMLElement> & {
+    asChild?: boolean;
+    isActive?: boolean;
+    tooltip?: string | React.ComponentProps<typeof TooltipContent>;
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(
   (
@@ -562,12 +560,14 @@ const SidebarMenuButton = React.forwardRef<
 
     const buttonElement = (
       <Comp
-        ref={ref as any} // Cast ref if necessary based on Comp
+        ref={ref as any}
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props} // Pass remaining props to the underlying component
+        className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
+        // Add type="button" if Comp is 'button' and it's not meant to submit a form
+        {...(Comp === "button" && !asChild && { type: "button" })}
+        {...props}
       >
         {children}
       </Comp>
@@ -584,14 +584,15 @@ const SidebarMenuButton = React.forwardRef<
       tooltipProps = tooltip;
     }
 
-    // Ensure TooltipTrigger correctly receives a single React element child
-    // If `asChild` is true for SidebarMenuButton, TooltipTrigger should also have `asChild`
-    // to avoid nesting interactive elements improperly.
+    // Wrap the buttonElement with TooltipTrigger.
+    // If asChild is true for the SidebarMenuButton, the TooltipTrigger should also use asChild.
     return (
       <Tooltip>
-        <TooltipTrigger asChild={asChild}>
-           {/* Pass the buttonElement directly */}
-           {buttonElement}
+        <TooltipTrigger asChild>
+          {/* Pass the buttonElement directly.
+              If Comp is Slot, TooltipTrigger wraps the actual child passed to SidebarMenuButton.
+              If Comp is 'button', TooltipTrigger wraps the button. */}
+          {buttonElement}
         </TooltipTrigger>
         <TooltipContent
           side="right"
@@ -603,6 +604,7 @@ const SidebarMenuButton = React.forwardRef<
     );
   }
 );
+
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
 const SidebarMenuAction = React.forwardRef<
