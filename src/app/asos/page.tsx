@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -54,11 +55,11 @@ const getAsoStatus = (aso: AsoRecord): AsoRecord['status'] => {
 
 
 const mockAsoRecords: AsoRecord[] = [
-  { id: 'aso1', employeeName: 'João Silva', examType: 'Periódico', examDate: new Date(2023, 10, 1), expiryDate: new Date(2024, 10, 1), result: 'Apto', status: 'Válido' },
+  { id: 'aso1', employeeName: 'João Silva', examType: 'Periódico', examDate: new Date(2023, 10, 1), expiryDate: new Date(2024, 10, 1), result: 'Apto', status: 'Válido', attachmentUrl: '/uploads/asos/1-joao-periodico.pdf' },
   { id: 'aso2', employeeName: 'Maria Oliveira', examType: 'Admissional', examDate: new Date(2023, 5, 20), expiryDate: new Date(2024, 5, 20), result: 'Apto', status: 'Válido' },
   { id: 'aso3', employeeName: 'Carlos Pereira', examType: 'Periódico', examDate: new Date(2022, 8, 15), expiryDate: new Date(2023, 8, 15), result: 'Apto', status: 'Vencido' },
   { id: 'aso4', employeeName: 'Ana Costa', examType: 'Periódico', examDate: new Date(2024, 6, 10), expiryDate: new Date(2025, 6, 10), result: 'Apto com Restrições', status: 'Próximo ao Vencimento' }, // Example: Expires within 30 days from ~July 15th, 2024
-  { id: 'aso5', employeeName: 'Pedro Santos', examType: 'Demissional', examDate: new Date(2024, 4, 30), expiryDate: new Date(2024, 5, 30), result: 'Apto', status: 'Válido' }, // Demissionals might have shorter validity? Adjust expiry logic if needed.
+  { id: 'aso5', employeeName: 'Pedro Santos', examType: 'Demissional', examDate: new Date(2024, 4, 30), expiryDate: new Date(2024, 5, 30), result: 'Apto', status: 'Válido', attachmentUrl: '/uploads/asos/5-pedro-demissional.pdf' }, // Demissionals might have shorter validity? Adjust expiry logic if needed.
 ];
 
 // Process mock data to set correct status
@@ -78,6 +79,7 @@ export default function AsosPage() {
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [result, setResult] = useState<AsoRecord['result'] | ''>('');
   const [attachment, setAttachment] = useState<File | null>(null); // State for file upload
+  const [currentAttachmentUrl, setCurrentAttachmentUrl] = useState<string | undefined>(undefined);
 
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,6 +99,7 @@ export default function AsosPage() {
     setExpiryDate(undefined);
     setResult('');
     setAttachment(null);
+    setCurrentAttachmentUrl(undefined);
     setEditingRecord(null);
   };
 
@@ -108,7 +111,8 @@ export default function AsosPage() {
           setExamDate(record.examDate);
           setExpiryDate(record.expiryDate);
           setResult(record.result);
-          // Don't reset attachment on edit, maybe show current attachment name?
+          setCurrentAttachmentUrl(record.attachmentUrl);
+          setAttachment(null); // Clear file input on edit
       } else {
           resetForm();
       }
@@ -123,8 +127,13 @@ export default function AsosPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setAttachment(event.target.files[0]);
+      setCurrentAttachmentUrl(undefined); // Clear existing URL if new file is selected
     } else {
       setAttachment(null);
+      // Optionally restore currentAttachmentUrl if file is deselected
+       if (editingRecord) {
+           setCurrentAttachmentUrl(editingRecord.attachmentUrl);
+       }
     }
   };
 
@@ -141,13 +150,14 @@ export default function AsosPage() {
     }
 
      // --- Mock File Upload Logic ---
-     let attachmentUrl = editingRecord?.attachmentUrl; // Keep existing URL if editing and no new file
+     let attachmentUrl = currentAttachmentUrl; // Keep existing URL if editing and no new file
      if (attachment) {
        // In a real app, you would upload the file here and get back a URL
        // For now, we'll just simulate a URL based on the filename
-       attachmentUrl = `/uploads/asos/${Date.now()}-${attachment.name}`; // Example simulated URL
+       attachmentUrl = `/uploads/asos/${Date.now()}-${encodeURIComponent(attachment.name)}`; // Example simulated URL
        console.log(`Simulating upload for: ${attachment.name} to ${attachmentUrl}`);
-       // In a real app: await uploadFile(attachment);
+       toast({ title: "Simulação de Upload", description: `ASO "${attachment.name}" salvo em ${attachmentUrl}`});
+       // In a real app: attachmentUrl = await uploadFile(attachment);
      }
      // --- End Mock File Upload Logic ---
 
@@ -216,6 +226,24 @@ export default function AsosPage() {
            return 'outline';
        }
      };
+
+   const handleViewFile = (url: string | undefined, fileName: string) => {
+        if (url) {
+            // In a real app, you might open the actual URL
+            // window.open(url, '_blank');
+            // For simulation, show a toast message
+            toast({
+                title: "Visualização Simulada",
+                description: `Abriria o arquivo: ${fileName} (${url})`,
+            });
+        } else {
+             toast({
+                 title: "Arquivo Indisponível",
+                 description: `Nenhum ${fileName} anexado.`,
+                 variant: "destructive"
+             });
+        }
+   };
 
 
   return (
@@ -296,10 +324,17 @@ export default function AsosPage() {
                          <div className="col-span-3 flex items-center gap-2">
                              <Input id="attachment" type="file" onChange={handleFileChange} className="flex-1" accept=".pdf,.jpg,.jpeg,.png" />
                              {/* Optionally show the name of the currently selected/uploaded file */}
-                             {editingRecord?.attachmentUrl && !attachment && (
-                                 <a href={editingRecord.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[100px]" title={editingRecord.attachmentUrl.split('/').pop()}>
-                                     Ver atual
-                                 </a>
+                             {currentAttachmentUrl && !attachment && (
+                                  <Button
+                                      type="button"
+                                      variant="link"
+                                      size="sm"
+                                      className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+                                      onClick={() => handleViewFile(currentAttachmentUrl, 'anexo atual')}
+                                      title={`Ver anexo atual: ${currentAttachmentUrl.split('/').pop()}`}
+                                   >
+                                       Ver atual
+                                   </Button>
                              )}
                               {attachment && (
                                  <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={attachment.name}>
@@ -363,19 +398,10 @@ export default function AsosPage() {
                        </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                      {record.attachmentUrl ? (
-                         <Button variant="ghost" size="icon" asChild>
-                              <a href={record.attachmentUrl} target="_blank" rel="noopener noreferrer" title="Visualizar Anexo">
-                                 <Eye className="h-4 w-4" />
-                                 <span className="sr-only">Visualizar Anexo</span>
-                              </a>
-                         </Button>
-                      ) : (
-                           <Button variant="ghost" size="icon" disabled title="Sem anexo">
-                               <Eye className="h-4 w-4 text-muted-foreground/50" />
-                               <span className="sr-only">Sem anexo</span>
-                           </Button>
-                      )}
+                     <Button variant="ghost" size="icon" onClick={() => handleViewFile(record.attachmentUrl, 'ASO anexado')} disabled={!record.attachmentUrl} title="Visualizar Anexo">
+                           <Eye className={record.attachmentUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
+                           <span className="sr-only">Visualizar Anexo</span>
+                      </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)}>
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Editar</span>

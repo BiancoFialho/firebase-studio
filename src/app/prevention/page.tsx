@@ -1,3 +1,4 @@
+
 // src/app/prevention/page.tsx
 'use client';
 
@@ -31,7 +32,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 // Mock Data - CIPA Meetings
 const mockCipaMeetings: CipaMeetingRecord[] = [
   { id: 'cipa1', date: new Date(2024, 6, 10), participants: ['João Silva', 'Maria Oliveira', 'Carlos Pereira'], agenda: 'Discussão sobre EPIs, análise de incidente leve.', status: 'Realizada', actionsDefined: [{ id: 'act1', description: 'Verificar validade dos protetores auriculares', responsible: 'Almoxarifado', deadline: new Date(2024, 6, 17), status: 'Concluída' }] },
-  { id: 'cipa2', date: new Date(2024, 5, 12), participants: ['João Silva', 'Maria Oliveira', 'Ana Costa'], agenda: 'Planejamento SIPAT, riscos ergonômicos.', status: 'Realizada', minutesUrl: 'https://example.com/cipa/ata-junho', actionsDefined: [{ id: 'act2', description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em Andamento' }] },
+  { id: 'cipa2', date: new Date(2024, 5, 12), participants: ['João Silva', 'Maria Oliveira', 'Ana Costa'], agenda: 'Planejamento SIPAT, riscos ergonômicos.', status: 'Realizada', minutesUrl: '/uploads/cipa/ata-junho.pdf', actionsDefined: [{ id: 'act2', description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em Andamento' }] },
   { id: 'cipa3', date: new Date(2024, 7, 14), participants: ['João Silva', 'Maria Oliveira', 'Carlos Pereira', 'Ana Costa', 'Pedro Santos'], agenda: 'Próxima reunião ordinária: Análise Preliminar de Risco (APR) nova máquina.', status: 'Agendada', actionsDefined: [] },
 ];
 
@@ -54,7 +55,9 @@ export default function PreventionPage() {
    const [cipaDate, setCipaDate] = useState<Date | undefined>(new Date());
    const [cipaAgenda, setCipaAgenda] = useState('');
    const [cipaStatus, setCipaStatus] = useState<CipaMeetingRecord['status']>('Agendada');
-   const [cipaMinutesUrl, setCipaMinutesUrl] = useState('');
+   const [cipaMinutesUrl, setCipaMinutesUrl] = useState(''); // Stores the URL
+   const [cipaMinutesFile, setCipaMinutesFile] = useState<File | null>(null); // Stores the file input
+   const [currentCipaMinutesUrl, setCurrentCipaMinutesUrl] = useState<string | undefined>(undefined); // Stores existing URL during edit
    const [cipaParticipants, setCipaParticipants] = useState(''); // Simple text area for now
    const [cipaActionsText, setCipaActionsText] = useState(''); // Simple text area for now
 
@@ -71,7 +74,9 @@ export default function PreventionPage() {
   const [paDueDate, setPaDueDate] = useState<Date | undefined>(undefined);
   const [paLastCompletedDate, setPaLastCompletedDate] = useState<Date | undefined>(undefined);
   const [paStatus, setPaStatus] = useState<PreventiveAction['status']>('Pendente');
-  const [paEvidenceUrl, setPaEvidenceUrl] = useState('');
+  const [paEvidenceUrl, setPaEvidenceUrl] = useState(''); // URL for evidence
+  const [paEvidenceFile, setPaEvidenceFile] = useState<File | null>(null); // File input for evidence
+  const [currentPaEvidenceUrl, setCurrentPaEvidenceUrl] = useState<string | undefined>(undefined); // Existing URL
 
 
   const { toast } = useToast();
@@ -86,6 +91,8 @@ export default function PreventionPage() {
     setCipaAgenda('');
     setCipaStatus('Agendada');
     setCipaMinutesUrl('');
+    setCipaMinutesFile(null);
+    setCurrentCipaMinutesUrl(undefined);
     setCipaParticipants('');
     setCipaActionsText('');
   };
@@ -96,14 +103,27 @@ export default function PreventionPage() {
         setCipaDate(record.date);
         setCipaAgenda(record.agenda);
         setCipaStatus(record.status);
-        setCipaMinutesUrl(record.minutesUrl || '');
+        setCurrentCipaMinutesUrl(record.minutesUrl || '');
         setCipaParticipants(record.participants.join(', '));
         // Simple text representation of actions for the form
         setCipaActionsText(record.actionsDefined.map(a => `${a.description} (Resp: ${a.responsible}, Prazo: ${a.deadline?.toLocaleDateString('pt-BR') || 'N/A'}, Status: ${a.status})`).join('\n'));
+        setCipaMinutesFile(null); // Clear file input on edit
     } else {
         resetCipaForm();
     }
     setIsCipaFormOpen(true);
+   };
+
+   const handleCipaFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (event.target.files && event.target.files[0]) {
+          setCipaMinutesFile(event.target.files[0]);
+          setCurrentCipaMinutesUrl(undefined); // Clear existing URL if new file selected
+      } else {
+          setCipaMinutesFile(null);
+          if (editingCipaRecord) {
+             setCurrentCipaMinutesUrl(editingCipaRecord.minutesUrl);
+          }
+      }
    };
 
   const handleCloseCipaForm = () => { setIsCipaFormOpen(false); resetCipaForm(); };
@@ -114,6 +134,17 @@ export default function PreventionPage() {
           toast({ title: "Erro", description: "Preencha Data, Pauta e Status da reunião.", variant: "destructive" });
           return;
       }
+
+      // --- Mock CIPA File Upload ---
+      let finalMinutesUrl = currentCipaMinutesUrl;
+      if (cipaMinutesFile) {
+          finalMinutesUrl = `/uploads/cipa/${Date.now()}-${encodeURIComponent(cipaMinutesFile.name)}`;
+          console.log(`Simulating upload for CIPA minutes: ${cipaMinutesFile.name} to ${finalMinutesUrl}`);
+          toast({ title: "Simulação de Upload", description: `Ata da CIPA "${cipaMinutesFile.name}" salva em ${finalMinutesUrl}`});
+          // In a real app: finalMinutesUrl = await uploadFile(cipaMinutesFile);
+      }
+      // --- End Mock CIPA File Upload ---
+
       // Basic parsing of participants and actions - improve later
       const participantsArray = cipaParticipants.split(',').map(p => p.trim()).filter(p => p);
       const actionsArray = cipaActionsText.split('\n').map((line, index) => {
@@ -150,7 +181,7 @@ export default function PreventionPage() {
           participants: participantsArray,
           agenda: cipaAgenda,
           status: cipaStatus,
-          minutesUrl: cipaMinutesUrl || undefined,
+          minutesUrl: finalMinutesUrl || undefined, // Assign the final URL
           actionsDefined: actionsArray,
       };
 
@@ -183,6 +214,8 @@ export default function PreventionPage() {
       setPaLastCompletedDate(undefined);
       setPaStatus('Pendente');
       setPaEvidenceUrl('');
+      setPaEvidenceFile(null);
+      setCurrentPaEvidenceUrl(undefined);
   };
 
   const handleOpenPreventiveForm = (record: PreventiveAction | null = null) => {
@@ -195,12 +228,25 @@ export default function PreventionPage() {
           setPaDueDate(record.dueDate);
           setPaLastCompletedDate(record.lastCompletedDate);
           setPaStatus(record.status);
-          setPaEvidenceUrl(record.evidenceUrl || '');
+          setCurrentPaEvidenceUrl(record.evidenceUrl || '');
+          setPaEvidenceFile(null); // Clear file input on edit
       } else {
           resetPreventiveForm();
       }
       setIsPreventiveFormOpen(true);
   };
+
+   const handlePreventiveFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            setPaEvidenceFile(event.target.files[0]);
+            setCurrentPaEvidenceUrl(undefined); // Clear existing URL if new file selected
+        } else {
+            setPaEvidenceFile(null);
+            if (editingPreventiveRecord) {
+                setCurrentPaEvidenceUrl(editingPreventiveRecord.evidenceUrl);
+            }
+        }
+    };
 
   const handleClosePreventiveForm = () => { setIsPreventiveFormOpen(false); resetPreventiveForm(); };
 
@@ -211,6 +257,16 @@ export default function PreventionPage() {
         return;
     }
 
+     // --- Mock Preventive Evidence Upload ---
+     let finalEvidenceUrl = currentPaEvidenceUrl;
+     if (paEvidenceFile) {
+         finalEvidenceUrl = `/uploads/preventive/${Date.now()}-${encodeURIComponent(paEvidenceFile.name)}`;
+         console.log(`Simulating upload for preventive evidence: ${paEvidenceFile.name} to ${finalEvidenceUrl}`);
+         toast({ title: "Simulação de Upload", description: `Evidência "${paEvidenceFile.name}" salva em ${finalEvidenceUrl}`});
+         // In a real app: finalEvidenceUrl = await uploadFile(paEvidenceFile);
+     }
+     // --- End Mock Preventive Evidence Upload ---
+
     const newRecord: PreventiveAction = {
         id: editingPreventiveRecord ? editingPreventiveRecord.id : `pa${Date.now()}`,
         description: paDescription,
@@ -220,7 +276,7 @@ export default function PreventionPage() {
         dueDate: paDueDate,
         lastCompletedDate: paLastCompletedDate,
         status: paStatus,
-        evidenceUrl: paEvidenceUrl || undefined,
+        evidenceUrl: finalEvidenceUrl || undefined,
     };
 
      // Update status if marking as completed now
@@ -282,6 +338,24 @@ export default function PreventionPage() {
      return 'outline';
  };
 
+ const handleViewFile = (url: string | undefined, fileName: string) => {
+        if (url) {
+            // In a real app, you might open the actual URL
+            // window.open(url, '_blank');
+            // For simulation, show a toast message
+            toast({
+                title: "Visualização Simulada",
+                description: `Abriria o arquivo: ${fileName} (${url})`,
+            });
+        } else {
+             toast({
+                 title: "Arquivo Indisponível",
+                 description: `Nenhum ${fileName} anexado.`,
+                 variant: "destructive"
+             });
+        }
+   };
+
   return (
     <div className="space-y-8">
       {/* CIPA Meetings Section */}
@@ -329,9 +403,30 @@ export default function PreventionPage() {
                                  <Label htmlFor="cipaParticipants">Participantes (separados por vírgula)</Label>
                                  <Input id="cipaParticipants" value={cipaParticipants} onChange={(e) => setCipaParticipants(e.target.value)} />
                               </div>
+                              {/* CIPA Minutes Upload/Link */}
                               <div className="space-y-1">
-                                   <Label htmlFor="cipaMinutesUrl">Link Ata (Opcional)</Label>
-                                   <Input id="cipaMinutesUrl" value={cipaMinutesUrl} onChange={(e) => setCipaMinutesUrl(e.target.value)} type="url" placeholder="http://..." />
+                                  <Label htmlFor="cipaMinutesFile">Link ou Anexo da Ata</Label>
+                                   <div className="flex items-center gap-2">
+                                       <Input id="cipaMinutesFile" type="file" onChange={handleCipaFileChange} className="flex-1" accept=".pdf,.doc,.docx,.txt" />
+                                       {currentCipaMinutesUrl && !cipaMinutesFile && (
+                                           <Button
+                                              type="button"
+                                              variant="link"
+                                              size="sm"
+                                              className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+                                              onClick={() => handleViewFile(currentCipaMinutesUrl, 'ata atual')}
+                                              title={`Ver ata atual: ${currentCipaMinutesUrl.split('/').pop()}`}
+                                           >
+                                               Ver atual
+                                           </Button>
+                                       )}
+                                       {cipaMinutesFile && (
+                                           <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={cipaMinutesFile.name}>
+                                               {cipaMinutesFile.name}
+                                           </span>
+                                       )}
+                                   </div>
+                                  <Input value={currentCipaMinutesUrl || cipaMinutesUrl} onChange={e => { setCipaMinutesUrl(e.target.value); setCurrentCipaMinutesUrl(e.target.value); setCipaMinutesFile(null); }} type="url" placeholder="Ou cole o link aqui http://..." className="mt-1 text-xs" disabled={!!cipaMinutesFile} />
                               </div>
                                <div className="space-y-1">
                                    <Label htmlFor="cipaActionsText">Ações Definidas (uma por linha)</Label>
@@ -382,7 +477,9 @@ export default function PreventionPage() {
                           <TableCell><Badge variant={getCipaStatusBadgeVariant(meeting.status)}>{meeting.status}</Badge></TableCell>
                           <TableCell>{meeting.actionsDefined.length}</TableCell>
                           <TableCell className="text-right space-x-1">
-                              {meeting.minutesUrl && <Button variant="ghost" size="icon" title="Ver Ata" asChild><a href={meeting.minutesUrl} target="_blank" rel="noopener noreferrer"><FileUp className="h-4 w-4"/></a></Button>}
+                              <Button variant="ghost" size="icon" title="Ver Ata" onClick={() => handleViewFile(meeting.minutesUrl, 'ata da reunião')} disabled={!meeting.minutesUrl}>
+                                 <FileUp className={meeting.minutesUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"}/>
+                              </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleOpenCipaForm(meeting)} title="Editar/Ver Detalhes"><Edit className="h-4 w-4" /></Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Excluir"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
@@ -489,10 +586,31 @@ export default function PreventionPage() {
                                             <Label htmlFor="paLastCompleted">Última Realização</Label>
                                             <DatePicker date={paLastCompletedDate} setDate={setPaLastCompletedDate} />
                                         </div>
+                                         {/* Preventive Evidence Upload/Link */}
                                         <div className="space-y-1 md:col-span-2">
-                                           <Label htmlFor="paEvidenceUrl">Link Evidência (Opcional)</Label>
-                                           <Input id="paEvidenceUrl" value={paEvidenceUrl} onChange={e => setPaEvidenceUrl(e.target.value)} type="url" placeholder="http://..." />
-                                       </div>
+                                            <Label htmlFor="paEvidenceFile">Link ou Anexo da Evidência</Label>
+                                             <div className="flex items-center gap-2">
+                                                 <Input id="paEvidenceFile" type="file" onChange={handlePreventiveFileChange} className="flex-1" accept=".pdf,.doc,.docx,.jpg,.png,.txt" />
+                                                 {currentPaEvidenceUrl && !paEvidenceFile && (
+                                                     <Button
+                                                        type="button"
+                                                        variant="link"
+                                                        size="sm"
+                                                        className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+                                                        onClick={() => handleViewFile(currentPaEvidenceUrl, 'evidência atual')}
+                                                        title={`Ver evidência atual: ${currentPaEvidenceUrl.split('/').pop()}`}
+                                                     >
+                                                         Ver atual
+                                                     </Button>
+                                                 )}
+                                                 {paEvidenceFile && (
+                                                     <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={paEvidenceFile.name}>
+                                                         {paEvidenceFile.name}
+                                                     </span>
+                                                 )}
+                                             </div>
+                                            <Input value={currentPaEvidenceUrl || paEvidenceUrl} onChange={e => { setPaEvidenceUrl(e.target.value); setCurrentPaEvidenceUrl(e.target.value); setPaEvidenceFile(null); }} type="url" placeholder="Ou cole o link aqui http://..." className="mt-1 text-xs" disabled={!!paEvidenceFile} />
+                                        </div>
                                    </div>
 
                                  <DialogFooter className="mt-4">
@@ -549,7 +667,9 @@ export default function PreventionPage() {
                              </Badge>
                           </TableCell>
                           <TableCell className="text-right space-x-1">
-                              {action.evidenceUrl && <Button variant="ghost" size="icon" title="Ver Evidência" asChild><a href={action.evidenceUrl} target="_blank" rel="noopener noreferrer"><Link2 className="h-4 w-4"/></a></Button>}
+                             <Button variant="ghost" size="icon" title="Ver Evidência" onClick={() => handleViewFile(action.evidenceUrl, 'evidência')} disabled={!action.evidenceUrl}>
+                                 <Link2 className={action.evidenceUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"}/>
+                             </Button>
                              {action.status !== 'Concluída' && (
                                  <Button variant="ghost" size="icon" title="Marcar como Concluída" onClick={() => handleMarkAsComplete(action.id)}>
                                     <CheckCircle className="h-4 w-4 text-green-600"/>

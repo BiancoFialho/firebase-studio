@@ -1,3 +1,4 @@
+
 // src/app/documents/page.tsx
 'use client';
 
@@ -55,7 +56,7 @@ const mockDocuments: DocumentRecord[] = [
     expiryDate: new Date(2025, 0, 14),
     responsible: 'SESMT',
     status: 'Válido',
-    attachmentUrl: '/docs/pgr-2024.pdf',
+    attachmentUrl: '/uploads/docs/pgr-2024.pdf',
     relatedActions: [
         { id: 'actPGR1', description: 'Revisar inventário de riscos da área de pintura.', responsible: 'Eng. Segurança', deadline: new Date(2024, 8, 30), status: 'Em Andamento' },
         { id: 'actPGR2', description: 'Implementar proteção acústica na máquina X.', responsible: 'Manutenção', deadline: new Date(2024, 9, 15), status: 'Pendente' },
@@ -79,7 +80,7 @@ const mockDocuments: DocumentRecord[] = [
     expiryDate: new Date(2024, 5, 19), // Expired
     responsible: 'Ergonomista Contratado',
     status: 'Vencido',
-     attachmentUrl: '/docs/aet-montagem.pdf',
+     attachmentUrl: '/uploads/docs/aet-montagem.pdf',
     relatedActions: [ { id: 'actAET1', description: 'Adquirir cadeiras ergonômicas novas.', responsible: 'Compras', deadline: new Date(2024, 7, 31), status: 'Pendente' },]
   },
   {
@@ -170,6 +171,9 @@ export default function DocumentsPage() {
      } else {
        setAttachment(null);
        // Maybe restore currentAttachmentUrl if file is deselected? Depends on UX.
+        if (editingRecord) {
+           setCurrentAttachmentUrl(editingRecord.attachmentUrl);
+        }
      }
    };
 
@@ -188,9 +192,10 @@ export default function DocumentsPage() {
      let attachmentUrl = currentAttachmentUrl; // Keep existing URL if editing and no new file
      if (attachment) {
        // In a real app, you would upload the file here and get back a URL
-       attachmentUrl = `/uploads/docs/${Date.now()}-${attachment.name}`; // Example simulated URL
+       attachmentUrl = `/uploads/docs/${Date.now()}-${encodeURIComponent(attachment.name)}`; // Example simulated URL
        console.log(`Simulating upload for: ${attachment.name} to ${attachmentUrl}`);
-       // In a real app: await uploadFile(attachment);
+       toast({ title: "Simulação de Upload", description: `Documento "${attachment.name}" salvo em ${attachmentUrl}`});
+       // In a real app: attachmentUrl = await uploadFile(attachment);
      }
      // --- End Mock File Upload Logic ---
 
@@ -259,6 +264,24 @@ export default function DocumentsPage() {
       default: return 'outline';
     }
   };
+
+   const handleViewFile = (url: string | undefined, fileName: string) => {
+        if (url) {
+            // In a real app, you might open the actual URL
+            // window.open(url, '_blank');
+            // For simulation, show a toast message
+            toast({
+                title: "Visualização Simulada",
+                description: `Abriria o arquivo: ${fileName} (${url})`,
+            });
+        } else {
+             toast({
+                 title: "Arquivo Indisponível",
+                 description: `Nenhum ${fileName} anexado.`,
+                 variant: "destructive"
+             });
+        }
+   };
 
 
   return (
@@ -335,9 +358,16 @@ export default function DocumentsPage() {
                          <div className="flex items-center gap-2">
                               <Input id="attachment" type="file" onChange={handleFileChange} className="flex-1" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" />
                               {currentAttachmentUrl && !attachment && (
-                                  <a href={currentAttachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[150px]" title={currentAttachmentUrl.split('/').pop()}>
-                                      Ver anexo atual
-                                  </a>
+                                   <Button
+                                       type="button"
+                                       variant="link"
+                                       size="sm"
+                                       className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[150px]"
+                                       onClick={() => handleViewFile(currentAttachmentUrl, 'anexo atual')}
+                                       title={currentAttachmentUrl.split('/').pop()}
+                                   >
+                                       Ver anexo atual
+                                   </Button>
                               )}
                                {attachment && (
                                   <span className="text-xs text-muted-foreground truncate max-w-[150px]" title={attachment.name}>
@@ -424,15 +454,10 @@ export default function DocumentsPage() {
                            )}
                        </TableCell>
                       <TableCell className="text-right space-x-1">
-                        {record.attachmentUrl ? (
-                          <Button variant="ghost" size="icon" asChild title="Ver Anexo">
-                            <a href={record.attachmentUrl} target="_blank" rel="noopener noreferrer">
-                              <Link2 className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        ) : (
-                           <Button variant="ghost" size="icon" disabled title="Sem anexo"><Link2 className="h-4 w-4 text-muted-foreground/50" /></Button>
-                        )}
+                         <Button variant="ghost" size="icon" onClick={() => handleViewFile(record.attachmentUrl, 'documento anexado')} disabled={!record.attachmentUrl} title="Ver Anexo">
+                           <Link2 className={record.attachmentUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
+                           <span className="sr-only">Ver Anexo</span>
+                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)} title="Editar / Ver Ações">
                           <Edit className="h-4 w-4" />
                         </Button>

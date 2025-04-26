@@ -1,3 +1,4 @@
+
 // src/app/jsa/page.tsx
 'use client';
 
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/date-picker';
-import { PlusCircle, Search, Edit, Trash2, FileText, Eye, AlertTriangle, CheckCircle } from 'lucide-react';
+import { PlusCircle, Search, Edit, Trash2, FileText, Eye, AlertTriangle, CheckCircle, Link2 } from 'lucide-react'; // Added Link2
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -46,7 +47,7 @@ const mockJsaRecords: JsaRecord[] = [
     analysisDate: new Date(2023, 8, 10),
     reviewDate: new Date(2024, 8, 10),
     status: 'Ativo',
-    attachmentUrl: 'https://example.com/jsa/painel-eletrico.pdf',
+    attachmentUrl: '/uploads/jsa/jsa-painel-eletrico.pdf',
     risks: [
       { id: 'r1', description: 'Choque Elétrico', controls: 'Desenergizar painel, usar EPIs (luvas isolantes, capacete com viseira), bloqueio e etiquetagem (LOTO).' },
       { id: 'r2', description: 'Arco Elétrico', controls: 'Vestimenta FR, manter distância segura.' },
@@ -70,7 +71,7 @@ const mockJsaRecords: JsaRecord[] = [
     analysisDate: new Date(2022, 11, 1),
     reviewDate: new Date(2023, 11, 1),
     status: 'Arquivado',
-    attachmentUrl: 'https://example.com/jsa/empilhadeira-old.pdf',
+    attachmentUrl: '/uploads/jsa/jsa-empilhadeira-old.pdf',
     risks: [
       { id: 'r5', description: 'Atropelamento', controls: 'Sinalização sonora e visual, velocidade reduzida, check-list pré-uso.' },
       { id: 'r6', description: 'Tombamento de Carga', controls: 'Respeitar capacidade máxima, centro de gravidade baixo.' },
@@ -152,6 +153,9 @@ export default function JsaPage() {
      } else {
        setAttachment(null);
        // Maybe restore currentAttachmentUrl if file is deselected? Depends on UX.
+        if (editingRecord) {
+           setCurrentAttachmentUrl(editingRecord.attachmentUrl);
+        }
      }
    };
 
@@ -171,9 +175,10 @@ export default function JsaPage() {
      let attachmentUrl = currentAttachmentUrl; // Keep existing URL if editing and no new file
      if (attachment) {
        // In a real app, you would upload the file here and get back a URL
-       attachmentUrl = `/uploads/jsa/${Date.now()}-${attachment.name}`; // Example simulated URL
+       attachmentUrl = `/uploads/jsa/${Date.now()}-${encodeURIComponent(attachment.name)}`; // Example simulated URL
        console.log(`Simulating upload for: ${attachment.name} to ${attachmentUrl}`);
-       // In a real app: await uploadFile(attachment);
+       toast({ title: "Simulação de Upload", description: `JSA "${attachment.name}" salva em ${attachmentUrl}`});
+       // In a real app: attachmentUrl = await uploadFile(attachment);
      }
      // --- End Mock File Upload Logic ---
 
@@ -254,6 +259,24 @@ export default function JsaPage() {
        return <CheckCircle className="inline-block h-4 w-4 text-green-600 mr-1" title="Revisão OK" />;
    }
 
+    const handleViewFile = (url: string | undefined, fileName: string) => {
+        if (url) {
+            // In a real app, you might open the actual URL
+            // window.open(url, '_blank');
+            // For simulation, show a toast message
+            toast({
+                title: "Visualização Simulada",
+                description: `Abriria o arquivo: ${fileName} (${url})`,
+            });
+        } else {
+             toast({
+                 title: "Arquivo Indisponível",
+                 description: `Nenhum ${fileName} anexado.`,
+                 variant: "destructive"
+             });
+        }
+    };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -303,17 +326,26 @@ export default function JsaPage() {
                           <div className="flex items-end">
                              <div className="w-full">
                                 <Label htmlFor="attachment">Anexo (Documento JSA)</Label>
-                                <Input id="attachment" type="file" onChange={handleFileChange} accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" />
-                                {currentAttachmentUrl && !attachment && (
-                                     <a href={currentAttachmentUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs text-blue-600 hover:underline truncate block" title={currentAttachmentUrl.split('/').pop()}>
-                                         Visualizar anexo atual
-                                     </a>
-                                 )}
-                                {attachment && (
-                                     <span className="mt-1 text-xs text-muted-foreground truncate block" title={attachment.name}>
-                                         {attachment.name}
-                                     </span>
-                                  )}
+                                 <div className="flex items-center gap-2">
+                                    <Input id="attachment" type="file" onChange={handleFileChange} className="flex-1" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" />
+                                    {currentAttachmentUrl && !attachment && (
+                                         <Button
+                                            type="button"
+                                            variant="link"
+                                            size="sm"
+                                            className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+                                            onClick={() => handleViewFile(currentAttachmentUrl, 'anexo atual')}
+                                            title={`Ver anexo atual: ${currentAttachmentUrl.split('/').pop()}`}
+                                         >
+                                             Ver atual
+                                         </Button>
+                                     )}
+                                    {attachment && (
+                                         <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={attachment.name}>
+                                             {attachment.name}
+                                         </span>
+                                      )}
+                                 </div>
                              </div>
                           </div>
                     </div>
@@ -393,19 +425,10 @@ export default function JsaPage() {
                      <Badge variant={getStatusBadgeVariant(record.status)}>{record.status}</Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                      {record.attachmentUrl ? (
-                         <Button variant="ghost" size="icon" asChild>
-                              <a href={record.attachmentUrl} target="_blank" rel="noopener noreferrer" title="Visualizar Anexo">
-                                 <Eye className="h-4 w-4" />
-                                 <span className="sr-only">Visualizar Anexo</span>
-                              </a>
-                         </Button>
-                      ) : (
-                           <Button variant="ghost" size="icon" disabled title="Sem anexo">
-                               <Eye className="h-4 w-4 text-muted-foreground/50" />
-                               <span className="sr-only">Sem anexo</span>
-                           </Button>
-                      )}
+                     <Button variant="ghost" size="icon" onClick={() => handleViewFile(record.attachmentUrl, 'JSA anexada')} disabled={!record.attachmentUrl} title="Visualizar Anexo">
+                           <Link2 className={record.attachmentUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
+                           <span className="sr-only">Visualizar Anexo</span>
+                      </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)}>
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Editar</span>

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/date-picker'; // Assume this component exists
-import { PlusCircle, Search, Edit, Trash2, AlertTriangle, Users, Award, Eye } from 'lucide-react'; // Added Users, Award, Eye
+import { PlusCircle, Search, Edit, Trash2, AlertTriangle, Users, Award, Eye, Link2 } from 'lucide-react'; // Added Users, Award, Eye, Link2
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -27,11 +27,11 @@ import { Badge } from "@/components/ui/badge"; // Ensure Badge is imported if us
 
 // Mock data structure - replace with actual data fetching
 const mockTrainings: TrainingRecord[] = [
-  { id: '1', employeeName: 'João Silva', trainingType: 'NR-35 Trabalho em Altura', trainingDate: new Date(2023, 5, 15), expiryDate: new Date(2025, 5, 14), status: 'Válido', attendanceListUrl: '/docs/lista_presenca_nr35_joao.pdf', certificateUrl: '/docs/certificado_nr35_joao.pdf' },
+  { id: '1', employeeName: 'João Silva', trainingType: 'NR-35 Trabalho em Altura', trainingDate: new Date(2023, 5, 15), expiryDate: new Date(2025, 5, 14), status: 'Válido', attendanceListUrl: '/uploads/attendance/1-nr35-joao.pdf', certificateUrl: '/uploads/certificates/1-nr35-joao.pdf' },
   { id: '2', employeeName: 'Maria Oliveira', trainingType: 'NR-33 Espaços Confinados', trainingDate: new Date(2022, 10, 20), expiryDate: new Date(2023, 10, 19), status: 'Vencido' },
-  { id: '3', employeeName: 'Carlos Pereira', trainingType: 'Primeiros Socorros', trainingDate: new Date(2024, 0, 10), status: 'Válido', certificateUrl: '/docs/certificado_ps_carlos.pdf' },
+  { id: '3', employeeName: 'Carlos Pereira', trainingType: 'Primeiros Socorros', trainingDate: new Date(2024, 0, 10), status: 'Válido', certificateUrl: '/uploads/certificates/3-ps-carlos.pdf' },
   { id: '4', employeeName: 'Ana Costa', trainingType: 'NR-35 Trabalho em Altura', trainingDate: new Date(2024, 6, 25), expiryDate: new Date(2026, 6, 24), status: 'Próximo ao Vencimento' }, // Adjusted expiry for testing status
-  { id: '5', employeeName: 'Pedro Santos', trainingType: 'NR-10 Eletricidade', trainingDate: new Date(2023, 8, 1), expiryDate: new Date(2025, 7, 31), status: 'Válido', attendanceListUrl: '/docs/lista_presenca_nr10_pedro.pdf' },
+  { id: '5', employeeName: 'Pedro Santos', trainingType: 'NR-10 Eletricidade', trainingDate: new Date(2023, 8, 1), expiryDate: new Date(2025, 7, 31), status: 'Válido', attendanceListUrl: '/uploads/attendance/5-nr10-pedro.pdf' },
 ];
 
 // Helper function to calculate status based on dates
@@ -148,16 +148,20 @@ export default function TrainingsPage() {
      // --- Mock File Upload Logic ---
      let attendanceUrl = currentAttendanceListUrl; // Keep existing URL if editing and no new file
      if (attendanceListFile) {
-       attendanceUrl = `/uploads/attendance/${Date.now()}-${attendanceListFile.name}`;
+       // Simulate URL generation (in a real app, this would be the result of an upload)
+       attendanceUrl = `/uploads/attendance/${Date.now()}-${encodeURIComponent(attendanceListFile.name)}`;
        console.log(`Simulating upload for attendance list: ${attendanceListFile.name} to ${attendanceUrl}`);
-       // In a real app: await uploadFile(attendanceListFile);
+       toast({ title: "Simulação de Upload", description: `Lista de presença "${attendanceListFile.name}" salva em ${attendanceUrl}`});
+       // In a real app: attendanceUrl = await uploadFile(attendanceListFile);
      }
 
      let certificateUrl = currentCertificateUrl; // Keep existing URL if editing and no new file
      if (certificateFile) {
-       certificateUrl = `/uploads/certificates/${Date.now()}-${certificateFile.name}`;
+        // Simulate URL generation
+       certificateUrl = `/uploads/certificates/${Date.now()}-${encodeURIComponent(certificateFile.name)}`;
        console.log(`Simulating upload for certificate: ${certificateFile.name} to ${certificateUrl}`);
-       // In a real app: await uploadFile(certificateFile);
+       toast({ title: "Simulação de Upload", description: `Certificado "${certificateFile.name}" salvo em ${certificateUrl}`});
+       // In a real app: certificateUrl = await uploadFile(certificateFile);
      }
      // --- End Mock File Upload Logic ---
 
@@ -215,6 +219,24 @@ export default function TrainingsPage() {
        default:
          return 'outline'; // Grey/Neutral
      }
+   };
+
+   const handleViewFile = (url: string | undefined, fileName: string) => {
+        if (url) {
+            // In a real app, you might open the actual URL
+            // window.open(url, '_blank');
+            // For simulation, show a toast message
+            toast({
+                title: "Visualização Simulada",
+                description: `Abriria o arquivo: ${fileName} (${url})`,
+            });
+        } else {
+             toast({
+                 title: "Arquivo Indisponível",
+                 description: `Nenhum ${fileName} anexado.`,
+                 variant: "destructive"
+             });
+        }
    };
 
 
@@ -277,9 +299,16 @@ export default function TrainingsPage() {
                           <div className="col-span-3 flex items-center gap-2">
                               <Input id="attendanceFile" type="file" onChange={handleAttendanceFileChange} className="flex-1" accept=".pdf,.doc,.docx,.jpg,.png" />
                               {currentAttendanceListUrl && !attendanceListFile && (
-                                  <a href={currentAttendanceListUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[100px]" title={`Ver lista atual: ${currentAttendanceListUrl.split('/').pop()}`}>
+                                  <Button
+                                      type="button"
+                                      variant="link"
+                                      size="sm"
+                                      className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+                                      onClick={() => handleViewFile(currentAttendanceListUrl, 'lista de presença atual')}
+                                      title={`Ver lista atual: ${currentAttendanceListUrl.split('/').pop()}`}
+                                  >
                                       Ver atual
-                                  </a>
+                                  </Button>
                               )}
                               {attendanceListFile && (
                                   <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={attendanceListFile.name}>
@@ -296,9 +325,16 @@ export default function TrainingsPage() {
                            <div className="col-span-3 flex items-center gap-2">
                                <Input id="certificateFile" type="file" onChange={handleCertificateFileChange} className="flex-1" accept=".pdf,.jpg,.png" />
                                {currentCertificateUrl && !certificateFile && (
-                                   <a href={currentCertificateUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[100px]" title={`Ver certificado atual: ${currentCertificateUrl.split('/').pop()}`}>
+                                    <Button
+                                      type="button"
+                                      variant="link"
+                                      size="sm"
+                                      className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+                                      onClick={() => handleViewFile(currentCertificateUrl, 'certificado atual')}
+                                      title={`Ver certificado atual: ${currentCertificateUrl.split('/').pop()}`}
+                                    >
                                        Ver atual
-                                   </a>
+                                   </Button>
                                )}
                                {certificateFile && (
                                    <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={certificateFile.name}>
@@ -360,28 +396,12 @@ export default function TrainingsPage() {
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                      {/* View Buttons */}
-                    {training.attendanceListUrl ? (
-                       <Button variant="ghost" size="icon" asChild title="Ver Lista de Presença">
-                         <a href={training.attendanceListUrl} target="_blank" rel="noopener noreferrer">
-                           <Users className="h-4 w-4" />
-                         </a>
+                    <Button variant="ghost" size="icon" title="Ver Lista de Presença" onClick={() => handleViewFile(training.attendanceListUrl, 'lista de presença')} disabled={!training.attendanceListUrl}>
+                         <Users className={training.attendanceListUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
                        </Button>
-                     ) : (
-                       <Button variant="ghost" size="icon" disabled title="Lista de Presença Indisponível">
-                         <Users className="h-4 w-4 text-muted-foreground/50" />
+                     <Button variant="ghost" size="icon" title="Ver Certificado" onClick={() => handleViewFile(training.certificateUrl, 'certificado')} disabled={!training.certificateUrl}>
+                         <Award className={training.certificateUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
                        </Button>
-                     )}
-                     {training.certificateUrl ? (
-                       <Button variant="ghost" size="icon" asChild title="Ver Certificado">
-                         <a href={training.certificateUrl} target="_blank" rel="noopener noreferrer">
-                           <Award className="h-4 w-4" />
-                         </a>
-                       </Button>
-                     ) : (
-                       <Button variant="ghost" size="icon" disabled title="Certificado Indisponível">
-                         <Award className="h-4 w-4 text-muted-foreground/50" />
-                       </Button>
-                     )}
                      {/* Edit and Delete Buttons */}
                     <Button variant="ghost" size="icon" onClick={() => handleOpenForm(training)} title="Editar">
                       <Edit className="h-4 w-4" />
@@ -423,5 +443,3 @@ export default function TrainingsPage() {
     </div>
   );
 }
-
-    
