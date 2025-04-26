@@ -31,7 +31,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { Prisma, AccidentRecord as PrismaAccidentRecord, Employee as PrismaEmployee, AccidentType, AccidentCause, InvestigationStatus } from '@prisma/client';
+import { Prisma, AccidentRecord as PrismaAccidentRecord, Employee as PrismaEmployee } from '@prisma/client';
+// Import enums directly from Prisma client
+import { AccidentType, AccidentCause, InvestigationStatus } from '@prisma/client';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { createAccident, getAccidents, updateAccident, deleteAccident, getEmployees } from '@/app/statistics/actions'; // Import server actions
@@ -44,22 +46,22 @@ type AccidentRecordWithEmployee = PrismaAccidentRecord & {
 type Employee = Pick<PrismaEmployee, 'id' | 'name'>; // Simplified Employee type for dropdown
 
 // --- Form Validation Schema ---
+// Use zod enums based on Prisma enums for type safety
 const accidentSchema = z.object({
   id: z.string().optional(), // Optional for creation
   date: z.date({ required_error: "Data é obrigatória." }),
   time: z.string().optional(),
   employeeId: z.string().min(1, "Colaborador é obrigatório."), // Use ID for relation
-  // employeeName: z.string().min(1, "Nome do colaborador é obrigatório."), // No longer needed directly in schema
   department: z.string().min(1, "Departamento é obrigatório."),
   location: z.string().min(1, "Local é obrigatório."),
-  type: z.nativeEnum(AccidentType, { errorMap: () => ({ message: "Tipo é obrigatório." }) }),
-  cause: z.nativeEnum(AccidentCause, { errorMap: () => ({ message: "Causa é obrigatória." }) }),
+  type: z.nativeEnum(AccidentType, { errorMap: () => ({ message: "Tipo é obrigatório." }) }), // Use Prisma Enum
+  cause: z.nativeEnum(AccidentCause, { errorMap: () => ({ message: "Causa é obrigatória." }) }), // Use Prisma Enum
   causeDetails: z.string().optional(),
   daysOff: z.coerce.number().min(0, "Dias de afastamento não pode ser negativo.").default(0), // Use coerce for number conversion
   description: z.string().min(1, "Descrição é obrigatória."),
   cid10Code: z.string().optional(),
   catIssued: z.boolean().default(false),
-  investigationStatus: z.nativeEnum(InvestigationStatus).default(InvestigationStatus.Pendente),
+  investigationStatus: z.nativeEnum(InvestigationStatus).default(InvestigationStatus.Pendente), // Use Prisma Enum
   reportUrl: z.string().optional(),
 });
 
@@ -641,13 +643,13 @@ export default function StatisticsPage() {
                     <TableCell className="font-medium">{record.employeeName ?? 'N/A'}</TableCell>
                     <TableCell>{record.department}</TableCell>
                     <TableCell>
-                        <Badge variant={record.type === 'Fatal' ? 'destructive' : record.type === 'Grave' ? 'secondary' : 'default'}>{record.type.replace('_', ' ')}</Badge>
+                        <Badge variant={record.type === AccidentType.Fatal ? 'destructive' : record.type === AccidentType.Grave ? 'secondary' : 'default'}>{record.type.replace('_', ' ')}</Badge>
                     </TableCell>
                     <TableCell>{record.cause.replace('_', ' ')}</TableCell>
                     <TableCell>{record.daysOff}</TableCell>
                     <TableCell>{record.catIssued ? 'Sim' : 'Não'}</TableCell>
                     <TableCell>
-                         <Badge variant={record.investigationStatus === 'Concluida' ? 'default' : record.investigationStatus === 'Em_Andamento' ? 'secondary' : 'outline'}>
+                         <Badge variant={record.investigationStatus === InvestigationStatus.Concluida ? 'default' : record.investigationStatus === InvestigationStatus.Em_Andamento ? 'secondary' : 'outline'}>
                              {record.investigationStatus.replace('_', ' ')}
                          </Badge>
                     </TableCell>
@@ -696,5 +698,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    

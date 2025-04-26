@@ -16,34 +16,11 @@ import type {
     LawsuitRecord as PrismaLawsuitRecord,
     AccidentRecord as PrismaAccidentRecord,
     OccupationalDiseaseRecord as PrismaOccupationalDiseaseRecord,
-} from '@prisma/client';
-
-// --- Re-export Prisma types or create custom types based on them ---
-
-// Use Prisma types directly for models that don't need frontend-specific additions yet
-export type Employee = PrismaEmployee;
-export type TrainingRecord = PrismaTrainingRecord & { employeeName?: string | null }; // Add potential denormalized fields if needed
-export type PpeRecord = PrismaPpeRecord & { employeeName?: string | null };
-export type AsoRecord = PrismaAsoRecord & { employeeName?: string | null };
-export type ChemicalRecord = PrismaChemicalRecord;
-export type JsaRecord = PrismaJsaRecord & { risks: RiskItem[] }; // Include related risks
-export type RiskItem = PrismaRiskItem;
-export type CipaMeetingRecord = PrismaCipaMeeting & { actionsDefined: CipaAction[] }; // Include related actions
-export type CipaAction = PrismaCipaAction;
-export type PreventiveAction = PrismaPreventiveAction;
-export type DocumentRecord = PrismaDocumentRecord & { relatedActions: DocumentAction[] }; // Include related actions
-export type DocumentAction = PrismaDocumentAction;
-export type LawsuitRecord = PrismaLawsuitRecord;
-export type AccidentRecord = PrismaAccidentRecord & { employeeName?: string | null }; // Use Prisma type, add optional name
-export type OccupationalDiseaseRecord = PrismaOccupationalDiseaseRecord & { employeeName?: string | null };
-
-
-// --- Keep Enums (if not directly using Prisma Enums on client, or for clarity) ---
-// You can often import Enums directly from @prisma/client where needed
-// Example: import { AccidentType } from '@prisma/client';
-
-// Enum types (can be replaced by importing from @prisma/client in components)
-export type {
+    // Import Enums directly from Prisma Client where they are defined
+    // If Prisma generates enums as types (depends on generator config), import them.
+    // Otherwise, use string types and potentially define TypeScript enums/union types here.
+    // Assuming Prisma Client exports these:
+    TrainingRecordStatus, // Example if defined by Prisma
     AsoExamType,
     AsoResult,
     ChemicalUnit,
@@ -59,6 +36,57 @@ export type {
     AccidentCause,
     InvestigationStatus,
 } from '@prisma/client';
+
+
+// --- Re-export Prisma types or create custom types based on them ---
+
+// Use Prisma types directly for models
+export type Employee = PrismaEmployee;
+export type TrainingRecord = PrismaTrainingRecord & { employeeName?: string | null, trainingTypeName?: string | null };
+export type PpeRecord = PrismaPpeRecord & { employeeName?: string | null };
+export type AsoRecord = PrismaAsoRecord & { employeeName?: string | null };
+export type ChemicalRecord = PrismaChemicalRecord;
+export type JsaRecord = PrismaJsaRecord & { risks: RiskItem[] }; // Include related risks
+export type RiskItem = PrismaRiskItem;
+export type CipaMeetingRecord = PrismaCipaMeeting & { actionsDefined: CipaAction[] }; // Include related actions
+export type CipaAction = PrismaCipaAction;
+export type PreventiveAction = PrismaPreventiveAction;
+export type DocumentRecord = PrismaDocumentRecord & { relatedActions: DocumentAction[] }; // Include related actions
+export type DocumentAction = PrismaDocumentAction;
+export type LawsuitRecord = PrismaLawsuitRecord;
+export type AccidentRecord = PrismaAccidentRecord & { employeeName?: string | null }; // Use Prisma type, add optional name
+export type OccupationalDiseaseRecord = PrismaOccupationalDiseaseRecord & { employeeName?: string | null };
+
+
+// --- Export Prisma Enums directly for type safety ---
+// This allows using the defined enums from Prisma throughout the application.
+// If using SQLite where enums are mapped to strings, these exports provide the valid string values.
+export {
+    // TrainingRecordStatus, // Assuming this exists in Prisma Client
+    AsoExamType,
+    AsoResult,
+    ChemicalUnit,
+    JsaStatus,
+    CipaMeetingStatus,
+    ActionStatus,
+    PreventiveActionCategory,
+    PreventiveActionFrequency,
+    DocumentType,
+    DocumentStatus,
+    LawsuitStatus,
+    AccidentType,
+    AccidentCause,
+    InvestigationStatus,
+};
+
+// Define TypeScript enums/types if Prisma doesn't export them or for stricter control
+// Example for TrainingRecordStatus if not exported by Prisma:
+export enum TrainingStatus {
+    Valido = "Valido",
+    Vencido = "Vencido",
+    Proximo_ao_Vencimento = "Proximo_ao_Vencimento",
+}
+// You would then use TrainingStatus in your component logic instead of string directly.
 
 
 // --- Statistics Type ---
@@ -78,5 +106,3 @@ export interface StatisticsData {
 
 // Type for simplified Employee used in dropdowns
 export type EmployeeSelectItem = Pick<PrismaEmployee, 'id' | 'name'>;
-
-    
