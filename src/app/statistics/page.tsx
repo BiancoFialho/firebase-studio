@@ -26,8 +26,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"; // Added Legend imports
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts'; // Keep Cell import
 import type { AccidentRecord, AccidentType, AccidentCause, StatisticsData } from '@/lib/types';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
 
@@ -172,6 +172,8 @@ export default function StatisticsPage() {
     const numberOfAccidents = periodAccidents.length;
     const accidentsWithLostTime = periodAccidents.filter(a => a.daysOff > 0).length;
     const totalDaysLost = periodAccidents.reduce((sum, acc) => sum + acc.daysOff, 0);
+    const fatalAccidents = periodAccidents.filter(a => a.type === 'Fatal').length; // Count fatal accidents
+
 
     const tf = calculateFrequencyRate(accidentsWithLostTime, totalHoursWorked);
     const tg = calculateSeverityRate(totalDaysLost, totalHoursWorked);
@@ -182,17 +184,18 @@ export default function StatisticsPage() {
       totalDaysLost,
       tf,
       tg,
-      period: "Período Atual" // Placeholder, can be dynamic
+      period: "Período Atual", // Placeholder, can be dynamic
+      fatalAccidents, // Include fatal count in stats
     };
   }, [filteredAccidents, totalHoursWorked]);
 
   // --- Chart Data Preparation ---
   const accidentsByType = useMemo(() => {
-    const counts: { [key in AccidentType]?: number } = {};
+    const counts: { [key in AccidentType]: number } = { 'Leve': 0, 'Grave': 0, 'Fatal': 0, 'Trajeto': 0, 'Típico': 0 }; // Initialize all types
     filteredAccidents.forEach(acc => {
       counts[acc.type] = (counts[acc.type] || 0) + 1;
     });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    return Object.entries(counts).map(([name, value]) => ({ name, value })).filter(item => item.value > 0); // Filter out types with 0 count for cleaner chart
   }, [filteredAccidents]);
 
   const accidentsByCause = useMemo(() => {
@@ -211,8 +214,8 @@ export default function StatisticsPage() {
   // Chart Configs
   const typeChartConfig = {
     value: { label: "Quantidade" },
-    Leve: { label: "Leve", color: "hsl(var(--chart-2))" },
-    Grave: { label: "Grave", color: "hsl(var(--chart-3))" },
+    Leve: { label: "Leve", color: "hsl(var(--chart-1))" }, // Adjusted colors
+    Grave: { label: "Grave", color: "hsl(var(--chart-2))" },
     Fatal: { label: "Fatal", color: "hsl(var(--destructive))" },
     Trajeto: { label: "Trajeto", color: "hsl(var(--chart-4))" },
     Típico: { label: "Típico", color: "hsl(var(--chart-5))" },
@@ -221,11 +224,14 @@ export default function StatisticsPage() {
    const causeChartConfig = {
      value: { label: "Quantidade" },
      Queda: { label: "Queda", color: "hsl(var(--chart-1))" },
-     'Choque Elétrico': { label: "Choque", color: "hsl(var(--chart-2))" },
+     'Choque Elétrico': { label: "Choque Elétrico", color: "hsl(var(--chart-2))" }, // Use full name in config key
      Impacto: { label: "Impacto", color: "hsl(var(--chart-3))" },
      Corte: { label: "Corte", color: "hsl(var(--chart-4))" },
-     'Projeção Partículas': { label: "Projeção", color: "hsl(var(--chart-5))" },
-     // Add other causes as needed
+     'Projeção Partículas': { label: "Projeção Partículas", color: "hsl(var(--chart-5))" }, // Use full name
+     Químico: { label: "Químico", color: "hsl(var(--chart-1))" }, // Reuse colors or add more
+     Ergonômico: { label: "Ergonômico", color: "hsl(var(--chart-2))" },
+     Biológico: { label: "Biológico", color: "hsl(var(--chart-3))" },
+     Outro: { label: "Outro", color: "hsl(var(--chart-4))" },
    } satisfies ChartConfig;
 
 
@@ -242,7 +248,13 @@ export default function StatisticsPage() {
            </CardHeader>
            <CardContent>
              <div className="text-2xl font-bold">{statistics.numberOfAccidents}</div>
-             <p className="text-xs text-muted-foreground">{statistics.period}</p>
+             <p className="text-xs text-muted-foreground">
+                 {statistics.fatalAccidents > 0 ? (
+                    <span className="text-destructive">{statistics.fatalAccidents} fatais incluídos</span>
+                 ) : (
+                    <span className="text-green-600">Nenhum fatal</span>
+                 )}
+             </p>
            </CardContent>
          </Card>
          <Card>
@@ -262,7 +274,7 @@ export default function StatisticsPage() {
            </CardHeader>
            <CardContent>
              <div className="text-2xl font-bold">{statistics.tf?.toFixed(2) ?? 'N/A'}</div>
-             <p className="text-xs text-muted-foreground">Acidentes x 1M / HHT</p>
+             <p className="text-xs text-muted-foreground">Acidentes (com afast.) x 1M / HHT</p>
            </CardContent>
          </Card>
          <Card>
@@ -278,7 +290,7 @@ export default function StatisticsPage() {
           <Card className="md:col-span-2 lg:col-span-4">
              <CardHeader className="pb-2">
                <CardTitle className="text-sm font-medium">Horas Homem Trabalhadas (HHT) no Período</CardTitle>
-               <CardDescription>Valor base para cálculo das taxas.</CardDescription>
+               <CardDescription>Valor base para cálculo das taxas. Ajuste conforme necessário.</CardDescription>
              </CardHeader>
              <CardContent className="flex items-center gap-2">
                <Input
@@ -289,7 +301,6 @@ export default function StatisticsPage() {
                  placeholder="Total de horas"
                />
                 <span className="text-sm text-muted-foreground">horas</span>
-                {/* Add button to save/update this value if needed */}
              </CardContent>
            </Card>
       </div>
@@ -304,11 +315,11 @@ export default function StatisticsPage() {
              </CardHeader>
              <CardContent>
                <ChartContainer config={typeChartConfig} className="h-[300px] w-full">
-                  <BarChart data={accidentsByType} layout="vertical" accessibilityLayer>
+                  <BarChart data={accidentsByType} layout="vertical" accessibilityLayer margin={{ right: 20 }}>
                     <CartesianGrid horizontal={false}/>
-                    <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} hide />
-                    <XAxis type="number" hide />
-                     <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" hideLabel />} />
+                    <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} className="text-xs" />
+                    <XAxis type="number" />
+                     <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                     <Legend content={({ payload }) => <ChartLegendContent payload={payload} nameKey="name" className="flex flex-wrap gap-x-4 gap-y-1 justify-center mt-2" />} />
                      <Bar dataKey="value" layout="vertical" radius={5}>
                          {accidentsByType.map((entry) => (
@@ -326,15 +337,14 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent>
                 <ChartContainer config={causeChartConfig} className="h-[300px] w-full">
-                    <BarChart data={accidentsByCause} layout="vertical" accessibilityLayer>
+                    <BarChart data={accidentsByCause} layout="vertical" accessibilityLayer margin={{ right: 20 }}>
                       <CartesianGrid horizontal={false}/>
-                      <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} className="text-xs" />
+                      <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} className="text-xs" />
                       <XAxis type="number" />
                       <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                       {/* <ChartLegend content={<ChartLegendContent nameKey="name"/>} /> */}
                        <Bar dataKey="value" layout="vertical" radius={4}>
                           {accidentsByCause.map((entry) => (
-                             <Cell key={`cell-${entry.name}`} fill={`var(--color-${entry.name})`} />
+                             <Cell key={`cell-${entry.name}`} fill={`var(--color-${entry.name.replace(/\s/g, '')})`} /> // Use name from config, remove spaces for CSS var
                           ))}
                        </Bar>
                     </BarChart>
@@ -400,7 +410,7 @@ export default function StatisticsPage() {
                    </div>
                    {/* Cause */}
                    <div className="space-y-1">
-                      <Label htmlFor="cause">Causa*</Label>
+                      <Label htmlFor="cause">Causa Principal*</Label>
                       <Select value={cause} onValueChange={(v: AccidentCause) => setCause(v)} required>
                            <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                            <SelectContent>
@@ -410,8 +420,8 @@ export default function StatisticsPage() {
                    </div>
                    {/* Cause Details */}
                    <div className="space-y-1 lg:col-span-2">
-                      <Label htmlFor="causeDetails">Detalhes da Causa (se 'Outro')</Label>
-                      <Input id="causeDetails" value={causeDetails} onChange={(e) => setCauseDetails(e.target.value)} />
+                      <Label htmlFor="causeDetails">Detalhes Adicionais da Causa</Label>
+                      <Input id="causeDetails" value={causeDetails} onChange={(e) => setCauseDetails(e.target.value)} placeholder="Ex: Falta de EPI, condição insegura" />
                    </div>
                    {/* Days Off */}
                    <div className="space-y-1">
@@ -420,8 +430,8 @@ export default function StatisticsPage() {
                    </div>
                    {/* CID-10 */}
                    <div className="space-y-1">
-                      <Label htmlFor="cid10Code">CID-10 (Opcional)</Label>
-                      <Input id="cid10Code" value={cid10Code} onChange={(e) => setCid10Code(e.target.value)} />
+                      <Label htmlFor="cid10Code">CID-10 (se aplicável)</Label>
+                      <Input id="cid10Code" value={cid10Code} onChange={(e) => setCid10Code(e.target.value)} placeholder="Opcional" />
                    </div>
                     {/* Investigation Status */}
                     <div className="space-y-1">
@@ -437,13 +447,13 @@ export default function StatisticsPage() {
                      </div>
                      {/* Report URL */}
                     <div className="space-y-1">
-                       <Label htmlFor="reportUrl">Link Relatório (Opcional)</Label>
-                       <Input id="reportUrl" type="url" value={reportUrl} onChange={(e) => setReportUrl(e.target.value)} />
+                       <Label htmlFor="reportUrl">Link Relatório Análise (Opcional)</Label>
+                       <Input id="reportUrl" type="url" value={reportUrl} onChange={(e) => setReportUrl(e.target.value)} placeholder="http://..." />
                     </div>
                      {/* CAT Issued */}
-                    <div className="flex items-center space-x-2 pt-4">
+                    <div className="flex items-center space-x-2 pt-4 lg:col-span-3">
                          <Checkbox id="catIssued" checked={catIssued} onCheckedChange={(checked) => setCatIssued(!!checked)} />
-                         <Label htmlFor="catIssued">CAT Emitida?</Label>
+                         <Label htmlFor="catIssued">Comunicação de Acidente de Trabalho (CAT) Emitida?</Label>
                      </div>
 
                 </div>
@@ -501,7 +511,11 @@ export default function StatisticsPage() {
                     <TableCell>{record.cause}</TableCell>
                     <TableCell>{record.daysOff}</TableCell>
                     <TableCell>{record.catIssued ? 'Sim' : 'Não'}</TableCell>
-                    <TableCell>{record.investigationStatus}</TableCell>
+                    <TableCell>
+                         <Badge variant={record.investigationStatus === 'Concluída' ? 'default' : record.investigationStatus === 'Em Andamento' ? 'secondary' : 'outline'}>
+                             {record.investigationStatus}
+                         </Badge>
+                    </TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)}>
                         <Edit className="h-4 w-4" />
@@ -546,5 +560,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-// Re-add Cell if needed, or remove this line
-import { Cell } from 'recharts';
