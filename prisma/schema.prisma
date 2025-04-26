@@ -1,0 +1,314 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id          String @id @default(cuid())
+  name        String
+  department  String
+  // other fields
+  trainings   TrainingRecord[]
+  ppe         PpeRecord[]
+  asos        AsoRecord[]
+  diseases    OccupationalDiseaseRecord[]
+  accidents   AccidentRecord[]
+  lawsuitsPlaintiff LawsuitRecord[] @relation("PlaintiffLawsuits")
+  lawsuitsResponsible PreventiveAction[]
+  cipaMeetings      ParticipantCipaMeeting[]
+}
+
+model TrainingRecord {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  trainingType  String
+  trainingDate  DateTime
+  expiryDate    DateTime?
+  status        String // Válido, Vencido, Próximo ao Vencimento - Consider Enum later
+
+  @@index([employeeId])
+}
+
+model PpeRecord {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  ppeType       String
+  deliveryDate  DateTime
+  caNumber      String?
+  quantity      Int
+  returnDate    DateTime?
+  status        String // Em uso, Devolvido, Descartado - Consider Enum later
+
+  @@index([employeeId])
+}
+
+enum AsoExamType {
+  Admissional
+  Periodico
+  Demissional
+  Mudanca_de_Risco
+  Retorno_ao_Trabalho
+}
+
+enum AsoResult {
+  Apto
+  Inapto
+  Apto_com_Restricoes
+}
+
+enum AsoStatus {
+  Valido
+  Vencido
+  Proximo_ao_Vencimento
+}
+
+model AsoRecord {
+  id            String      @id @default(cuid())
+  employeeId    String
+  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  examType      AsoExamType
+  examDate      DateTime
+  expiryDate    DateTime
+  result        AsoResult
+  status        AsoStatus
+  attachmentUrl String?
+
+  @@index([employeeId])
+}
+
+enum ChemicalUnit {
+  kg
+  L
+  g
+  mL
+  unid
+}
+
+model ChemicalRecord {
+  id           String       @id @default(cuid())
+  productName  String
+  casNumber    String?
+  location     String
+  quantity     Float // Use Float for potentially fractional quantities
+  unit         ChemicalUnit
+  sdsUrl       String?
+  lastUpdated  DateTime
+}
+
+model JsaRecord {
+  id           String      @id @default(cuid())
+  taskName     String
+  department   String
+  analysisDate DateTime
+  reviewDate   DateTime?
+  status       JsaStatus // Ativo, Em_Revisao, Arquivado
+  attachmentUrl String?
+  risks        JsaRisk[]
+}
+
+enum JsaStatus {
+  Ativo
+  Em_Revisao
+  Arquivado
+}
+
+model JsaRisk {
+  id           String    @id @default(cuid())
+  jsaId        String
+  jsa          JsaRecord @relation(fields: [jsaId], references: [id], onDelete: Cascade)
+  description  String
+  controls     String
+
+  @@index([jsaId])
+}
+
+enum AccidentType {
+  Leve
+  Grave
+  Fatal
+  Trajeto
+  Tipico
+}
+
+enum AccidentCause {
+  Queda
+  Choque_Eletrico
+  Impacto
+  Corte
+  Projecao_Particulas
+  Quimico
+  Ergonomico
+  Biologico
+  Outro
+}
+
+enum InvestigationStatus {
+  Pendente
+  Em_Andamento
+  Concluida
+}
+
+model AccidentRecord {
+  id                String              @id @default(cuid())
+  date              DateTime
+  time              String?
+  employeeId        String
+  employee          Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  department        String
+  location          String
+  type              AccidentType
+  cause             AccidentCause
+  causeDetails      String?
+  daysOff           Int
+  description       String              @db.Text
+  cid10Code         String?
+  catIssued         Boolean
+  investigationStatus InvestigationStatus
+  reportUrl         String?
+
+  @@index([employeeId])
+}
+
+enum OccupationalDiseaseStatus {
+  Ativo
+  Recuperado
+  Afastado
+}
+
+model OccupationalDiseaseRecord {
+  id                String                    @id @default(cuid())
+  employeeId        String
+  employee          Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  diseaseType       String
+  cid10Code         String
+  diagnosisDate     DateTime
+  relatedTask       String?
+  medicalReportUrl  String?
+  daysOff           Int
+  status            OccupationalDiseaseStatus
+  pcmsoLink         String?
+
+  @@index([employeeId])
+}
+
+enum LawsuitStatus {
+  Em_Andamento
+  Acordo
+  Finalizado_Favoravel
+  Finalizado_Desfavoravel
+}
+
+model LawsuitRecord {
+  id            String        @id @default(cuid())
+  processNumber String        @unique
+  plaintiff     String // Could be Employee ID later if needed
+  subject       String
+  status        LawsuitStatus
+  filingDate    DateTime
+  hearingDate   DateTime?
+  estimatedCost Float?
+  finalCost     Float?
+  lawyer        String?
+  details       String        @db.Text
+  relatedNRs    String[] // Storing as an array of strings
+
+  // If plaintiff is always an employee:
+  // plaintiffEmployee Employee? @relation("PlaintiffLawsuits", fields: [plaintiffEmployeeId], references: [id])
+  // plaintiffEmployeeId String? @index
+}
+
+
+enum ActionStatus {
+  Pendente
+  Em_Andamento
+  Concluida
+}
+
+model CipaMeetingAction {
+  id            String        @id @default(cuid())
+  cipaMeetingId String
+  cipaMeeting   CipaMeetingRecord @relation(fields: [cipaMeetingId], references: [id], onDelete: Cascade)
+  description   String
+  responsible   String
+  deadline      DateTime?
+  status        ActionStatus
+
+   @@index([cipaMeetingId])
+}
+
+enum CipaMeetingStatus {
+  Agendada
+  Realizada
+  Cancelada
+}
+
+model CipaMeetingRecord {
+  id              String                @id @default(cuid())
+  date            DateTime
+  participants    ParticipantCipaMeeting[]
+  agenda          String                @db.Text
+  minutesUrl      String?
+  actionsDefined  CipaMeetingAction[]
+  status          CipaMeetingStatus
+}
+
+// Junction table for many-to-many relationship between Employee and CipaMeetingRecord
+model ParticipantCipaMeeting {
+  employeeId    String
+  cipaMeetingId String
+  employee      Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cipaMeeting   CipaMeetingRecord @relation(fields: [cipaMeetingId], references: [id], onDelete: Cascade)
+
+  @@id([employeeId, cipaMeetingId])
+  @@index([cipaMeetingId])
+}
+
+
+enum PreventiveActionCategory {
+  Inspecao
+  Treinamento
+  Manutencao
+  EPI
+  Procedimento
+  Outro
+}
+
+enum PreventiveActionFrequency {
+  Diaria
+  Semanal
+  Mensal
+  Trimestral
+  Semestral
+  Anual
+  Unica
+}
+
+enum PreventiveActionStatus {
+  Pendente
+  Em_Andamento
+  Concluida
+  Atrasada
+}
+
+model PreventiveAction {
+  id                  String                    @id @default(cuid())
+  description         String
+  category            PreventiveActionCategory
+  responsible         String // Could be Employee ID later
+  responsibleEmployee Employee?                 @relation(fields: [responsibleEmployeeId], references: [id])
+  responsibleEmployeeId String?                 @index
+  frequency           PreventiveActionFrequency?
+  dueDate             DateTime?
+  lastCompletedDate   DateTime?
+  status              PreventiveActionStatus
+  evidenceUrl         String?
+}

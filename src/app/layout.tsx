@@ -19,8 +19,8 @@ import {
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
-    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard // Removed LogOut, UserPlus
-} from 'lucide-react';
+    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard, Target, Landmark // Added Target, Landmark
+} from 'lucide-react'; // Removed LogOut, UserPlus, FileCheck2 (using ListChecks for Action Plan)
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react'; // Import React
 
@@ -130,13 +130,23 @@ export default function RootLayout({
                    </SidebarMenuButton>
                  </SidebarMenuItem>
 
-                 {/* New Modules */}
+                 {/* New Modules / Reorganized */}
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
                      <Link href="/prevention">
                        <> {/* Wrap children */}
-                         <Users /> {/* Or ListChecks */}
+                         <Users />
                          <span>Prevenção (CIPA)</span>
+                       </>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Plano de Ação & NRs">
+                     <Link href="/action-plan">
+                       <> {/* Wrap children */}
+                         <ListChecks /> {/* Changed Icon */}
+                         <span>Plano de Ação</span>
                        </>
                      </Link>
                    </SidebarMenuButton>
@@ -162,11 +172,11 @@ export default function RootLayout({
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Compliance & Ações">
-                     <Link href="/compliance">
+                   <SidebarMenuButton asChild tooltip="Ações Trabalhistas">
+                     <Link href="/lawsuits">
                        <> {/* Wrap children */}
-                         <Scale /> {/* Or FileCheck2 */}
-                         <span>Compliance</span>
+                         <Landmark /> {/* Changed Icon */}
+                         <span>Ações Trab.</span>
                        </>
                      </Link>
                    </SidebarMenuButton>
@@ -188,7 +198,6 @@ export default function RootLayout({
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
-                  {/* Removed Logout button */}
                </SidebarMenu>
              </SidebarFooter>
            </Sidebar>
@@ -199,7 +208,6 @@ export default function RootLayout({
                 <SidebarTrigger className="hidden md:flex"/>
                {/* Placeholder for potential header content like user profile */}
                <div className="flex items-center gap-4">
-                   {/* Removed User Profile / Logout for Header */}
                    <span className="text-sm text-muted-foreground hidden sm:inline">Nery Mecatrônica</span>
                </div>
              </header>

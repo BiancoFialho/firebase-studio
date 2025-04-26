@@ -1,7 +1,10 @@
 // src/app/statistics/page.tsx
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useForm, Controller, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,213 +29,263 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"; // Added Legend imports
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts'; // Keep Cell import
-import type { AccidentRecord, AccidentType, AccidentCause, StatisticsData } from '@/lib/types';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { Prisma, AccidentRecord as PrismaAccidentRecord, AccidentType, AccidentCause, InvestigationStatus } from '@prisma/client'; // Import Prisma types
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
+import { format } from 'date-fns';
+import { createAccident, getAccidents, updateAccident, deleteAccident } from '@/app/statistics/actions'; // Import server actions
 
-// Mock Data
-const mockAccidents: AccidentRecord[] = [
-  { id: 'acc1', date: new Date(2024, 0, 15), employeeName: 'Carlos Pereira', department: 'Produção', location: 'Máquina XPTO', type: 'Leve', cause: 'Corte', daysOff: 2, description: 'Corte superficial no dedo ao manusear peça.', catIssued: true, investigationStatus: 'Concluída' },
-  { id: 'acc2', date: new Date(2024, 2, 5), employeeName: 'Ana Costa', department: 'Logística', location: 'Corredor B', type: 'Leve', cause: 'Queda', daysOff: 0, description: 'Escorregou em piso molhado sem sinalização.', catIssued: false, investigationStatus: 'Concluída' },
-  { id: 'acc3', date: new Date(2024, 4, 20), time: '10:30', employeeName: 'João Silva', department: 'Manutenção', location: 'Painel Elétrico Z', type: 'Grave', cause: 'Choque Elétrico', daysOff: 15, description: 'Contato acidental com fiação exposta durante manutenção.', catIssued: true, investigationStatus: 'Em Andamento', cid10Code: 'T75.4' },
-  { id: 'acc4', date: new Date(2024, 6, 1), employeeName: 'Maria Oliveira', department: 'Produção', location: 'Esteira 1', type: 'Leve', cause: 'Impacto', daysOff: 1, description: 'Pancada leve no braço por caixa.', catIssued: false, investigationStatus: 'Pendente' },
+// Extend Prisma type if needed, or use directly
+type AccidentRecord = PrismaAccidentRecord;
+
+// --- Form Validation Schema ---
+const accidentSchema = z.object({
+  id: z.string().optional(), // Optional for creation
+  date: z.date({ required_error: "Data é obrigatória." }),
+  time: z.string().optional(),
+  employeeId: z.string().min(1, "Colaborador é obrigatório."), // Assuming IDs are stored
+  employeeName: z.string().min(1, "Nome do colaborador é obrigatório."), // For display/selection
+  department: z.string().min(1, "Departamento é obrigatório."),
+  location: z.string().min(1, "Local é obrigatório."),
+  type: z.nativeEnum(AccidentType, { errorMap: () => ({ message: "Tipo é obrigatório." }) }),
+  cause: z.nativeEnum(AccidentCause, { errorMap: () => ({ message: "Causa é obrigatória." }) }),
+  causeDetails: z.string().optional(),
+  daysOff: z.number().min(0, "Dias de afastamento não pode ser negativo.").default(0),
+  description: z.string().min(1, "Descrição é obrigatória."),
+  cid10Code: z.string().optional(),
+  catIssued: z.boolean().default(false),
+  investigationStatus: z.nativeEnum(InvestigationStatus).default(InvestigationStatus.Pendente),
+  reportUrl: z.string().optional(),
+});
+
+type AccidentFormData = z.infer<typeof accidentSchema>;
+
+
+// Mock data for employees (replace with actual fetching)
+const mockEmployees = [
+    { id: 'emp1', name: 'João Silva' },
+    { id: 'emp2', name: 'Maria Oliveira' },
+    { id: 'emp3', name: 'Carlos Pereira' },
+    { id: 'emp4', name: 'Ana Costa' },
+    { id: 'emp5', name: 'Pedro Santos' },
 ];
 
-const mockHoursWorked = 500000; // Example total hours for the period (e.g., year 2024)
+// Mock total hours worked (replace with fetching or input)
+const mockHoursWorked = 500000;
 
 export default function StatisticsPage() {
-  const [accidents, setAccidents] = useState<AccidentRecord[]>(mockAccidents);
+  const [accidents, setAccidents] = useState<AccidentRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<AccidentRecord | null>(null);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  // Form State
-  const [date, setDate] = useState<Date | undefined>(new Date());
-  const [time, setTime] = useState('');
-  const [employeeName, setEmployeeName] = useState('');
-  const [department, setDepartment] = useState('');
-  const [location, setLocation] = useState('');
-  const [type, setType] = useState<AccidentType | ''>('');
-  const [cause, setCause] = useState<AccidentCause | ''>('');
-  const [causeDetails, setCauseDetails] = useState('');
-  const [daysOff, setDaysOff] = useState<number>(0);
-  const [description, setDescription] = useState('');
-  const [cid10Code, setCid10Code] = useState('');
-  const [catIssued, setCatIssued] = useState(false);
-  const [investigationStatus, setInvestigationStatus] = useState<AccidentRecord['investigationStatus']>('Pendente');
-  const [reportUrl, setReportUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [totalHoursWorked, setTotalHoursWorked] = useState<number>(mockHoursWorked);
+
+
+  const { register, handleSubmit, control, reset, setValue, formState: { errors } } = useForm<AccidentFormData>({
+    resolver: zodResolver(accidentSchema),
+    defaultValues: {
+        date: new Date(),
+        employeeId: '',
+        employeeName: '',
+        department: '',
+        location: '',
+        daysOff: 0,
+        description: '',
+        catIssued: false,
+        investigationStatus: InvestigationStatus.Pendente,
+        // type and cause will be set via Select dropdowns
+    }
+  });
+
+
+  // --- Data Fetching ---
+  useEffect(() => {
+    const fetchAccidents = async () => {
+      setIsLoading(true);
+      try {
+        const fetchedAccidents = await getAccidents();
+        setAccidents(fetchedAccidents);
+      } catch (error) {
+        console.error("Error fetching accidents:", error);
+        toast({ title: "Erro", description: "Não foi possível buscar os registros de acidentes.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAccidents();
+  }, [toast]);
+
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
   };
 
-  const filteredAccidents = accidents.filter((record) =>
-    record.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.cause.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+   const filteredAccidents = useMemo(() => accidents.filter((record) =>
+       record.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) || // Use optional chaining
+       record.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       record.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       record.cause.toLowerCase().includes(searchTerm.toLowerCase())
+   ), [accidents, searchTerm]);
 
-  const resetForm = () => {
-    setDate(new Date());
-    setTime('');
-    setEmployeeName('');
-    setDepartment('');
-    setLocation('');
-    setType('');
-    setCause('');
-    setCauseDetails('');
-    setDaysOff(0);
-    setDescription('');
-    setCid10Code('');
-    setCatIssued(false);
-    setInvestigationStatus('Pendente');
-    setReportUrl('');
-    setEditingRecord(null);
-  };
 
   const handleOpenForm = (record: AccidentRecord | null = null) => {
     if (record) {
-      setEditingRecord(record);
-      setDate(record.date);
-      setTime(record.time || '');
-      setEmployeeName(record.employeeName);
-      setDepartment(record.department);
-      setLocation(record.location);
-      setType(record.type);
-      setCause(record.cause);
-      setCauseDetails(record.causeDetails || '');
-      setDaysOff(record.daysOff);
-      setDescription(record.description);
-      setCid10Code(record.cid10Code || '');
-      setCatIssued(record.catIssued);
-      setInvestigationStatus(record.investigationStatus);
-      setReportUrl(record.reportUrl || '');
+      setEditingRecordId(record.id);
+      // Use setValue to populate the form fields correctly
+      setValue('id', record.id);
+      setValue('date', new Date(record.date)); // Ensure it's a Date object
+      setValue('time', record.time || '');
+      setValue('employeeId', record.employeeId || ''); // Handle potential null/undefined
+      setValue('employeeName', record.employeeName || ''); // Populate name for display
+      setValue('department', record.department);
+      setValue('location', record.location);
+      setValue('type', record.type);
+      setValue('cause', record.cause);
+      setValue('causeDetails', record.causeDetails || '');
+      setValue('daysOff', record.daysOff);
+      setValue('description', record.description);
+      setValue('cid10Code', record.cid10Code || '');
+      setValue('catIssued', record.catIssued);
+      setValue('investigationStatus', record.investigationStatus);
+      setValue('reportUrl', record.reportUrl || '');
     } else {
-      resetForm();
+      setEditingRecordId(null);
+      reset(); // Reset form to default values
+      setValue('date', new Date()); // Ensure date is reset to today
     }
     setIsFormOpen(true);
   };
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
-    resetForm();
+    setEditingRecordId(null);
+    reset(); // Reset form fields
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!date || !employeeName || !department || !location || !type || !cause || description === '') {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios (*).",
-        variant: "destructive",
-      });
-      return;
-    }
+  const onSubmit: SubmitHandler<AccidentFormData> = async (data) => {
+    try {
+      setIsLoading(true);
+      let savedAccident: AccidentRecord;
 
-    const newRecord: AccidentRecord = {
-      id: editingRecord ? editingRecord.id : `acc${Date.now()}`,
-      date,
-      time: time || undefined,
-      employeeName,
-      department,
-      location,
-      type,
-      cause,
-      causeDetails: causeDetails || undefined,
-      daysOff,
-      description,
-      cid10Code: cid10Code || undefined,
-      catIssued,
-      investigationStatus,
-      reportUrl: reportUrl || undefined,
-    };
+      // Find selected employee name based on ID for saving
+      const selectedEmployee = mockEmployees.find(emp => emp.id === data.employeeId);
+       const employeeNameToSave = selectedEmployee ? selectedEmployee.name : data.employeeName; // Fallback if needed
 
-    if (editingRecord) {
-      setAccidents(accidents.map(r => r.id === editingRecord.id ? newRecord : r));
-      toast({ title: "Sucesso", description: "Registro de acidente atualizado." });
-    } else {
-      setAccidents([newRecord, ...accidents]);
-      toast({ title: "Sucesso", description: "Novo acidente registrado." });
+
+       // Prepare data, ensuring correct types
+      const dataToSave = {
+           ...data,
+           employeeName: employeeNameToSave, // Save the name
+           daysOff: Number(data.daysOff) || 0, // Ensure daysOff is a number
+       };
+
+
+      if (editingRecordId) {
+        // Update
+        savedAccident = await updateAccident(editingRecordId, dataToSave);
+        setAccidents(accidents.map(r => r.id === editingRecordId ? savedAccident : r));
+        toast({ title: "Sucesso", description: "Registro de acidente atualizado." });
+      } else {
+        // Create
+         const { id, ...createData } = dataToSave; // Remove id for creation
+        savedAccident = await createAccident(createData);
+        setAccidents([savedAccident, ...accidents]);
+        toast({ title: "Sucesso", description: "Novo acidente registrado." });
+      }
+      handleCloseForm();
+    } catch (error) {
+      console.error("Error saving accident:", error);
+      toast({ title: "Erro", description: "Falha ao salvar o registro do acidente.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
-    handleCloseForm();
   };
 
-  const handleDelete = (id: string) => {
-    setAccidents(accidents.filter(r => r.id !== id));
-    toast({ title: "Sucesso", description: "Registro de acidente excluído.", variant: "destructive" });
+  const handleDelete = async (id: string) => {
+     try {
+       setIsLoading(true);
+       await deleteAccident(id);
+       setAccidents(accidents.filter(r => r.id !== id));
+       toast({ title: "Sucesso", description: "Registro de acidente excluído.", variant: "destructive" });
+     } catch (error) {
+        console.error("Error deleting accident:", error);
+        toast({ title: "Erro", description: "Falha ao excluir o registro do acidente.", variant: "destructive" });
+     } finally {
+        setIsLoading(false);
+     }
   };
 
   // --- Statistics Calculation ---
-  const statistics = useMemo((): StatisticsData => {
-    const periodAccidents = filteredAccidents; // Or filter by a specific period later
-    const numberOfAccidents = periodAccidents.length;
-    const accidentsWithLostTime = periodAccidents.filter(a => a.daysOff > 0).length;
-    const totalDaysLost = periodAccidents.reduce((sum, acc) => sum + acc.daysOff, 0);
-    const fatalAccidents = periodAccidents.filter(a => a.type === 'Fatal').length; // Count fatal accidents
+   const statistics = useMemo((): any => { // Using 'any' temporarily
+       const periodAccidents = filteredAccidents; // Use filtered accidents for consistency
+       const numberOfAccidents = periodAccidents.length;
+       const accidentsWithLostTime = periodAccidents.filter(a => a.daysOff > 0).length;
+       const totalDaysLost = periodAccidents.reduce((sum, acc) => sum + acc.daysOff, 0);
+       const fatalAccidents = periodAccidents.filter(a => a.type === AccidentType.Fatal).length;
 
+       const tf = calculateFrequencyRate(accidentsWithLostTime, totalHoursWorked);
+       const tg = calculateSeverityRate(totalDaysLost, totalHoursWorked);
 
-    const tf = calculateFrequencyRate(accidentsWithLostTime, totalHoursWorked);
-    const tg = calculateSeverityRate(totalDaysLost, totalHoursWorked);
+       return {
+         totalHoursWorked,
+         numberOfAccidents,
+         totalDaysLost,
+         tf,
+         tg,
+         period: "Período Atual", // Placeholder
+         fatalAccidents,
+       };
+   }, [filteredAccidents, totalHoursWorked]);
 
-    return {
-      totalHoursWorked,
-      numberOfAccidents,
-      totalDaysLost,
-      tf,
-      tg,
-      period: "Período Atual", // Placeholder, can be dynamic
-      fatalAccidents, // Include fatal count in stats
-    };
-  }, [filteredAccidents, totalHoursWorked]);
 
   // --- Chart Data Preparation ---
-  const accidentsByType = useMemo(() => {
-    const counts: { [key in AccidentType]: number } = { 'Leve': 0, 'Grave': 0, 'Fatal': 0, 'Trajeto': 0, 'Típico': 0 }; // Initialize all types
-    filteredAccidents.forEach(acc => {
-      counts[acc.type] = (counts[acc.type] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value })).filter(item => item.value > 0); // Filter out types with 0 count for cleaner chart
-  }, [filteredAccidents]);
+   const accidentsByType = useMemo(() => {
+       const counts: { [key in AccidentType]: number } = { Leve: 0, Grave: 0, Fatal: 0, Trajeto: 0, Tipico: 0 };
+       filteredAccidents.forEach(acc => {
+         counts[acc.type] = (counts[acc.type] || 0) + 1;
+       });
+       return Object.entries(counts)
+         .map(([name, value]) => ({ name: name as AccidentType, value })) // Cast name back to enum
+         .filter(item => item.value > 0);
+   }, [filteredAccidents]);
 
-  const accidentsByCause = useMemo(() => {
-    const counts: { [key in AccidentCause]?: number } = {};
-    filteredAccidents.forEach(acc => {
-      counts[acc.cause] = (counts[acc.cause] || 0) + 1;
-    });
-    // Get top 5 causes
-    return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
-  }, [filteredAccidents]);
+   const accidentsByCause = useMemo(() => {
+       const counts: { [key in AccidentCause]?: number } = {};
+       filteredAccidents.forEach(acc => {
+         counts[acc.cause] = (counts[acc.cause] || 0) + 1;
+       });
+       return Object.entries(counts)
+         .map(([name, value]) => ({ name: name as AccidentCause, value: value! })) // Assert value is not undefined
+         .sort((a, b) => b.value - a.value)
+         .slice(0, 5);
+   }, [filteredAccidents]);
 
 
   // Chart Configs
-  const typeChartConfig = {
-    value: { label: "Quantidade" },
-    Leve: { label: "Leve", color: "hsl(var(--chart-1))" }, // Adjusted colors
-    Grave: { label: "Grave", color: "hsl(var(--chart-2))" },
-    Fatal: { label: "Fatal", color: "hsl(var(--destructive))" },
-    Trajeto: { label: "Trajeto", color: "hsl(var(--chart-4))" },
-    Típico: { label: "Típico", color: "hsl(var(--chart-5))" },
-  } satisfies ChartConfig;
-
-   const causeChartConfig = {
-     value: { label: "Quantidade" },
-     Queda: { label: "Queda", color: "hsl(var(--chart-1))" },
-     'Choque Elétrico': { label: "Choque Elétrico", color: "hsl(var(--chart-2))" }, // Use full name in config key
-     Impacto: { label: "Impacto", color: "hsl(var(--chart-3))" },
-     Corte: { label: "Corte", color: "hsl(var(--chart-4))" },
-     'Projeção Partículas': { label: "Projeção Partículas", color: "hsl(var(--chart-5))" }, // Use full name
-     Químico: { label: "Químico", color: "hsl(var(--chart-1))" }, // Reuse colors or add more
-     Ergonômico: { label: "Ergonômico", color: "hsl(var(--chart-2))" },
-     Biológico: { label: "Biológico", color: "hsl(var(--chart-3))" },
-     Outro: { label: "Outro", color: "hsl(var(--chart-4))" },
+   const typeChartConfig = {
+       value: { label: "Quantidade" },
+       [AccidentType.Leve]: { label: "Leve", color: "hsl(var(--chart-1))" },
+       [AccidentType.Grave]: { label: "Grave", color: "hsl(var(--chart-2))" },
+       [AccidentType.Fatal]: { label: "Fatal", color: "hsl(var(--destructive))" },
+       [AccidentType.Trajeto]: { label: "Trajeto", color: "hsl(var(--chart-4))" },
+       [AccidentType.Tipico]: { label: "Típico", color: "hsl(var(--chart-5))" },
    } satisfies ChartConfig;
+
+    const causeChartConfig = {
+      value: { label: "Quantidade" },
+      [AccidentCause.Queda]: { label: "Queda", color: "hsl(var(--chart-1))" },
+      [AccidentCause.Choque_Eletrico]: { label: "Choque Elétrico", color: "hsl(var(--chart-2))" },
+      [AccidentCause.Impacto]: { label: "Impacto", color: "hsl(var(--chart-3))" },
+      [AccidentCause.Corte]: { label: "Corte", color: "hsl(var(--chart-4))" },
+      [AccidentCause.Projecao_Particulas]: { label: "Projeção Partículas", color: "hsl(var(--chart-5))" },
+      [AccidentCause.Quimico]: { label: "Químico", color: "hsl(var(--chart-1))" },
+      [AccidentCause.Ergonomico]: { label: "Ergonômico", color: "hsl(var(--chart-2))" },
+      [AccidentCause.Biologico]: { label: "Biológico", color: "hsl(var(--chart-3))" },
+      [AccidentCause.Outro]: { label: "Outro", color: "hsl(var(--chart-4))" },
+    } satisfies ChartConfig;
 
 
   return (
@@ -240,118 +293,118 @@ export default function StatisticsPage() {
       <h1 className="text-3xl font-bold tracking-tight">Estatísticas de Acidentes</h1>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-         <Card>
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">Total de Acidentes</CardTitle>
-             <AlertCircle className="h-4 w-4 text-muted-foreground" />
-           </CardHeader>
-           <CardContent>
-             <div className="text-2xl font-bold">{statistics.numberOfAccidents}</div>
-             <p className="text-xs text-muted-foreground">
-                 {statistics.fatalAccidents > 0 ? (
-                    <span className="text-destructive">{statistics.fatalAccidents} fatais incluídos</span>
-                 ) : (
-                    <span className="text-green-600">Nenhum fatal</span>
-                 )}
-             </p>
-           </CardContent>
-         </Card>
-         <Card>
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">Dias Perdidos</CardTitle>
-             <TrendingUp className="h-4 w-4 text-muted-foreground" />
-           </CardHeader>
-           <CardContent>
-             <div className="text-2xl font-bold">{statistics.totalDaysLost}</div>
-              <p className="text-xs text-muted-foreground">Total no período</p>
-           </CardContent>
-         </Card>
-         <Card>
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">Taxa de Frequência (TF)</CardTitle>
-             <Calculator className="h-4 w-4 text-muted-foreground" />
-           </CardHeader>
-           <CardContent>
-             <div className="text-2xl font-bold">{statistics.tf?.toFixed(2) ?? 'N/A'}</div>
-             <p className="text-xs text-muted-foreground">Acidentes (com afast.) x 1M / HHT</p>
-           </CardContent>
-         </Card>
-         <Card>
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">Taxa de Gravidade (TG)</CardTitle>
-             <Calculator className="h-4 w-4 text-muted-foreground" />
-           </CardHeader>
-           <CardContent>
-             <div className="text-2xl font-bold">{statistics.tg?.toFixed(2) ?? 'N/A'}</div>
-             <p className="text-xs text-muted-foreground">Dias Perdidos x 1M / HHT</p>
-           </CardContent>
-         </Card>
-          <Card className="md:col-span-2 lg:col-span-4">
-             <CardHeader className="pb-2">
-               <CardTitle className="text-sm font-medium">Horas Homem Trabalhadas (HHT) no Período</CardTitle>
-               <CardDescription>Valor base para cálculo das taxas. Ajuste conforme necessário.</CardDescription>
-             </CardHeader>
-             <CardContent className="flex items-center gap-2">
-               <Input
-                 type="number"
-                 value={totalHoursWorked}
-                 onChange={(e) => setTotalHoursWorked(Number(e.target.value) || 0)}
-                 className="max-w-[200px]"
-                 placeholder="Total de horas"
-               />
-                <span className="text-sm text-muted-foreground">horas</span>
-             </CardContent>
-           </Card>
-      </div>
-
-
-       {/* Charts Row */}
-       <div className="grid gap-4 md:grid-cols-2">
-           <Card>
-             <CardHeader>
-               <CardTitle>Acidentes por Tipo</CardTitle>
-               <CardDescription>Distribuição dos tipos de acidentes registrados.</CardDescription>
-             </CardHeader>
-             <CardContent>
-               <ChartContainer config={typeChartConfig} className="h-[300px] w-full">
-                  <BarChart data={accidentsByType} layout="vertical" accessibilityLayer margin={{ right: 20 }}>
-                    <CartesianGrid horizontal={false}/>
-                    <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} className="text-xs" />
-                    <XAxis type="number" />
-                     <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                    <Legend content={({ payload }) => <ChartLegendContent payload={payload} nameKey="name" className="flex flex-wrap gap-x-4 gap-y-1 justify-center mt-2" />} />
-                     <Bar dataKey="value" layout="vertical" radius={5}>
-                         {accidentsByType.map((entry) => (
-                           <Cell key={`cell-${entry.name}`} fill={`var(--color-${entry.name})`} />
-                         ))}
-                     </Bar>
-                  </BarChart>
-               </ChartContainer>
-             </CardContent>
-           </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Top 5 Causas de Acidentes</CardTitle>
-                <CardDescription>Principais causas dos acidentes registrados.</CardDescription>
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total de Acidentes</CardTitle>
+              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{statistics.numberOfAccidents}</div>
+              <p className="text-xs text-muted-foreground">
+                  {statistics.fatalAccidents > 0 ? (
+                     <span className="text-destructive">{statistics.fatalAccidents} fatais incluídos</span>
+                  ) : (
+                     <span className="text-green-600">Nenhum fatal</span>
+                  )}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Dias Perdidos</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{statistics.totalDaysLost}</div>
+               <p className="text-xs text-muted-foreground">Total no período</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taxa de Frequência (TF)</CardTitle>
+              <Calculator className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{statistics.tf?.toFixed(2) ?? 'N/A'}</div>
+              <p className="text-xs text-muted-foreground">Acidentes (com afast.) x 1M / HHT</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taxa de Gravidade (TG)</CardTitle>
+              <Calculator className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{statistics.tg?.toFixed(2) ?? 'N/A'}</div>
+              <p className="text-xs text-muted-foreground">Dias Perdidos x 1M / HHT</p>
+            </CardContent>
+          </Card>
+           <Card className="md:col-span-2 lg:col-span-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Horas Homem Trabalhadas (HHT) no Período</CardTitle>
+                <CardDescription>Valor base para cálculo das taxas. Ajuste conforme necessário.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ChartContainer config={causeChartConfig} className="h-[300px] w-full">
-                    <BarChart data={accidentsByCause} layout="vertical" accessibilityLayer margin={{ right: 20 }}>
-                      <CartesianGrid horizontal={false}/>
-                      <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} className="text-xs" />
-                      <XAxis type="number" />
-                      <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                       <Bar dataKey="value" layout="vertical" radius={4}>
-                          {accidentsByCause.map((entry) => (
-                             <Cell key={`cell-${entry.name}`} fill={`var(--color-${entry.name.replace(/\s/g, '')})`} /> // Use name from config, remove spaces for CSS var
-                          ))}
-                       </Bar>
-                    </BarChart>
-                </ChartContainer>
+              <CardContent className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={totalHoursWorked}
+                  onChange={(e) => setTotalHoursWorked(Number(e.target.value) || 0)}
+                  className="max-w-[200px]"
+                  placeholder="Total de horas"
+                  disabled={isLoading} // Disable input while loading
+                />
+                 <span className="text-sm text-muted-foreground">horas</span>
               </CardContent>
             </Card>
        </div>
+
+       {/* Charts Row */}
+        <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Acidentes por Tipo</CardTitle>
+                <CardDescription>Distribuição dos tipos de acidentes registrados.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={typeChartConfig} className="h-[300px] w-full">
+                   <BarChart data={accidentsByType} layout="vertical" accessibilityLayer margin={{ right: 20 }}>
+                     <CartesianGrid horizontal={false}/>
+                     <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} className="text-xs" />
+                     <XAxis type="number" />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                     <Legend content={({ payload }) => <ChartLegendContent payload={payload} nameKey="name" className="flex flex-wrap gap-x-4 gap-y-1 justify-center mt-2" />} />
+                      <Bar dataKey="value" layout="vertical" radius={5}>
+                          {accidentsByType.map((entry) => (
+                            <Cell key={`cell-${entry.name}`} fill={typeChartConfig[entry.name]?.color ?? "hsl(var(--muted))"} />
+                          ))}
+                      </Bar>
+                   </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+             <Card>
+               <CardHeader>
+                 <CardTitle>Top 5 Causas de Acidentes</CardTitle>
+                 <CardDescription>Principais causas dos acidentes registrados.</CardDescription>
+               </CardHeader>
+               <CardContent>
+                 <ChartContainer config={causeChartConfig} className="h-[300px] w-full">
+                     <BarChart data={accidentsByCause} layout="vertical" accessibilityLayer margin={{ right: 20 }}>
+                       <CartesianGrid horizontal={false}/>
+                       <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} className="text-xs" />
+                       <XAxis type="number" />
+                       <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                        <Bar dataKey="value" layout="vertical" radius={4}>
+                           {accidentsByCause.map((entry) => (
+                              <Cell key={`cell-${entry.name}`} fill={causeChartConfig[entry.name]?.color ?? "hsl(var(--muted))"} />
+                           ))}
+                        </Bar>
+                     </BarChart>
+                 </ChartContainer>
+               </CardContent>
+             </Card>
+        </div>
 
       {/* Accidents Table */}
       <div className="space-y-4">
@@ -365,94 +418,138 @@ export default function StatisticsPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{editingRecord ? 'Editar Registro de Acidente' : 'Registrar Novo Acidente'}</DialogTitle>
+                <DialogTitle>{editingRecordId ? 'Editar Registro de Acidente' : 'Registrar Novo Acidente'}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                    {/* Date */}
                    <div className="space-y-1">
                       <Label htmlFor="date">Data*</Label>
-                      <DatePicker date={date} setDate={setDate} required />
+                      <Controller
+                          control={control}
+                          name="date"
+                          render={({ field }) => (
+                             <DatePicker date={field.value} setDate={field.onChange} required />
+                           )}
+                      />
+                       {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
                    </div>
                    {/* Time */}
                    <div className="space-y-1">
                       <Label htmlFor="time">Hora (Opcional)</Label>
-                      <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                      <Input id="time" type="time" {...register('time')} />
                    </div>
-                   {/* Employee Name */}
+                   {/* Employee Name (Dropdown) */}
                    <div className="space-y-1">
-                      <Label htmlFor="employeeName">Colaborador*</Label>
-                      <Input id="employeeName" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} required />
+                       <Label htmlFor="employeeId">Colaborador*</Label>
+                        <Controller
+                            control={control}
+                            name="employeeId"
+                            render={({ field }) => (
+                                <Select value={field.value} onValueChange={field.onChange} required>
+                                     <SelectTrigger id="employeeId"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                     <SelectContent>
+                                         {mockEmployees.map(emp => (
+                                             <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                                         ))}
+                                     </SelectContent>
+                                 </Select>
+                            )}
+                        />
+                        {errors.employeeId && <p className="text-xs text-destructive">{errors.employeeId.message}</p>}
                    </div>
                     {/* Department */}
                    <div className="space-y-1">
                       <Label htmlFor="department">Departamento*</Label>
-                      <Input id="department" value={department} onChange={(e) => setDepartment(e.target.value)} required />
+                      <Input id="department" {...register('department')} required />
+                       {errors.department && <p className="text-xs text-destructive">{errors.department.message}</p>}
                    </div>
                    {/* Location */}
                    <div className="space-y-1">
                       <Label htmlFor="location">Local Específico*</Label>
-                      <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} required />
+                      <Input id="location" {...register('location')} required />
+                       {errors.location && <p className="text-xs text-destructive">{errors.location.message}</p>}
                    </div>
                    {/* Type */}
                    <div className="space-y-1">
                       <Label htmlFor="type">Tipo*</Label>
-                      <Select value={type} onValueChange={(v: AccidentType) => setType(v)} required>
-                         <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                         <SelectContent>
-                           <SelectItem value="Leve">Leve</SelectItem>
-                           <SelectItem value="Grave">Grave</SelectItem>
-                           <SelectItem value="Fatal">Fatal</SelectItem>
-                           <SelectItem value="Trajeto">Trajeto</SelectItem>
-                           <SelectItem value="Típico">Típico</SelectItem>
-                         </SelectContent>
-                      </Select>
+                      <Controller
+                        control={control}
+                        name="type"
+                        render={({ field }) => (
+                            <Select value={field.value} onValueChange={field.onChange} required>
+                               <SelectTrigger id="type"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                               <SelectContent>
+                                 {Object.values(AccidentType).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                               </SelectContent>
+                            </Select>
+                        )}
+                      />
+                       {errors.type && <p className="text-xs text-destructive">{errors.type.message}</p>}
                    </div>
                    {/* Cause */}
                    <div className="space-y-1">
                       <Label htmlFor="cause">Causa Principal*</Label>
-                      <Select value={cause} onValueChange={(v: AccidentCause) => setCause(v)} required>
-                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                           <SelectContent>
-                               {Object.values(['Queda', 'Choque Elétrico', 'Impacto', 'Corte', 'Projeção Partículas', 'Químico', 'Ergonômico', 'Biológico', 'Outro'] as AccidentCause[]).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                           </SelectContent>
-                      </Select>
+                      <Controller
+                        control={control}
+                        name="cause"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange} required>
+                             <SelectTrigger id="cause"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                             <SelectContent>
+                                 {Object.values(AccidentCause).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                             </SelectContent>
+                          </Select>
+                        )}
+                      />
+                       {errors.cause && <p className="text-xs text-destructive">{errors.cause.message}</p>}
                    </div>
                    {/* Cause Details */}
                    <div className="space-y-1 lg:col-span-2">
                       <Label htmlFor="causeDetails">Detalhes Adicionais da Causa</Label>
-                      <Input id="causeDetails" value={causeDetails} onChange={(e) => setCauseDetails(e.target.value)} placeholder="Ex: Falta de EPI, condição insegura" />
+                      <Input id="causeDetails" {...register('causeDetails')} placeholder="Ex: Falta de EPI, condição insegura" />
                    </div>
                    {/* Days Off */}
                    <div className="space-y-1">
-                      <Label htmlFor="daysOff">Dias de Afastamento*</Label>
-                      <Input id="daysOff" type="number" min="0" value={daysOff} onChange={(e) => setDaysOff(Number(e.target.value) || 0)} required />
+                       <Label htmlFor="daysOff">Dias de Afastamento*</Label>
+                       <Input id="daysOff" type="number" min="0" {...register('daysOff', { valueAsNumber: true })} required />
+                       {errors.daysOff && <p className="text-xs text-destructive">{errors.daysOff.message}</p>}
                    </div>
                    {/* CID-10 */}
                    <div className="space-y-1">
                       <Label htmlFor="cid10Code">CID-10 (se aplicável)</Label>
-                      <Input id="cid10Code" value={cid10Code} onChange={(e) => setCid10Code(e.target.value)} placeholder="Opcional" />
+                      <Input id="cid10Code" {...register('cid10Code')} placeholder="Opcional" />
                    </div>
                     {/* Investigation Status */}
                     <div className="space-y-1">
                         <Label htmlFor="investigationStatus">Status Investigação*</Label>
-                        <Select value={investigationStatus} onValueChange={(v: AccidentRecord['investigationStatus']) => setInvestigationStatus(v)} required>
-                             <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                             <SelectContent>
-                               <SelectItem value="Pendente">Pendente</SelectItem>
-                               <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                               <SelectItem value="Concluída">Concluída</SelectItem>
-                             </SelectContent>
-                        </Select>
+                        <Controller
+                            control={control}
+                            name="investigationStatus"
+                            render={({ field }) => (
+                               <Select value={field.value} onValueChange={field.onChange} required>
+                                   <SelectTrigger id="investigationStatus"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                   <SelectContent>
+                                     {Object.values(InvestigationStatus).map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                   </SelectContent>
+                                </Select>
+                            )}
+                         />
                      </div>
                      {/* Report URL */}
                     <div className="space-y-1">
                        <Label htmlFor="reportUrl">Link Relatório Análise (Opcional)</Label>
-                       <Input id="reportUrl" type="url" value={reportUrl} onChange={(e) => setReportUrl(e.target.value)} placeholder="http://..." />
+                       <Input id="reportUrl" type="url" {...register('reportUrl')} placeholder="http://..." />
                     </div>
                      {/* CAT Issued */}
                     <div className="flex items-center space-x-2 pt-4 lg:col-span-3">
-                         <Checkbox id="catIssued" checked={catIssued} onCheckedChange={(checked) => setCatIssued(!!checked)} />
+                        <Controller
+                            control={control}
+                            name="catIssued"
+                            render={({ field }) => (
+                               <Checkbox id="catIssued" checked={field.value} onCheckedChange={field.onChange} />
+                            )}
+                         />
                          <Label htmlFor="catIssued">Comunicação de Acidente de Trabalho (CAT) Emitida?</Label>
                      </div>
 
@@ -460,13 +557,14 @@ export default function StatisticsPage() {
                 {/* Description */}
                 <div className="space-y-1 mt-4">
                    <Label htmlFor="description">Descrição Detalhada do Acidente*</Label>
-                   <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} required />
+                   <Textarea id="description" {...register('description')} rows={4} required />
+                   {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
                 </div>
                 <DialogFooter className="mt-4">
                   <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancelar</Button>
+                    <Button type="button" variant="outline" onClick={handleCloseForm}>Cancelar</Button>
                   </DialogClose>
-                  <Button type="submit">{editingRecord ? 'Salvar Alterações' : 'Registrar'}</Button>
+                  <Button type="submit" disabled={isLoading}>{isLoading ? 'Salvando...' : editingRecordId ? 'Salvar Alterações' : 'Registrar'}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -480,6 +578,7 @@ export default function StatisticsPage() {
             className="pl-8 w-full sm:w-1/2 md:w-1/3"
             value={searchTerm}
             onChange={handleSearch}
+            disabled={isLoading}
           />
         </div>
         <div className="border rounded-lg overflow-hidden">
@@ -499,11 +598,15 @@ export default function StatisticsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAccidents.length > 0 ? (
+              {isLoading ? (
+                 <TableRow>
+                     <TableCell colSpan={9} className="h-24 text-center">Carregando...</TableCell>
+                 </TableRow>
+              ) : filteredAccidents.length > 0 ? (
                 filteredAccidents.map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{record.date.toLocaleDateString('pt-BR')}</TableCell>
-                    <TableCell className="font-medium">{record.employeeName}</TableCell>
+                    <TableCell>{format(new Date(record.date), 'dd/MM/yyyy')}</TableCell> {/* Format date */}
+                    <TableCell className="font-medium">{record.employeeName || record.employeeId}</TableCell> {/* Display name or ID */}
                     <TableCell>{record.department}</TableCell>
                     <TableCell>
                         <Badge variant={record.type === 'Fatal' ? 'destructive' : record.type === 'Grave' ? 'secondary' : 'default'}>{record.type}</Badge>
@@ -512,8 +615,8 @@ export default function StatisticsPage() {
                     <TableCell>{record.daysOff}</TableCell>
                     <TableCell>{record.catIssued ? 'Sim' : 'Não'}</TableCell>
                     <TableCell>
-                         <Badge variant={record.investigationStatus === 'Concluída' ? 'default' : record.investigationStatus === 'Em Andamento' ? 'secondary' : 'outline'}>
-                             {record.investigationStatus}
+                         <Badge variant={record.investigationStatus === 'Concluida' ? 'default' : record.investigationStatus === 'Em_Andamento' ? 'secondary' : 'outline'}>
+                             {record.investigationStatus.replace('_', ' ')} {/* Display status prettily */}
                          </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-1">
@@ -532,13 +635,13 @@ export default function StatisticsPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro do acidente de <span className="font-medium">{record.employeeName}</span> em {record.date.toLocaleDateString('pt-BR')}.
+                              Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro do acidente de <span className="font-medium">{record.employeeName || record.employeeId}</span> em {format(new Date(record.date), 'dd/MM/yyyy')}.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                              Excluir
+                            <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isLoading}>
+                                {isLoading ? 'Excluindo...' : 'Excluir'}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
