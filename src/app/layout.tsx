@@ -17,9 +17,11 @@ import {
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
-    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, FileCheck2, LogIn // Added LogIn icon
-} from 'lucide-react'; // Removed LayoutDashboard, added LogIn
+    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LogIn, LayoutDashboard // Keep LayoutDashboard
+} from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider, AuthContext } from '@/contexts/auth-context'; // Import AuthProvider and AuthContext
+import { useContext } from 'react';
 
 
 const geistSans = Geist({
@@ -37,8 +39,160 @@ export const metadata: Metadata = {
   description: 'Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica',
 };
 
-// Placeholder for authentication status - replace with actual auth logic
-const isAuthenticated = false; // Set to true after successful login
+// Component to conditionally render layout based on auth state
+function AppLayout({ children }: { children: React.ReactNode }) {
+  const authContext = useContext(AuthContext);
+
+  if (!authContext) {
+    // This case should ideally be handled by AuthProvider structure
+    return <div>Loading auth state...</div>; // Or a loading indicator
+  }
+
+  const { isAuthenticated } = authContext;
+
+  return (
+    <>
+      {isAuthenticated ? (
+        <SidebarProvider>
+          <Sidebar collapsible="icon" variant="sidebar" side="left">
+            <SidebarHeader className="flex items-center justify-between p-4">
+              <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
+                <HardHat className="h-6 w-6 text-primary" />
+                <span className="font-semibold text-lg text-primary">SSMA Control</span>
+              </Link>
+              <SidebarTrigger className="md:hidden"/>
+            </SidebarHeader>
+            <SidebarContent className="p-2">
+              <SidebarMenu>
+                {/* Dashboard Link */}
+                <SidebarMenuItem>
+                   {/* Changed href to "/" for dashboard/home */}
+                   <SidebarMenuButton asChild tooltip="Dashboard BI" isActive={true}> {/* Example: Mark dashboard active */}
+                    <Link href="/">
+                      <LayoutDashboard />
+                      <span>Dashboard BI</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                {/* Core Management Modules - Reordered */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Treinamentos">
+                    <Link href="/trainings">
+                      <HardHat />
+                      <span>Treinamentos</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="EPIs">
+                     <Link href="/ppe">
+                       <ShieldCheck />
+                       <span>EPIs</span>
+                      </Link>
+                   </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="ASOs">
+                    <Link href="/asos">
+                      <Stethoscope />
+                      <span>ASOs</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Inventário Químico">
+                    <Link href="/chemicals">
+                      <FlaskConical />
+                      <span>Inventário Químico</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
+                    <Link href="/jsa">
+                      <ClipboardList />
+                      <span>Análise de Riscos</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                {/* New Modules */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
+                    <Link href="/prevention">
+                      <Users /> {/* Or ListChecks */}
+                      <span>Prevenção (CIPA)</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Doenças Ocupacionais">
+                    <Link href="/diseases">
+                      <Bug />
+                      <span>Doenças Ocup.</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Estatísticas Acidentes">
+                    <Link href="/statistics">
+                      <Activity />
+                      <span>Estatísticas</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Compliance & Ações">
+                    <Link href="/compliance">
+                      <Scale /> {/* Or FileCheck2 */}
+                      <span>Compliance</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+
+                {/* Future placeholders */}
+                {/* ... other future links ... */}
+              </SidebarMenu>
+            </SidebarContent>
+            <SidebarFooter className="p-2 mt-auto">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Configurações">
+                    <Link href="/settings">
+                      <Settings />
+                      <span>Configurações</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                 {/* Optional: Add Logout button here */}
+                 {/* <SidebarMenuItem> ... Logout Button ... </SidebarMenuItem> */}
+              </SidebarMenu>
+            </SidebarFooter>
+          </Sidebar>
+          <SidebarInset>
+            <header className="flex items-center justify-between p-4 border-b md:border-none">
+              <SidebarTrigger className="hidden md:flex"/>
+              {/* Placeholder for potential header content like user profile */}
+              <div></div>
+            </header>
+            <main className="flex-1 p-4 md:p-6 overflow-auto">
+              {children}
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+      ) : (
+        // Render only the page content (Login or Register page) if not authenticated
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          {children}
+        </div>
+      )}
+      <Toaster />
+    </>
+  );
+}
+
 
 export default function RootLayout({
   children,
@@ -48,166 +202,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')}>
-         {/* Conditionally render Sidebar based on authentication */}
-         {isAuthenticated ? (
-             <SidebarProvider>
-               <Sidebar collapsible="icon" variant="sidebar" side="left">
-                 <SidebarHeader className="flex items-center justify-between p-4">
-                    <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-                      <HardHat className="h-6 w-6 text-primary" />
-                      <span className="font-semibold text-lg text-primary">SSMA Control</span>
-                    </Link>
-                   <SidebarTrigger className="md:hidden"/>
-                 </SidebarHeader>
-                 <SidebarContent className="p-2">
-                   <SidebarMenu>
-                      {/* Dashboard Link */}
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Dashboard BI">
-                          <Link href="/"> {/* Changed href to "/" */}
-                            <BarChart3 />
-                            <span>Dashboard BI</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-
-                      {/* Core Management Modules */}
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Treinamentos">
-                           <Link href="/trainings">
-                            <HardHat />
-                            <span>Treinamentos</span>
-                           </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="ASOs">
-                          <Link href="/asos">
-                            <Stethoscope />
-                            <span>ASOs</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                         <SidebarMenuButton asChild tooltip="EPIs">
-                           <Link href="/ppe">
-                             <ShieldCheck />
-                             <span>EPIs</span>
-                            </Link>
-                         </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                         <SidebarMenuButton asChild tooltip="Inventário Químico">
-                           <Link href="/chemicals">
-                            <FlaskConical />
-                            <span>Inventário Químico</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
-                          <Link href="/jsa">
-                            <ClipboardList />
-                             <span>Análise de Riscos</span>
-                          </Link>
-                         </SidebarMenuButton>
-                       </SidebarMenuItem>
-
-                      {/* New Modules */}
-                       <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
-                          <Link href="/prevention">
-                            <Users /> {/* Or ListChecks */}
-                            <span>Prevenção (CIPA)</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Estatísticas Acidentes">
-                          <Link href="/statistics">
-                            <Activity />
-                            <span>Estatísticas</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Doenças Ocupacionais">
-                          <Link href="/diseases">
-                            <Bug />
-                            <span>Doenças Ocup.</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                       <SidebarMenuItem>
-                         <SidebarMenuButton asChild tooltip="Compliance & Ações">
-                           <Link href="/compliance">
-                             <Scale /> {/* Or FileCheck2 */}
-                             <span>Compliance</span>
-                           </Link>
-                         </SidebarMenuButton>
-                       </SidebarMenuItem>
-
-
-                      {/* Future placeholders - can be uncommented later */}
-                     {/*
-                     <SidebarMenuItem>
-                       <SidebarMenuButton asChild tooltip="Programas (PGR, PCMSO, PCA)">
-                         <Link href="/programs">
-                           <FileText />
-                           <span>Programas</span>
-                         </Link>
-                       </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Laudo Ergonômico">
-                         <Link href="/ergonomics">
-                            {/* Need a suitable icon for Ergonomics - using ClipboardList for now */}
-                            {/* <ClipboardList />
-                           <span>Laudo Ergonômico</span>
-                         </Link>
-                       </SidebarMenuButton>
-                     </SidebarMenuItem>
-                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Relatórios">
-                         <Link href="/reports">
-                           <BarChart3 />
-                           <span>Relatórios</span>
-                         </Link>
-                       </SidebarMenuButton>
-                     </SidebarMenuItem> */}
-                   </SidebarMenu>
-                 </SidebarContent>
-                 <SidebarFooter className="p-2 mt-auto">
-                    <SidebarMenu>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Configurações">
-                          <Link href="/settings">
-                            <Settings />
-                            <span>Configurações</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </SidebarMenu>
-                 </SidebarFooter>
-               </Sidebar>
-               <SidebarInset>
-                 <header className="flex items-center justify-between p-4 border-b md:border-none">
-                   <SidebarTrigger className="hidden md:flex"/>
-                    {/* Placeholder for potential header content like user profile */}
-                    <div></div>
-                 </header>
-                 <main className="flex-1 p-4 md:p-6 overflow-auto">
-                   {children}
-                 </main>
-               </SidebarInset>
-             </SidebarProvider>
-         ) : (
-              // Render only the login page if not authenticated
-              <div className="flex min-h-screen items-center justify-center bg-background">
-                  {children} {/* This will render the login page */}
-              </div>
-         )}
-         <Toaster />
+          <AuthProvider> {/* Wrap with AuthProvider */}
+              <AppLayout>{children}</AppLayout> {/* Use the conditional layout component */}
+          </AuthProvider>
       </body>
     </html>
   );
