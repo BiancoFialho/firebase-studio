@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -22,13 +23,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { TrainingRecord } from '@/lib/types'; // Import TrainingRecord type
+import { Badge } from "@/components/ui/badge"; // Ensure Badge is imported if used for status
 
 // Mock data structure - replace with actual data fetching
 const mockTrainings: TrainingRecord[] = [
   { id: '1', employeeName: 'João Silva', trainingType: 'NR-35 Trabalho em Altura', trainingDate: new Date(2023, 5, 15), expiryDate: new Date(2025, 5, 14), status: 'Válido', attendanceListUrl: '/docs/lista_presenca_nr35_joao.pdf', certificateUrl: '/docs/certificado_nr35_joao.pdf' },
   { id: '2', employeeName: 'Maria Oliveira', trainingType: 'NR-33 Espaços Confinados', trainingDate: new Date(2022, 10, 20), expiryDate: new Date(2023, 10, 19), status: 'Vencido' },
   { id: '3', employeeName: 'Carlos Pereira', trainingType: 'Primeiros Socorros', trainingDate: new Date(2024, 0, 10), status: 'Válido', certificateUrl: '/docs/certificado_ps_carlos.pdf' },
-  { id: '4', employeeName: 'Ana Costa', trainingType: 'NR-35 Trabalho em Altura', trainingDate: new Date(2024, 6, 25), expiryDate: new Date(2026, 6, 24), status: 'Próximo ao Vencimento' },
+  { id: '4', employeeName: 'Ana Costa', trainingType: 'NR-35 Trabalho em Altura', trainingDate: new Date(2024, 6, 25), expiryDate: new Date(2026, 6, 24), status: 'Próximo ao Vencimento' }, // Adjusted expiry for testing status
   { id: '5', employeeName: 'Pedro Santos', trainingType: 'NR-10 Eletricidade', trainingDate: new Date(2023, 8, 1), expiryDate: new Date(2025, 7, 31), status: 'Válido', attendanceListUrl: '/docs/lista_presenca_nr10_pedro.pdf' },
 ];
 
@@ -116,6 +118,7 @@ export default function TrainingsPage() {
   const handleAttendanceFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (event.target.files && event.target.files[0]) {
           setAttendanceListFile(event.target.files[0]);
+          setCurrentAttendanceListUrl(undefined); // Clear existing URL if new file selected
       } else {
           setAttendanceListFile(null);
       }
@@ -124,6 +127,7 @@ export default function TrainingsPage() {
   const handleCertificateFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (event.target.files && event.target.files[0]) {
           setCertificateFile(event.target.files[0]);
+          setCurrentCertificateUrl(undefined); // Clear existing URL if new file selected
       } else {
           setCertificateFile(null);
       }
@@ -200,18 +204,18 @@ export default function TrainingsPage() {
   };
 
 
-  const getStatusBadgeColor = (status: TrainingRecord['status']) => {
-    switch (status) {
-      case 'Válido':
-        return 'bg-green-100 text-green-800';
-      case 'Vencido':
-        return 'bg-red-100 text-red-800';
-      case 'Próximo ao Vencimento':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+   const getStatusBadgeVariant = (status: TrainingRecord['status']): "default" | "secondary" | "destructive" | "outline" => {
+     switch (status) {
+       case 'Válido':
+         return 'default'; // Primary/Green
+       case 'Vencido':
+         return 'destructive'; // Red
+       case 'Próximo ao Vencimento':
+         return 'secondary'; // Orange/Yellow
+       default:
+         return 'outline'; // Grey/Neutral
+     }
+   };
 
 
   return (
@@ -273,7 +277,7 @@ export default function TrainingsPage() {
                           <div className="col-span-3 flex items-center gap-2">
                               <Input id="attendanceFile" type="file" onChange={handleAttendanceFileChange} className="flex-1" accept=".pdf,.doc,.docx,.jpg,.png" />
                               {currentAttendanceListUrl && !attendanceListFile && (
-                                  <a href={currentAttendanceListUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[100px]" title={currentAttendanceListUrl.split('/').pop()}>
+                                  <a href={currentAttendanceListUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[100px]" title={`Ver lista atual: ${currentAttendanceListUrl.split('/').pop()}`}>
                                       Ver atual
                                   </a>
                               )}
@@ -292,7 +296,7 @@ export default function TrainingsPage() {
                            <div className="col-span-3 flex items-center gap-2">
                                <Input id="certificateFile" type="file" onChange={handleCertificateFileChange} className="flex-1" accept=".pdf,.jpg,.png" />
                                {currentCertificateUrl && !certificateFile && (
-                                   <a href={currentCertificateUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[100px]" title={currentCertificateUrl.split('/').pop()}>
+                                   <a href={currentCertificateUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate max-w-[100px]" title={`Ver certificado atual: ${currentCertificateUrl.split('/').pop()}`}>
                                        Ver atual
                                    </a>
                                )}
@@ -349,10 +353,10 @@ export default function TrainingsPage() {
                   <TableCell>{training.trainingDate.toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>{training.expiryDate ? training.expiryDate.toLocaleDateString('pt-BR') : 'N/A'}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(training.status)}`}>
-                      {training.status === 'Próximo ao Vencimento' ? <AlertTriangle className="inline-block h-3 w-3 mr-1" /> : null}
+                    <Badge variant={getStatusBadgeVariant(training.status)}>
+                      {training.status === 'Próximo ao Vencimento' || training.status === 'Vencido' ? <AlertTriangle className="inline-block h-3 w-3 mr-1" /> : null}
                       {training.status}
-                    </span>
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                      {/* View Buttons */}
@@ -419,3 +423,5 @@ export default function TrainingsPage() {
     </div>
   );
 }
+
+    
