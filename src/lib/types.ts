@@ -16,6 +16,8 @@ export interface TrainingRecord {
   trainingDate: Date;
   expiryDate?: Date;
   status: 'Válido' | 'Vencido' | 'Próximo ao Vencimento';
+  attendanceListUrl?: string; // Added: Link to attendance list
+  certificateUrl?: string; // Added: Link to certificate
 }
 
 export interface PpeRecord {
