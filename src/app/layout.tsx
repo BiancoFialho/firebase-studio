@@ -15,7 +15,10 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList, BarChart3, Settings, LayoutDashboard } from 'lucide-react'; // Added FlaskConical, ClipboardList
+import {
+    HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
+    BarChart3, Settings, LayoutDashboard, Activity, Bug, Scale, Users, ListChecks, FileCheck2
+} from 'lucide-react'; // Added new icons
 import { Toaster } from '@/components/ui/toaster';
 
 
@@ -53,6 +56,7 @@ export default function RootLayout({
             </SidebarHeader>
             <SidebarContent className="p-2">
               <SidebarMenu>
+                 {/* Core Management Modules */}
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Visão Geral">
                      <Link href="/">
@@ -62,6 +66,82 @@ export default function RootLayout({
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Treinamentos">
+                      <Link href="/trainings">
+                       <HardHat />
+                       <span>Treinamentos</span>
+                      </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="ASOs">
+                     <Link href="/asos">
+                       <Stethoscope />
+                       <span>ASOs</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="EPIs">
+                      <Link href="/ppe">
+                        <ShieldCheck />
+                        <span>EPIs</span>
+                       </Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Inventário Químico">
+                      <Link href="/chemicals">
+                       <FlaskConical />
+                       <span>Inventário Químico</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
+                     <Link href="/jsa">
+                       <ClipboardList />
+                        <span>Análise de Riscos</span>
+                     </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                 {/* New Modules */}
+                  <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
+                     <Link href="/prevention">
+                       <Users /> {/* Or ListChecks */}
+                       <span>Prevenção (CIPA)</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Estatísticas Acidentes">
+                     <Link href="/statistics">
+                       <Activity />
+                       <span>Estatísticas</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Doenças Ocupacionais">
+                     <Link href="/diseases">
+                       <Bug />
+                       <span>Doenças Ocup.</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Compliance & Ações">
+                      <Link href="/compliance">
+                        <Scale /> {/* Or FileCheck2 */}
+                        <span>Compliance</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                 {/* Reporting & Dashboard */}
+                 <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Dashboard BI">
                      <Link href="/dashboard">
                        <BarChart3 />
@@ -69,46 +149,8 @@ export default function RootLayout({
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Treinamentos">
-                     <Link href="/trainings">
-                      <HardHat />
-                      <span>Treinamentos</span>
-                     </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="ASOs">
-                    <Link href="/asos">
-                      <Stethoscope />
-                      <span>ASOs</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="EPIs">
-                     <Link href="/ppe">
-                       <ShieldCheck />
-                       <span>EPIs</span>
-                      </Link>
-                   </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Inventário Químico">
-                     <Link href="/chemicals">
-                      <FlaskConical />
-                      <span>Inventário Químico</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
-                    <Link href="/jsa">
-                      <ClipboardList />
-                       <span>Análise de Riscos</span>
-                    </Link>
-                   </SidebarMenuButton>
-                 </SidebarMenuItem>
+
+
                  {/* Future placeholders - can be uncommented later */}
                 {/*
                 <SidebarMenuItem>
