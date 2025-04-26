@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList, BarChart3, Settings } from 'lucide-react';
+import { HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList, BarChart3, Settings, LayoutDashboard } from 'lucide-react'; // Added LayoutDashboard
 import { Toaster } from '@/components/ui/toaster';
 
 
@@ -53,6 +53,14 @@ export default function RootLayout({
             </SidebarHeader>
             <SidebarContent className="p-2">
               <SidebarMenu>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Visão Geral">
+                     <Link href="/">
+                       <LayoutDashboard />
+                       <span>Visão Geral</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Treinamentos">
                      <Link href="/trainings">
@@ -77,6 +85,14 @@ export default function RootLayout({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Dashboard BI">
+                     <Link href="/dashboard">
+                       <BarChart3 />
+                       <span>Dashboard BI</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
                  {/* Future placeholders - can be uncommented later */}
                 {/*
                 <SidebarMenuItem>
@@ -119,15 +135,7 @@ export default function RootLayout({
                       <span>Relatórios</span>
                     </Link>
                   </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="BI / Estatísticas">
-                    <Link href="/dashboard">
-                       <BarChart3 />
-                       <span>BI / Estatísticas</span>
-                     </Link>
-                   </SidebarMenuButton>
-                 </SidebarMenuItem> */}
+                </SidebarMenuItem> */}
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter className="p-2 mt-auto">

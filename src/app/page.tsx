@@ -7,6 +7,7 @@ export default function Home() {
       <h1 className="text-3xl font-bold tracking-tight">Visão Geral - SSMA Control</h1>
       <p className="text-muted-foreground">
         Bem-vindo ao painel de controle de Segurança, Saúde e Meio Ambiente da Nery Mecatrônica.
+        Use o menu lateral para navegar pelas funcionalidades.
       </p>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -18,9 +19,10 @@ export default function Home() {
             <HardHat className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+            {/* Replace with dynamic data later */}
             <div className="text-2xl font-bold">150</div>
             <p className="text-xs text-muted-foreground">
-              +5 em relação ao mês passado
+              +5 em relação ao mês passado (mock)
             </p>
           </CardContent>
         </Card>
@@ -32,9 +34,10 @@ export default function Home() {
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+             {/* Replace with dynamic data later */}
             <div className="text-2xl font-bold">45</div>
             <p className="text-xs text-muted-foreground">
-              +2 novas entregas esta semana
+              +2 novas entregas esta semana (mock)
             </p>
           </CardContent>
         </Card>
@@ -46,39 +49,26 @@ export default function Home() {
             <Stethoscope className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
+             {/* Replace with dynamic data later */}
             <div className="text-2xl font-bold">98%</div>
             <p className="text-xs text-muted-foreground">
-              3 ASOs próximos do vencimento
+              3 ASOs próximos do vencimento (mock)
             </p>
           </CardContent>
         </Card>
-         {/* Add more cards for other sections later */}
-         <Card className="md:col-span-2 lg:col-span-1">
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">
-               Estatísticas Gerais
-             </CardTitle>
-             <BarChart3 className="h-4 w-4 text-muted-foreground" />
-           </CardHeader>
-           <CardContent>
-             <div className="text-2xl font-bold">Em breve</div>
-             <p className="text-xs text-muted-foreground">
-               Gráficos e indicadores chave
-             </p>
-           </CardContent>
-         </Card>
+         {/* Add more cards for other key metrics later */}
       </div>
 
-       {/* Placeholder for future BI/Charts */}
-       <Card>
+      {/* Placeholder for future important alerts or summary */}
+       {/* <Card>
           <CardHeader>
-            <CardTitle>Indicadores de Segurança (BI)</CardTitle>
-             <CardDescription>Visualização dos principais dados de SSMA.</CardDescription>
+            <CardTitle>Alertas Importantes</CardTitle>
+             <CardDescription>Notificações e pendências urgentes.</CardDescription>
           </CardHeader>
-          <CardContent className="flex items-center justify-center h-64 bg-secondary rounded-md">
-            <p className="text-muted-foreground">Gráficos interativos serão exibidos aqui.</p>
+          <CardContent className="flex items-center justify-center h-40 bg-secondary rounded-md">
+            <p className="text-muted-foreground">Nenhum alerta no momento.</p>
           </CardContent>
-       </Card>
+       </Card> */}
     </div>
   );
 }
