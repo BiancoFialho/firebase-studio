@@ -1,3 +1,5 @@
+'use client'; // Add 'use client' directive
+
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
@@ -34,10 +36,15 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+// Note: Metadata can't be defined in a 'use client' file directly.
+// If dynamic metadata based on auth is needed, it requires a different approach.
+// For now, keep static metadata or move it to a parent server component if possible.
+/*
 export const metadata: Metadata = {
   title: 'SSMA Control',
   description: 'Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica',
 };
+*/
 
 // Component to conditionally render layout based on auth state
 function AppLayout({ children }: { children: React.ReactNode }) {
@@ -45,7 +52,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!authContext) {
     // This case should ideally be handled by AuthProvider structure
-    return <div>Loading auth state...</div>; // Or a loading indicator
+    // or show a loading state if auth check is async.
+    return <div className="flex min-h-screen items-center justify-center">Carregando...</div>; // Or a loading indicator
   }
 
   const { isAuthenticated } = authContext;
@@ -201,6 +209,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
+       <head>
+           {/* Metadata can be placed here if static */}
+           <title>SSMA Control</title>
+           <meta name="description" content="Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica" />
+       </head>
       <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')}>
           <AuthProvider> {/* Wrap with AuthProvider */}
               <AppLayout>{children}</AppLayout> {/* Use the conditional layout component */}
