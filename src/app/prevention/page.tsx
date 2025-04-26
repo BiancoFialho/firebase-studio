@@ -120,11 +120,23 @@ export default function PreventionPage() {
           // Very basic parsing, assumes format: Description (Resp: Name, Prazo: Date, Status: Status)
           const match = line.match(/(.+)\s\(Resp:\s*(.+),\s*Prazo:\s*(.+),\s*Status:\s*(.+)\)/);
           if (match) {
+              // Basic date parsing - assumes DD/MM/YYYY, might need adjustment
+              let deadline: Date | undefined = undefined;
+              const dateParts = match[3]?.trim().split('/');
+              if (dateParts?.length === 3) {
+                 const day = parseInt(dateParts[0], 10);
+                 const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
+                 const year = parseInt(dateParts[2], 10);
+                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    deadline = new Date(year, month, day);
+                 }
+              }
+
               return {
                   id: `act${editingCipaRecord?.id || 'new'}-${index}`,
                   description: match[1]?.trim() || 'Descrição não informada',
                   responsible: match[2]?.trim() || 'Responsável não informado',
-                  deadline: match[3] !== 'N/A' ? new Date(match[3].split('/').reverse().join('-')) : undefined, // Handle 'N/A' and parse date
+                  deadline: deadline,
                   status: (match[4]?.trim() as any) || 'Pendente' // Cast status, default to Pendente
               };
           }

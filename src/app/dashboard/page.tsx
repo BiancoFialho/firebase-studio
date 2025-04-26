@@ -27,8 +27,8 @@ const mockLawsuits: LawsuitRecord[] = [
     { id: 'law2', processNumber: '0098765-43.2023.5.15.0002', plaintiff: 'Maria Oliveira', subject: 'Acidente de Trabalho - Falta de EPI', status: 'Acordo', filingDate: new Date(2023, 5, 20), finalCost: 8000, details: 'Acordo realizado referente a acidente ocorrido por suposta falta de luvas adequadas.', relatedNRs: ['NR-6'] },
 ];
 const mockCipaMeetings: CipaMeetingRecord[] = [
-    { id: 'cipa1', date: new Date(2024, 6, 10), participants: ['João Silva', 'Maria Oliveira', 'Carlos Pereira'], agenda: 'Discussão sobre EPIs, análise de incidente leve.', status: 'Realizada', actionsDefined: [{ description: 'Verificar validade dos protetores auriculares', responsible: 'Almoxarifado', deadline: new Date(2024, 6, 17), status: 'Concluída' }] },
-    { id: 'cipa2', date: new Date(2024, 5, 12), participants: ['João Silva', 'Maria Oliveira', 'Ana Costa'], agenda: 'Planejamento SIPAT, riscos ergonômicos.', status: 'Realizada', minutesUrl: 'https://example.com/cipa/ata-junho', actionsDefined: [{ description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em Andamento' }] },
+    { id: 'cipa1', date: new Date(2024, 6, 10), participants: ['João Silva', 'Maria Oliveira', 'Carlos Pereira'], agenda: 'Discussão sobre EPIs, análise de incidente leve.', status: 'Realizada', actionsDefined: [{ id: 'act1', description: 'Verificar validade dos protetores auriculares', responsible: 'Almoxarifado', deadline: new Date(2024, 6, 17), status: 'Concluída' }] },
+    { id: 'cipa2', date: new Date(2024, 5, 12), participants: ['João Silva', 'Maria Oliveira', 'Ana Costa'], agenda: 'Planejamento SIPAT, riscos ergonômicos.', status: 'Realizada', minutesUrl: 'https://example.com/cipa/ata-junho', actionsDefined: [{ id: 'act2', description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em Andamento' }] },
     { id: 'cipa3', date: new Date(2024, 7, 14), participants: [], agenda: 'Próxima reunião ordinária.', status: 'Agendada', actionsDefined: [] },
 ];
 const mockHoursWorked = 500000; // Example HHT for the period (e.g., YTD 2024)
@@ -36,33 +36,6 @@ const NATIONAL_TF_AVERAGE = 14.3; // Example national average TF (adjust per ind
 const NATIONAL_FATALITIES_2022 = 2538; // National data (example)
 const NATIONAL_ACCIDENTS_2022 = 612920; // National data (example)
 const COMPANY_TF_TARGET = 15; // Company specific target for TF
-
-// Calculate Statistics
-const calculatedStats = useMemo((): StatisticsData => {
-    const currentYear = new Date().getFullYear();
-    // Filter data for the current year for KPIs (adjust period as needed)
-    const periodAccidents = mockAccidents.filter(a => a.date.getFullYear() === currentYear);
-    const numberOfAccidents = periodAccidents.length;
-    const accidentsWithLostTime = periodAccidents.filter(a => a.daysOff > 0).length;
-    const totalDaysLost = periodAccidents.reduce((sum, acc) => sum + acc.daysOff, 0);
-    const fatalAccidents = periodAccidents.filter(a => a.type === 'Fatal').length;
-
-    const tf = calculateFrequencyRate(accidentsWithLostTime, mockHoursWorked);
-    const tg = calculateSeverityRate(totalDaysLost, mockHoursWorked);
-
-    return {
-      totalHoursWorked: mockHoursWorked,
-      numberOfAccidents,
-      totalDaysLost,
-      tf,
-      tg,
-      period: `Ano ${currentYear}`, // Example period label
-      fatalAccidents: fatalAccidents,
-      activeLawsuits: mockLawsuits.filter(l => l.status === 'Em Andamento').length,
-      cipaMeetingsHeld: mockCipaMeetings.filter(m => m.status === 'Realizada' && m.date.getFullYear() === currentYear).length,
-      occupationalDiseases: mockDiseases.filter(d => d.diagnosisDate.getFullYear() === currentYear).length, // Example KPI
-    };
-}, [mockAccidents, mockDiseases, mockLawsuits, mockCipaMeetings, mockHoursWorked]);
 
 // --- Chart Configurations ---
 const trainingsData = [ // Example data, fetch from trainings page/service
@@ -74,15 +47,7 @@ const asoStatusData = [ // Example data, fetch from asos page/service
   { name: 'Próximo Venc.', value: 3, fill: "hsl(var(--chart-2))" },
   { name: 'Vencido', value: 2, fill: "hsl(var(--destructive))" },
 ];
-const incidentTrendData = [ // Use calculated data
-    { month: 'Jan', incidents: mockAccidents.filter(a => a.date.getMonth() === 0 && a.date.getFullYear() === calculatedStats.period.split(' ')[1]).length },
-    { month: 'Fev', incidents: mockAccidents.filter(a => a.date.getMonth() === 1 && a.date.getFullYear() === calculatedStats.period.split(' ')[1]).length },
-    { month: 'Mar', incidents: mockAccidents.filter(a => a.date.getMonth() === 2 && a.date.getFullYear() === calculatedStats.period.split(' ')[1]).length },
-    { month: 'Abr', incidents: mockAccidents.filter(a => a.date.getMonth() === 3 && a.date.getFullYear() === calculatedStats.period.split(' ')[1]).length },
-    { month: 'Mai', incidents: mockAccidents.filter(a => a.date.getMonth() === 4 && a.date.getFullYear() === calculatedStats.period.split(' ')[1]).length },
-    { month: 'Jun', incidents: mockAccidents.filter(a => a.date.getMonth() === 5 && a.date.getFullYear() === calculatedStats.period.split(' ')[1]).length },
-    // Add more months as needed or make dynamic
-];
+
 
 const trainingsChartConfig = { count: { label: "Treinamentos", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
 const asoChartConfig = {
@@ -93,6 +58,45 @@ const incidentChartConfig = { incidents: { label: "Acidentes", color: "hsl(var(-
 
 
 export default function DashboardPage() {
+  // Calculate Statistics - Moved inside the component
+  const calculatedStats = useMemo((): StatisticsData => {
+      const currentYear = new Date().getFullYear();
+      // Filter data for the current year for KPIs (adjust period as needed)
+      const periodAccidents = mockAccidents.filter(a => a.date.getFullYear() === currentYear);
+      const numberOfAccidents = periodAccidents.length;
+      const accidentsWithLostTime = periodAccidents.filter(a => a.daysOff > 0).length;
+      const totalDaysLost = periodAccidents.reduce((sum, acc) => sum + acc.daysOff, 0);
+      const fatalAccidents = periodAccidents.filter(a => a.type === 'Fatal').length;
+
+      const tf = calculateFrequencyRate(accidentsWithLostTime, mockHoursWorked);
+      const tg = calculateSeverityRate(totalDaysLost, mockHoursWorked);
+
+      return {
+        totalHoursWorked: mockHoursWorked,
+        numberOfAccidents,
+        totalDaysLost,
+        tf,
+        tg,
+        period: `Ano ${currentYear}`, // Example period label
+        fatalAccidents: fatalAccidents,
+        // Optional: Add these if needed for display, fetching mock data
+        activeLawsuits: mockLawsuits.filter(l => l.status === 'Em Andamento').length,
+        cipaMeetingsHeld: mockCipaMeetings.filter(m => m.status === 'Realizada' && m.date.getFullYear() === currentYear).length,
+        occupationalDiseases: mockDiseases.filter(d => d.diagnosisDate.getFullYear() === currentYear).length,
+      };
+  }, [/* mockAccidents, mockDiseases, mockLawsuits, mockCipaMeetings, mockHoursWorked */]); // Add dependencies if they change
+
+  // Prepare incident trend data inside the component or move outside if static
+  const incidentTrendData = useMemo(() => [
+      { month: 'Jan', incidents: mockAccidents.filter(a => a.date.getMonth() === 0 && a.date.getFullYear() === new Date().getFullYear()).length },
+      { month: 'Fev', incidents: mockAccidents.filter(a => a.date.getMonth() === 1 && a.date.getFullYear() === new Date().getFullYear()).length },
+      { month: 'Mar', incidents: mockAccidents.filter(a => a.date.getMonth() === 2 && a.date.getFullYear() === new Date().getFullYear()).length },
+      { month: 'Abr', incidents: mockAccidents.filter(a => a.date.getMonth() === 3 && a.date.getFullYear() === new Date().getFullYear()).length },
+      { month: 'Mai', incidents: mockAccidents.filter(a => a.date.getMonth() === 4 && a.date.getFullYear() === new Date().getFullYear()).length },
+      { month: 'Jun', incidents: mockAccidents.filter(a => a.date.getMonth() === 5 && a.date.getFullYear() === new Date().getFullYear()).length },
+      // Add more months as needed or make dynamic
+  ], [/* mockAccidents */]); // Add dependency if mockAccidents can change
+
   // Calculate comparisons for KPIs
   const tfComparison = calculatedStats.tf !== null && calculatedStats.tf > NATIONAL_TF_AVERAGE ? 'Acima da média BR' : 'Abaixo/Igual média BR';
   const tfComparisonColor = calculatedStats.tf !== null && calculatedStats.tf > NATIONAL_TF_AVERAGE ? 'text-destructive' : 'text-green-600';

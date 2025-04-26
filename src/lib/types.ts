@@ -119,7 +119,7 @@ export interface CipaMeetingRecord {
     participants: string[]; // List of employee names or IDs
     agenda: string; // Topics discussed
     minutesUrl?: string; // Link to digital minutes
-    actionsDefined: { description: string; responsible: string; deadline?: Date; status: 'Pendente' | 'Em Andamento' | 'Concluída' }[];
+    actionsDefined: { id: string; description: string; responsible: string; deadline?: Date; status: 'Pendente' | 'Em Andamento' | 'Concluída' }[]; // Added ID to actions
     status: 'Agendada' | 'Realizada' | 'Cancelada';
 }
 
@@ -143,4 +143,8 @@ export interface StatisticsData {
     tf?: number; // Taxa de Frequência
     tg?: number; // Taxa de Gravidade
     period: string; // e.g., "2024", "2024-Q3", "Julho 2024"
+    fatalAccidents: number;
+    activeLawsuits?: number; // Optional KPI
+    cipaMeetingsHeld?: number; // Optional KPI
+    occupationalDiseases?: number; // Optional KPI
 }
