@@ -1,4 +1,5 @@
 // src/lib/types.ts
+import type { Prisma } from '@prisma/client'; // Import Prisma types if needed
 
 // Existing types (assuming they might exist or be added later)
 export interface Employee {
@@ -62,28 +63,8 @@ export interface JsaRecord {
 }
 
 
-// New types for the requested modules
-
-export type AccidentType = 'Leve' | 'Grave' | 'Fatal' | 'Trajeto' | 'Típico';
-export type AccidentCause = 'Queda' | 'Choque Elétrico' | 'Impacto' | 'Corte' | 'Projeção Partículas' | 'Químico' | 'Ergonômico' | 'Biológico' | 'Outro';
-
-export interface AccidentRecord {
-  id: string;
-  date: Date;
-  time?: string; // Optional time
-  employeeName: string; // Or link to Employee object
-  department: string;
-  location: string; // Specific area
-  type: AccidentType;
-  cause: AccidentCause;
-  causeDetails?: string; // Description if 'Outro' or more detail
-  daysOff: number; // Days of absence
-  description: string; // Detailed description of the event
-  cid10Code?: string; // Optional: For related illness/injury
-  catIssued: boolean; // Comunicação de Acidente de Trabalho issued?
-  investigationStatus: 'Pendente' | 'Em Andamento' | 'Concluída';
-  reportUrl?: string; // Link to investigation report
-}
+// Using Prisma types for consistency (assuming Prisma schema is defined)
+export type AccidentRecord = Prisma.AccidentRecord; // Use Prisma-generated type
 
 export interface OccupationalDiseaseRecord {
   id: string;
@@ -134,6 +115,23 @@ export interface PreventiveAction {
     status: 'Pendente' | 'Em Andamento' | 'Concluída' | 'Atrasada';
     evidenceUrl?: string; // Link to evidence of completion
 }
+
+// Type for Document Management
+export type DocumentType = 'PGR' | 'PCMSO' | 'PCA' | 'Laudo Ergonômico' | 'Laudo Insalubridade' | 'Laudo Periculosidade' | 'Outro';
+export type DocumentStatus = 'Válido' | 'Vencido' | 'Próximo ao Vencimento' | 'Em Revisão';
+
+export interface DocumentRecord {
+    id: string;
+    documentType: DocumentType;
+    title: string; // e.g., "PGR Nery Mecatrônica 2024"
+    issueDate: Date;
+    expiryDate: Date; // Expiration or next review date
+    responsible: string; // e.g., "SESMT", "Eng. Bianco"
+    status: DocumentStatus;
+    attachmentUrl?: string; // Link to the actual document
+    relatedActions: { id: string; description: string; responsible: string; deadline?: Date; status: 'Pendente' | 'Em Andamento' | 'Concluída' }[]; // Simplified action tracking
+}
+
 
 // For Statistics calculation
 export interface StatisticsData {

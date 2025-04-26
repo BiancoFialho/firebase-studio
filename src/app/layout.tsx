@@ -19,8 +19,8 @@ import {
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
-    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard, Target, Landmark // Added Target, Landmark
-} from 'lucide-react'; // Removed LogOut, UserPlus, FileCheck2 (using ListChecks for Action Plan)
+    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard, Target, Landmark, Folder // Added Folder icon
+} from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react'; // Import React
 
@@ -70,117 +70,108 @@ export default function RootLayout({
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Dashboard BI">
                      <Link href="/">
-                       <> {/* Wrap children */}
-                         <LayoutDashboard />
-                         <span>Dashboard BI</span>
-                       </>
+                       <LayoutDashboard />
+                       <span>Dashboard BI</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
 
-                 {/* Core Management Modules - Reordered */}
+                 {/* Core Management Modules */}
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Treinamentos">
                      <Link href="/trainings">
-                       <> {/* Wrap children */}
-                         <HardHat />
-                         <span>Treinamentos</span>
-                       </>
+                       <HardHat />
+                       <span>Treinamentos</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="EPIs">
                       <Link href="/ppe">
-                       <> {/* Wrap children */}
                          <ShieldCheck />
                          <span>EPIs</span>
-                       </>
                        </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="ASOs">
                      <Link href="/asos">
-                       <> {/* Wrap children */}
-                         <Stethoscope />
-                         <span>ASOs</span>
-                       </>
+                       <Stethoscope />
+                       <span>ASOs</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Inventário Químico">
                      <Link href="/chemicals">
-                       <> {/* Wrap children */}
-                         <FlaskConical />
-                         <span>Inventário Químico</span>
-                       </>
-                     </Link>
-                   </SidebarMenuButton>
-                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
-                     <Link href="/jsa">
-                       <> {/* Wrap children */}
-                         <ClipboardList />
-                         <span>Análise de Riscos</span>
-                       </>
+                       <FlaskConical />
+                       <span>Inventário Químico</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
 
-                 {/* New Modules / Reorganized */}
+                 {/* Analysis & Planning */}
                  <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
-                     <Link href="/prevention">
-                       <> {/* Wrap children */}
-                         <Users />
-                         <span>Prevenção (CIPA)</span>
-                       </>
+                   <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
+                     <Link href="/jsa">
+                       <ClipboardList />
+                       <span>Análise de Riscos</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Plano de Ação & NRs">
-                     <Link href="/action-plan">
-                       <> {/* Wrap children */}
-                         <ListChecks /> {/* Changed Icon */}
-                         <span>Plano de Ação</span>
-                       </>
+                   <SidebarMenuButton asChild tooltip="Documentos (PGR, PCMSO)">
+                     <Link href="/documents">
+                       <Folder /> {/* Icon for Documents */}
+                       <span>Documentos</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                   <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Doenças Ocupacionais">
-                     <Link href="/diseases">
-                       <> {/* Wrap children */}
-                         <Bug />
-                         <span>Doenças Ocup.</span>
-                       </>
+                   <SidebarMenuButton asChild tooltip="Plano de Ação & NRs">
+                     <Link href="/action-plan">
+                       <ListChecks />
+                       <span>Plano de Ação</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+
+                  {/* Prevention & Health */}
+                  <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
+                     <Link href="/prevention">
+                       <Users />
+                       <span>Prevenção (CIPA)</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Doenças Ocupacionais">
+                     <Link href="/diseases">
+                       <Bug />
+                       <span>Doenças Ocup.</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+
+                 {/* Statistics & Compliance */}
+                 <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Estatísticas Acidentes">
                      <Link href="/statistics">
-                       <> {/* Wrap children */}
-                         <Activity />
-                         <span>Estatísticas</span>
-                       </>
+                       <Activity />
+                       <span>Estatísticas</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Ações Trabalhistas">
                      <Link href="/lawsuits">
-                       <> {/* Wrap children */}
-                         <Landmark /> {/* Changed Icon */}
-                         <span>Ações Trab.</span>
-                       </>
+                       <Landmark />
+                       <span>Ações Trab.</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
+
 
                  {/* Future placeholders */}
                  {/* ... other future links ... */}
@@ -191,10 +182,8 @@ export default function RootLayout({
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Configurações">
                      <Link href="/settings">
-                       <> {/* Wrap children */}
-                         <Settings />
-                         <span>Configurações</span>
-                       </>
+                       <Settings />
+                       <span>Configurações</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
