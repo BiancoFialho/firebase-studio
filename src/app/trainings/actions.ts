@@ -2,7 +2,7 @@
 'use server';
 
 import { prisma } from '@/lib/db';
-import { Prisma, TrainingRecord as PrismaTrainingRecord, TrainingType as PrismaTrainingType } from '@prisma/client';
+import { Prisma, TrainingRecord as PrismaTrainingRecord, TrainingType as PrismaTrainingType, Employee as PrismaEmployee } from '@prisma/client';
 
 // Type for the full TrainingRecord including related data
 export type TrainingRecordWithDetails = PrismaTrainingRecord & {
@@ -10,16 +10,32 @@ export type TrainingRecordWithDetails = PrismaTrainingRecord & {
     trainingTypeName?: string | null;
 };
 
-// Type for creation data
-export type TrainingRecordCreateInput = Prisma.TrainingRecordUncheckedCreateInput;
-// Type for update data
-export type TrainingRecordUpdateInput = Prisma.TrainingRecordUncheckedUpdateInput;
+// Type for creation data - Use Prisma's generated type
+export type TrainingRecordCreateInput = Prisma.TrainingRecordCreateInput;
+// Type for update data - Use Prisma's generated type
+export type TrainingRecordUpdateInput = Prisma.TrainingRecordUpdateInput;
+
 
 // Type for TrainingType
 export type TrainingType = PrismaTrainingType;
 export type TrainingTypeCreateInput = Prisma.TrainingTypeCreateInput;
 export type TrainingTypeUpdateInput = Prisma.TrainingTypeUpdateInput;
 
+// --- Employee Actions (Moved here for simplicity, or keep separate) ---
+export type Employee = PrismaEmployee;
+
+export async function getEmployees(): Promise<Employee[]> {
+    try {
+        const employees = await prisma.employee.findMany({
+            select: { id: true, name: true, department: true, position: true, hireDate: true, createdAt: true, updatedAt: true }, // Select specific fields if needed
+            orderBy: { name: 'asc' }
+        });
+        return employees;
+    } catch (error) {
+        console.error("Error fetching employees:", error);
+        throw new Error("Failed to fetch employees.");
+    }
+}
 
 // --- Training Record Actions ---
 
@@ -45,13 +61,16 @@ export async function getTrainingRecords(): Promise<TrainingRecordWithDetails[]>
   }
 }
 
-export async function createTrainingRecord(data: Omit<TrainingRecordCreateInput, 'status' | 'employee' | 'trainingType'>): Promise<TrainingRecordWithDetails> {
+// Simplified create input type for the function argument
+type CreateRecordData = Omit<Prisma.TrainingRecordUncheckedCreateInput, 'id' | 'createdAt' | 'updatedAt' | 'status'>;
+
+export async function createTrainingRecord(data: CreateRecordData): Promise<TrainingRecordWithDetails> {
   try {
     const newRecord = await prisma.trainingRecord.create({
       data: {
           ...data,
           status: 'Valido', // Set initial status - can be recalculated on fetch
-          // Relations are handled by Prisma using IDs (employeeId, trainingTypeId)
+          // Ensure employeeId and trainingTypeId are provided in `data`
       },
       include: {
         employee: { select: { name: true } },
@@ -69,19 +88,42 @@ export async function createTrainingRecord(data: Omit<TrainingRecordCreateInput,
         if (error.code === 'P2002') {
             throw new Error("Failed to create training: Record already exists or violates unique constraint.");
         }
-         if (error.code === 'P2025') {
-             throw new Error(`Failed to create training: Employee or Training Type not found.`);
+         if (error.code === 'P2003') { // Foreign key constraint failed
+             throw new Error(`Failed to create training: Invalid Employee ID or Training Type ID provided.`);
+         }
+         if (error.code === 'P2025') { // Record not found (can happen in relations)
+             throw new Error(`Failed to create training: Related Employee or Training Type not found.`);
          }
     }
     throw new Error("Failed to create training record.");
   }
 }
 
-export async function updateTrainingRecord(id: string, data: Omit<TrainingRecordUpdateInput, 'status' | 'employee' | 'trainingType'>): Promise<TrainingRecordWithDetails> {
+// Simplified update input type for the function argument
+type UpdateRecordData = Omit<Prisma.TrainingRecordUncheckedUpdateInput, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'employeeId' | 'trainingTypeId'> & {
+    employeeId?: string; // Make relational IDs optional in the update payload if needed
+    trainingTypeId?: string;
+};
+
+
+export async function updateTrainingRecord(id: string, data: UpdateRecordData): Promise<TrainingRecordWithDetails> {
+    const { employeeId, trainingTypeId, ...restData } = data;
+
+    const updatePayload: Prisma.TrainingRecordUpdateInput = { ...restData };
+
+    // Only include relations if they are provided
+    if (employeeId) {
+        updatePayload.employee = { connect: { id: employeeId } };
+    }
+    if (trainingTypeId) {
+        updatePayload.trainingType = { connect: { id: trainingTypeId } };
+    }
+
+
   try {
     const updatedRecord = await prisma.trainingRecord.update({
       where: { id },
-      data: data,
+      data: updatePayload,
       include: {
         employee: { select: { name: true } },
         trainingType: { select: { name: true } }
@@ -97,6 +139,9 @@ export async function updateTrainingRecord(id: string, data: Omit<TrainingRecord
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       throw new Error(`Failed to update training: Record, Employee or Training Type not found.`);
     }
+     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') { // Foreign key constraint failed
+         throw new Error(`Failed to update training: Invalid Employee ID or Training Type ID provided.`);
+     }
     throw new Error("Failed to update training record.");
   }
 }
@@ -130,17 +175,13 @@ export async function getTrainingTypes(): Promise<TrainingType[]> {
 }
 
 export async function createTrainingType(data: TrainingTypeCreateInput): Promise<TrainingType> {
-    // Validate instructorsJson if provided
-    if (data.instructorsJson) {
-        try {
-            const instructors = JSON.parse(data.instructorsJson);
-            if (!Array.isArray(instructors) || !instructors.every(i => typeof i === 'string')) {
-                throw new Error("Instructors JSON must be an array of strings.");
-            }
-        } catch (e) {
-            throw new Error("Invalid format for Instructors JSON.");
-        }
+    // Basic validation for JSON strings (can be enhanced)
+    if (data.instructorsJson && !isValidJsonString(data.instructorsJson)) {
+        throw new Error("Invalid format for Instructors JSON.");
     }
+    if (data.requiredNrsJson && !isValidJsonString(data.requiredNrsJson)) {
+         throw new Error("Invalid format for Required NRs JSON.");
+     }
 
   try {
     const newType = await prisma.trainingType.create({
@@ -157,16 +198,12 @@ export async function createTrainingType(data: TrainingTypeCreateInput): Promise
 }
 
 export async function updateTrainingType(id: string, data: TrainingTypeUpdateInput): Promise<TrainingType> {
-     // Validate instructorsJson if provided and being updated
-     if (data.instructorsJson && typeof data.instructorsJson === 'string') {
-         try {
-             const instructors = JSON.parse(data.instructorsJson);
-             if (!Array.isArray(instructors) || !instructors.every(i => typeof i === 'string')) {
-                 throw new Error("Instructors JSON must be an array of strings.");
-             }
-         } catch (e) {
-             throw new Error("Invalid format for Instructors JSON.");
-         }
+     // Basic validation for JSON strings (can be enhanced)
+     if (data.instructorsJson && typeof data.instructorsJson === 'string' && !isValidJsonString(data.instructorsJson)) {
+         throw new Error("Invalid format for Instructors JSON.");
+     }
+    if (data.requiredNrsJson && typeof data.requiredNrsJson === 'string' && !isValidJsonString(data.requiredNrsJson)) {
+         throw new Error("Invalid format for Required NRs JSON.");
      }
 
   try {
@@ -208,4 +245,16 @@ export async function deleteTrainingType(id: string): Promise<void> {
     // Rethrow custom error or original error
     throw new Error(error.message || "Failed to delete training type.");
   }
+}
+
+// Helper function to validate JSON string (basic check)
+function isValidJsonString(str: string | null | undefined): boolean {
+    if (!str) return true; // Allow null/undefined
+    try {
+        const parsed = JSON.parse(str);
+        // Optionally add more checks, e.g., ensure it's an array of strings
+        return Array.isArray(parsed);
+    } catch (e) {
+        return false;
+    }
 }

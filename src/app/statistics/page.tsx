@@ -32,21 +32,27 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { Prisma, AccidentRecord as PrismaAccidentRecord, Employee as PrismaEmployee } from '@prisma/client';
-// Import enums directly from Prisma client
-import { AccidentType, AccidentCause, InvestigationStatus } from '@prisma/client';
+// Import string union types defined in lib/types.ts for frontend validation
+import type { AccidentType, AccidentCause, InvestigationStatus, EmployeeSelectItem } from '@/lib/types';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
 import { format } from 'date-fns';
-import { createAccident, getAccidents, updateAccident, deleteAccident, getEmployees } from '@/app/statistics/actions'; // Import server actions
+import { createAccident, getAccidents, updateAccident, deleteAccident, getEmployees } from './actions'; // Import server actions
 
 // Extend Prisma type if needed, or use directly
 // type AccidentRecord = PrismaAccidentRecord;
 type AccidentRecordWithEmployee = PrismaAccidentRecord & {
     employeeName?: string | null; // Prisma action will add this
 };
-type Employee = Pick<PrismaEmployee, 'id' | 'name'>; // Simplified Employee type for dropdown
+// Use the simplified EmployeeSelectItem type for dropdown state
+type EmployeeForSelect = EmployeeSelectItem;
+
+// Define valid string values for enums based on schema (or import from lib/types)
+const accidentTypes: AccidentType[] = ["Leve", "Grave", "Fatal", "Tipico", "Trajeto"];
+const accidentCauses: AccidentCause[] = ["Queda", "Choque_Eletrico", "Impacto", "Corte", "Projecao_Particulas", "Quimico", "Ergonomico", "Biologico", "Outro"];
+const investigationStatuses: InvestigationStatus[] = ["Pendente", "Em_Andamento", "Concluida"];
 
 // --- Form Validation Schema ---
-// Use zod enums based on Prisma enums for type safety
+// Use zod enums based on the defined string arrays for type safety
 const accidentSchema = z.object({
   id: z.string().optional(), // Optional for creation
   date: z.date({ required_error: "Data é obrigatória." }),
@@ -54,14 +60,14 @@ const accidentSchema = z.object({
   employeeId: z.string().min(1, "Colaborador é obrigatório."), // Use ID for relation
   department: z.string().min(1, "Departamento é obrigatório."),
   location: z.string().min(1, "Local é obrigatório."),
-  type: z.nativeEnum(AccidentType, { errorMap: () => ({ message: "Tipo é obrigatório." }) }), // Use Prisma Enum
-  cause: z.nativeEnum(AccidentCause, { errorMap: () => ({ message: "Causa é obrigatória." }) }), // Use Prisma Enum
+  type: z.enum(accidentTypes, { errorMap: () => ({ message: "Tipo é obrigatório." }) }),
+  cause: z.enum(accidentCauses, { errorMap: () => ({ message: "Causa é obrigatória." }) }),
   causeDetails: z.string().optional(),
   daysOff: z.coerce.number().min(0, "Dias de afastamento não pode ser negativo.").default(0), // Use coerce for number conversion
   description: z.string().min(1, "Descrição é obrigatória."),
   cid10Code: z.string().optional(),
   catIssued: z.boolean().default(false),
-  investigationStatus: z.nativeEnum(InvestigationStatus).default(InvestigationStatus.Pendente), // Use Prisma Enum
+  investigationStatus: z.enum(investigationStatuses).default("Pendente"),
   reportUrl: z.string().optional(),
 });
 
@@ -72,7 +78,7 @@ const mockHoursWorked = 500000;
 
 export default function StatisticsPage() {
   const [accidents, setAccidents] = useState<AccidentRecordWithEmployee[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeForSelect[]>([]); // State for employee dropdown
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
@@ -95,13 +101,13 @@ export default function StatisticsPage() {
         daysOff: 0,
         description: '',
         catIssued: false,
-        investigationStatus: InvestigationStatus.Pendente,
+        investigationStatus: "Pendente", // Default string value
     }
   });
 
 
   // --- Data Fetching ---
-  const fetchAccidents = useCallback(async () => {
+  const fetchData = useCallback(async () => { // Renamed function
     setIsLoading(true);
     try {
       const [fetchedAccidents, fetchedEmployees] = await Promise.all([
@@ -110,17 +116,25 @@ export default function StatisticsPage() {
       ]);
       setAccidents(fetchedAccidents);
       setEmployees(fetchedEmployees.map(emp => ({ id: emp.id, name: emp.name }))); // Map to simplified Employee type
-    } catch (error) {
+    } catch (error: any) { // Catch specific error type if possible
       console.error("Error fetching data:", error);
-      toast({ title: "Erro", description: "Não foi possível buscar os dados iniciais.", variant: "destructive" });
+      toast({
+          title: "Erro ao Carregar Dados",
+          description: error.message || "Não foi possível buscar os dados iniciais. Tente recarregar a página.",
+          variant: "destructive",
+          duration: 10000 // Longer duration for error messages
+        });
+      // Optionally set empty states or specific error states
+      setAccidents([]);
+      setEmployees([]);
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchAccidents();
-  }, [fetchAccidents]); // Fetch data on initial load
+    fetchData();
+  }, [fetchData]); // Fetch data on initial load
 
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,7 +152,7 @@ export default function StatisticsPage() {
   const handleOpenForm = (record: AccidentRecordWithEmployee | null = null) => {
     if (record) {
       setEditingRecordId(record.id);
-      // Use setValue to populate the form fields correctly
+      // Use reset to populate the form fields correctly
       reset({ // Use reset to ensure all fields are updated
         id: record.id,
         date: new Date(record.date), // Ensure it's a Date object
@@ -146,14 +160,14 @@ export default function StatisticsPage() {
         employeeId: record.employeeId || '', // Use employeeId
         department: record.department,
         location: record.location,
-        type: record.type,
-        cause: record.cause,
+        type: record.type as AccidentType, // Cast to the specific string union type
+        cause: record.cause as AccidentCause, // Cast to the specific string union type
         causeDetails: record.causeDetails || undefined,
         daysOff: record.daysOff,
         description: record.description,
         cid10Code: record.cid10Code || undefined,
         catIssued: record.catIssued,
-        investigationStatus: record.investigationStatus,
+        investigationStatus: record.investigationStatus as InvestigationStatus, // Cast
         reportUrl: record.reportUrl || undefined,
       });
     } else {
@@ -163,12 +177,12 @@ export default function StatisticsPage() {
             employeeId: '',
             department: '',
             location: '',
-            type: undefined,
-            cause: undefined,
+            type: undefined, // Keep undefined for placeholder
+            cause: undefined, // Keep undefined for placeholder
             daysOff: 0,
             description: '',
             catIssued: false,
-            investigationStatus: InvestigationStatus.Pendente,
+            investigationStatus: "Pendente",
             time: undefined,
             causeDetails: undefined,
             cid10Code: undefined,
@@ -187,38 +201,38 @@ export default function StatisticsPage() {
   const onSubmit: SubmitHandler<AccidentFormData> = async (data) => {
     setIsSubmitting(true); // Indicate submission start
     try {
-       // Prepare data for Prisma (ensure correct types, especially for relations)
+       // Prepare data for Prisma action (ensure correct types)
         const dataToSave = {
             date: data.date,
-            time: data.time || null, // Use null if optional string is empty
+            time: data.time || null,
+            employeeId: data.employeeId, // Pass employeeId directly
             department: data.department,
             location: data.location,
             type: data.type,
             cause: data.cause,
             causeDetails: data.causeDetails || null,
-            daysOff: data.daysOff, // Already coerced to number by zod
+            daysOff: data.daysOff,
             description: data.description,
             cid10Code: data.cid10Code || null,
             catIssued: data.catIssued,
             investigationStatus: data.investigationStatus,
             reportUrl: data.reportUrl || null,
-            // employee relation handled separately
         };
 
       if (editingRecordId) {
-        // Update
-        await updateAccident(editingRecordId, { ...dataToSave, employeeId: data.employeeId }); // Pass employeeId for connection
+        // Update requires ID in the payload for Prisma Unchecked types
+        await updateAccident(editingRecordId, { ...dataToSave });
         toast({ title: "Sucesso", description: "Registro de acidente atualizado." });
       } else {
-        // Create
-        await createAccident({ ...dataToSave, employeeId: data.employeeId }); // Pass employeeId for connection
+        // Create action expects data without ID
+        await createAccident({ ...dataToSave });
         toast({ title: "Sucesso", description: "Novo acidente registrado." });
       }
       handleCloseForm();
-      fetchAccidents(); // Re-fetch data to show the new/updated record
+      fetchData(); // Re-fetch data to show the new/updated record
     } catch (error: any) {
       console.error("Error saving accident:", error);
-      toast({ title: "Erro", description: error.message || "Falha ao salvar o registro do acidente.", variant: "destructive" });
+      toast({ title: "Erro ao Salvar", description: error.message || "Falha ao salvar o registro do acidente.", variant: "destructive" });
     } finally {
       setIsSubmitting(false); // Indicate submission end
     }
@@ -228,11 +242,13 @@ export default function StatisticsPage() {
      setIsDeleting(id); // Indicate which record is being deleted
      try {
        await deleteAccident(id);
-       setAccidents(accidents.filter(r => r.id !== id)); // Optimistic UI update
+       // Optimistic UI update (remove from local state)
+       // setAccidents(accidents.filter(r => r.id !== id));
        toast({ title: "Sucesso", description: "Registro de acidente excluído.", variant: "destructive" });
+       fetchData(); // Re-fetch data to confirm deletion from server
      } catch (error: any) {
         console.error("Error deleting accident:", error);
-        toast({ title: "Erro", description: error.message || "Falha ao excluir o registro do acidente.", variant: "destructive" });
+        toast({ title: "Erro ao Excluir", description: error.message || "Falha ao excluir o registro do acidente.", variant: "destructive" });
      } finally {
         setIsDeleting(null); // Reset deleting state
      }
@@ -244,7 +260,7 @@ export default function StatisticsPage() {
        const numberOfAccidents = periodAccidents.length;
        const accidentsWithLostTime = periodAccidents.filter(a => a.daysOff > 0).length;
        const totalDaysLost = periodAccidents.reduce((sum, acc) => sum + acc.daysOff, 0);
-       const fatalAccidents = periodAccidents.filter(a => a.type === AccidentType.Fatal).length;
+       const fatalAccidents = periodAccidents.filter(a => a.type === "Fatal").length; // Use string value
 
        const tf = calculateFrequencyRate(accidentsWithLostTime, totalHoursWorked);
        const tg = calculateSeverityRate(totalDaysLost, totalHoursWorked);
@@ -263,49 +279,54 @@ export default function StatisticsPage() {
 
   // --- Chart Data Preparation ---
    const accidentsByType = useMemo(() => {
-       const counts: { [key in AccidentType]?: number } = {}; // Optional properties
+       const counts: { [key in AccidentType]?: number } = {}; // Use string union type
        filteredAccidents.forEach(acc => {
-           counts[acc.type] = (counts[acc.type] || 0) + 1;
+           const typeKey = acc.type as AccidentType; // Cast to be sure
+           counts[typeKey] = (counts[typeKey] || 0) + 1;
        });
-       return (Object.entries(counts) as [AccidentType, number][]) // Type assertion
-         .map(([name, value]) => ({ name: name, value }))
+       // Filter out entries with zero count
+       return (Object.entries(counts) as [AccidentType, number][])
+         .map(([name, value]) => ({ name: name.replace('_', ' '), value })) // Replace underscores for display
          .filter(item => item.value > 0);
    }, [filteredAccidents]);
 
 
    const accidentsByCause = useMemo(() => {
-       const counts: { [key in AccidentCause]?: number } = {};
+       const counts: { [key in AccidentCause]?: number } = {}; // Use string union type
        filteredAccidents.forEach(acc => {
-         counts[acc.cause] = (counts[acc.cause] || 0) + 1;
+         const causeKey = acc.cause as AccidentCause; // Cast
+         counts[causeKey] = (counts[causeKey] || 0) + 1;
        });
-       return (Object.entries(counts) as [AccidentCause, number][]) // Type assertion
-         .map(([name, value]) => ({ name: name, value: value! }))
+       // Filter, sort, and take top 5
+       return (Object.entries(counts) as [AccidentCause, number][])
+         .map(([name, value]) => ({ name: name.replace('_', ' '), value: value! })) // Replace underscores
+         .filter(item => item.value > 0)
          .sort((a, b) => b.value - a.value)
-         .slice(0, 5); // Top 5
+         .slice(0, 5);
    }, [filteredAccidents]);
 
 
-  // Chart Configs
+  // Chart Configs - Use string keys corresponding to the enum values
    const typeChartConfig = {
        value: { label: "Quantidade" },
-       [AccidentType.Leve]: { label: "Leve", color: "hsl(var(--chart-1))" },
-       [AccidentType.Grave]: { label: "Grave", color: "hsl(var(--chart-2))" },
-       [AccidentType.Fatal]: { label: "Fatal", color: "hsl(var(--destructive))" },
-       [AccidentType.Trajeto]: { label: "Trajeto", color: "hsl(var(--chart-4))" },
-       [AccidentType.Tipico]: { label: "Típico", color: "hsl(var(--chart-5))" },
+       Leve: { label: "Leve", color: "hsl(var(--chart-1))" },
+       Grave: { label: "Grave", color: "hsl(var(--chart-2))" },
+       Fatal: { label: "Fatal", color: "hsl(var(--destructive))" },
+       Trajeto: { label: "Trajeto", color: "hsl(var(--chart-4))" },
+       Tipico: { label: "Típico", color: "hsl(var(--chart-5))" },
    } satisfies ChartConfig;
 
     const causeChartConfig = {
       value: { label: "Quantidade" },
-      [AccidentCause.Queda]: { label: "Queda", color: "hsl(var(--chart-1))" },
-      [AccidentCause.Choque_Eletrico]: { label: "Choque Elétrico", color: "hsl(var(--chart-2))" },
-      [AccidentCause.Impacto]: { label: "Impacto", color: "hsl(var(--chart-3))" },
-      [AccidentCause.Corte]: { label: "Corte", color: "hsl(var(--chart-4))" },
-      [AccidentCause.Projecao_Particulas]: { label: "Projeção Partículas", color: "hsl(var(--chart-5))" },
-      [AccidentCause.Quimico]: { label: "Químico", color: "hsl(var(--chart-1))" },
-      [AccidentCause.Ergonomico]: { label: "Ergonômico", color: "hsl(var(--chart-2))" },
-      [AccidentCause.Biologico]: { label: "Biológico", color: "hsl(var(--chart-3))" },
-      [AccidentCause.Outro]: { label: "Outro", color: "hsl(var(--chart-4))" },
+      Queda: { label: "Queda", color: "hsl(var(--chart-1))" },
+      "Choque Eletrico": { label: "Choque Elétrico", color: "hsl(var(--chart-2))" }, // Match display name
+      Impacto: { label: "Impacto", color: "hsl(var(--chart-3))" },
+      Corte: { label: "Corte", color: "hsl(var(--chart-4))" },
+      "Projecao Particulas": { label: "Projeção Partículas", color: "hsl(var(--chart-5))" }, // Match display name
+      Quimico: { label: "Químico", color: "hsl(var(--chart-1))" },
+      Ergonomico: { label: "Ergonômico", color: "hsl(var(--chart-2))" },
+      Biologico: { label: "Biológico", color: "hsl(var(--chart-3))" },
+      Outro: { label: "Outro", color: "hsl(var(--chart-4))" },
     } satisfies ChartConfig;
 
 
@@ -392,14 +413,13 @@ export default function StatisticsPage() {
                    <BarChart data={accidentsByType} layout="vertical" accessibilityLayer margin={{ right: 20 }}>
                      <CartesianGrid horizontal={false}/>
                      <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={80} className="text-xs" />
-                     <XAxis type="number" />
+                     <XAxis type="number" allowDecimals={false} />
                       <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                     {/* <Legend content={({ payload }) => <ChartLegendContent payload={payload} nameKey="name" className="flex flex-wrap gap-x-4 gap-y-1 justify-center mt-2" />} /> */}
                       <Bar dataKey="value" layout="vertical" radius={5}>
                           {accidentsByType.map((entry) => (
-                            <Cell key={`cell-${entry.name}`} fill={typeChartConfig[entry.name as keyof typeof typeChartConfig]?.color ?? "hsl(var(--muted))"} />
-                          ))}
-                      </Bar>
+                             <Cell key={`cell-${entry.name}`} fill={typeChartConfig[entry.name as keyof typeof typeChartConfig]?.color ?? "hsl(var(--muted))"} />
+                           ))}
+                       </Bar>
                    </BarChart>
                 </ChartContainer>
               </CardContent>
@@ -414,11 +434,12 @@ export default function StatisticsPage() {
                      <BarChart data={accidentsByCause} layout="vertical" accessibilityLayer margin={{ right: 20 }}>
                        <CartesianGrid horizontal={false}/>
                        <YAxis dataKey="name" type="category" tickLine={false} tickMargin={10} axisLine={false} width={100} className="text-xs" />
-                       <XAxis type="number" />
+                       <XAxis type="number" allowDecimals={false}/>
                        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
                         <Bar dataKey="value" layout="vertical" radius={4}>
                            {accidentsByCause.map((entry) => (
-                              <Cell key={`cell-${entry.name}`} fill={causeChartConfig[entry.name as keyof typeof causeChartConfig]?.color ?? "hsl(var(--muted))"} />
+                               // Use replace to match chart config key if spaces were introduced
+                               <Cell key={`cell-${entry.name}`} fill={causeChartConfig[entry.name as keyof typeof causeChartConfig]?.color ?? "hsl(var(--muted))"} />
                            ))}
                         </Bar>
                      </BarChart>
@@ -502,7 +523,7 @@ export default function StatisticsPage() {
                             <Select value={field.value} onValueChange={field.onChange} required disabled={isSubmitting}>
                                <SelectTrigger id="type"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                <SelectContent>
-                                 {Object.values(AccidentType).map(t => <SelectItem key={t} value={t}>{t.replace('_', ' ')}</SelectItem>)}
+                                 {accidentTypes.map(t => <SelectItem key={t} value={t}>{t.replace('_', ' ')}</SelectItem>)}
                                </SelectContent>
                             </Select>
                         )}
@@ -519,7 +540,7 @@ export default function StatisticsPage() {
                           <Select value={field.value} onValueChange={field.onChange} required disabled={isSubmitting}>
                              <SelectTrigger id="cause"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                              <SelectContent>
-                                 {Object.values(AccidentCause).map(c => <SelectItem key={c} value={c}>{c.replace('_', ' ')}</SelectItem>)}
+                                 {accidentCauses.map(c => <SelectItem key={c} value={c}>{c.replace('_', ' ')}</SelectItem>)}
                              </SelectContent>
                           </Select>
                         )}
@@ -552,7 +573,7 @@ export default function StatisticsPage() {
                                <Select value={field.value} onValueChange={field.onChange} required disabled={isSubmitting}>
                                    <SelectTrigger id="investigationStatus"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                    <SelectContent>
-                                     {Object.values(InvestigationStatus).map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
+                                     {investigationStatuses.map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
                                    </SelectContent>
                                 </Select>
                             )}
@@ -643,13 +664,13 @@ export default function StatisticsPage() {
                     <TableCell className="font-medium">{record.employeeName ?? 'N/A'}</TableCell>
                     <TableCell>{record.department}</TableCell>
                     <TableCell>
-                        <Badge variant={record.type === AccidentType.Fatal ? 'destructive' : record.type === AccidentType.Grave ? 'secondary' : 'default'}>{record.type.replace('_', ' ')}</Badge>
+                        <Badge variant={record.type === "Fatal" ? 'destructive' : record.type === "Grave" ? 'secondary' : 'default'}>{record.type.replace('_', ' ')}</Badge>
                     </TableCell>
                     <TableCell>{record.cause.replace('_', ' ')}</TableCell>
                     <TableCell>{record.daysOff}</TableCell>
                     <TableCell>{record.catIssued ? 'Sim' : 'Não'}</TableCell>
                     <TableCell>
-                         <Badge variant={record.investigationStatus === InvestigationStatus.Concluida ? 'default' : record.investigationStatus === InvestigationStatus.Em_Andamento ? 'secondary' : 'outline'}>
+                         <Badge variant={record.investigationStatus === "Concluida" ? 'default' : record.investigationStatus === "Em_Andamento" ? 'secondary' : 'outline'}>
                              {record.investigationStatus.replace('_', ' ')}
                          </Badge>
                     </TableCell>

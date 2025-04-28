@@ -26,14 +26,16 @@ import {
 import type { TrainingRecord as PrismaTrainingRecord, TrainingType as PrismaTrainingType } from '@prisma/client';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
-import { getTrainingRecords, createTrainingRecord, updateTrainingRecord, deleteTrainingRecord, getTrainingTypes } from './actions'; // Import server actions
+import { getTrainingRecords, createTrainingRecord, updateTrainingRecord, deleteTrainingRecord, getTrainingTypes, getEmployees } from './actions'; // Import server actions
+import type { TrainingRecordStatus, EmployeeSelectItem } from '@/lib/types'; // Import frontend type for status
 
 // Extend Prisma type if needed
 type TrainingRecord = PrismaTrainingRecord & { employeeName?: string | null, trainingTypeName?: string | null };
 type TrainingType = PrismaTrainingType; // Assuming we get the full TrainingType object
+type EmployeeForSelect = EmployeeSelectItem; // Use the simplified type
 
 // Helper function to calculate status based on dates
-const getTrainingStatus = (training: PrismaTrainingRecord): PrismaTrainingRecord['status'] => {
+const getTrainingStatus = (training: PrismaTrainingRecord): TrainingRecordStatus => {
   if (!training.expiryDate) return 'Valido';
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -52,6 +54,7 @@ const getTrainingStatus = (training: PrismaTrainingRecord): PrismaTrainingRecord
 export default function TrainingsPage() {
   const [trainings, setTrainings] = useState<TrainingRecord[]>([]);
   const [trainingTypes, setTrainingTypes] = useState<TrainingType[]>([]); // State for training types
+  const [employees, setEmployees] = useState<EmployeeForSelect[]>([]); // State for employee dropdown
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTraining, setEditingTraining] = useState<TrainingRecord | null>(null);
@@ -61,7 +64,7 @@ export default function TrainingsPage() {
   const { toast } = useToast();
 
   // Form state
-  const [employeeName, setEmployeeName] = useState(''); // Keep this for display, but save employeeId
+  // const [employeeName, setEmployeeName] = useState(''); // No longer needed directly
   const [employeeId, setEmployeeId] = useState(''); // Use employeeId
   const [trainingTypeId, setTrainingTypeId] = useState(''); // Link to TrainingType model
   const [trainingDate, setTrainingDate] = useState<Date | undefined>(undefined);
@@ -75,24 +78,34 @@ export default function TrainingsPage() {
    const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fetchedTrainings, fetchedTypes] = await Promise.all([
+      const [fetchedTrainings, fetchedTypes, fetchedEmployees] = await Promise.all([
           getTrainingRecords(),
-          getTrainingTypes() // Fetch training types
+          getTrainingTypes(),
+          getEmployees() // Fetch employees
       ]);
       // Process trainings to include type name and calculate status
       const processedTrainings = fetchedTrainings.map(t => {
           const type = fetchedTypes.find(tt => tt.id === t.trainingTypeId);
           return {
               ...t,
-              status: getTrainingStatus(t), // Recalculate status on fetch
+              status: getTrainingStatus(t) as TrainingRecordStatus, // Recalculate status and cast
               trainingTypeName: type?.name ?? 'Tipo Desconhecido' // Get name from fetched types
           };
       });
       setTrainings(processedTrainings);
       setTrainingTypes(fetchedTypes);
-    } catch (error) {
+      setEmployees(fetchedEmployees.map(e => ({ id: e.id, name: e.name }))); // Map to select item format
+    } catch (error: any) {
       console.error("Error fetching data:", error);
-      toast({ title: "Erro", description: "Não foi possível buscar os dados.", variant: "destructive" });
+      toast({
+          title: "Erro ao Carregar Dados",
+          description: error.message || "Não foi possível buscar os dados. Tente recarregar.",
+          variant: "destructive",
+          duration: 10000
+        });
+       setTrainings([]);
+       setTrainingTypes([]);
+       setEmployees([]);
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +127,7 @@ export default function TrainingsPage() {
 
 
   const resetForm = () => {
-    setEmployeeName('');
+    // setEmployeeName('');
     setEmployeeId('');
     setTrainingTypeId('');
     setTrainingDate(undefined);
@@ -129,7 +142,7 @@ export default function TrainingsPage() {
    const handleOpenForm = (training: TrainingRecord | null = null) => {
        if (training) {
            setEditingTraining(training);
-           setEmployeeName(training.employeeName || ''); // Assuming employeeName is populated
+           // setEmployeeName(training.employeeName || ''); // No longer needed directly
            setEmployeeId(training.employeeId || ''); // Make sure employeeId exists
            setTrainingTypeId(training.trainingTypeId);
            setTrainingDate(training.trainingDate ? new Date(training.trainingDate) : undefined);
@@ -213,17 +226,19 @@ export default function TrainingsPage() {
     try {
         let savedRecord;
         if (editingTraining) {
-            savedRecord = await updateTrainingRecord(editingTraining.id, trainingData);
+            // For update, pass only the fields that might change. Prisma needs ID in where clause.
+            await updateTrainingRecord(editingTraining.id, trainingData);
             toast({ title: "Sucesso", description: "Treinamento atualizado." });
         } else {
-            savedRecord = await createTrainingRecord(trainingData);
+             // For create, pass the full data payload
+            await createTrainingRecord(trainingData);
             toast({ title: "Sucesso", description: "Treinamento adicionado." });
         }
         handleCloseForm();
         fetchData(); // Re-fetch data
     } catch (error: any) {
         console.error("Error saving training:", error);
-        toast({ title: "Erro", description: error.message || "Falha ao salvar o treinamento.", variant: "destructive" });
+        toast({ title: "Erro ao Salvar", description: error.message || "Falha ao salvar o treinamento.", variant: "destructive" });
     } finally {
         setIsSubmitting(false);
     }
@@ -237,14 +252,14 @@ export default function TrainingsPage() {
          fetchData(); // Re-fetch data after deletion
      } catch (error: any) {
          console.error("Error deleting training:", error);
-         toast({ title: "Erro", description: error.message || "Falha ao excluir o treinamento.", variant: "destructive" });
+         toast({ title: "Erro ao Excluir", description: error.message || "Falha ao excluir o treinamento.", variant: "destructive" });
      } finally {
          setIsDeleting(null);
      }
  };
 
 
-   const getStatusBadgeVariant = (status: PrismaTrainingRecord['status']): "default" | "secondary" | "destructive" | "outline" => {
+   const getStatusBadgeVariant = (status: TrainingRecordStatus): "default" | "secondary" | "destructive" | "outline" => {
      switch (status) {
        case 'Valido': return 'default';
        case 'Vencido': return 'destructive';
@@ -286,26 +301,22 @@ export default function TrainingsPage() {
                      <DialogTitle>{editingTraining ? 'Editar Registro' : 'Adicionar Novo Registro'}</DialogTitle>
                  </DialogHeader>
                  <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-                     {/* Need Employee Select Dropdown - Assuming employees are fetched elsewhere */}
+                     {/* Employee Select Dropdown */}
                      <div className="grid grid-cols-4 items-center gap-4">
                          <Label htmlFor="employeeId" className="text-right">
                              Colaborador*
                          </Label>
-                         {/* Replace this Input with a Select dropdown populated with employees */}
-                         <Input
-                            id="employeeName"
-                            value={employeeName}
-                            onChange={(e) => {
-                                setEmployeeName(e.target.value);
-                                // Find and set employeeId based on selected name (or use a proper Select component)
-                                // This part needs a proper Employee Select component implementation
-                                // For now, just use a placeholder or manually set ID
-                                // setEmployeeId(findEmployeeIdByName(e.target.value));
-                            }}
-                            placeholder="Selecione ou digite o nome..."
-                            className="col-span-3" required disabled={isSubmitting} />
-                            {/* Add hidden input or manage employeeId state separately */}
-                            <Input type="hidden" value={employeeId} />
+                          <Select value={employeeId} onValueChange={setEmployeeId} required disabled={isSubmitting || isLoading}>
+                             <SelectTrigger id="employeeId" className="col-span-3">
+                                 <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o colaborador"} />
+                             </SelectTrigger>
+                             <SelectContent>
+                                {employees.map(emp => (
+                                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                                ))}
+                                {employees.length === 0 && !isLoading && <SelectItem value="" disabled>Nenhum colaborador cadastrado</SelectItem>}
+                             </SelectContent>
+                         </Select>
                      </div>
                      {/* Training Type Dropdown */}
                       <div className="grid grid-cols-4 items-center gap-4">
@@ -445,7 +456,7 @@ export default function TrainingsPage() {
                   <TableCell>{format(new Date(training.trainingDate), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>{training.expiryDate ? format(new Date(training.expiryDate), 'dd/MM/yyyy') : 'N/A'}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(training.status)}>
+                    <Badge variant={getStatusBadgeVariant(training.status as TrainingRecordStatus)}>
                       {(training.status === 'Proximo_ao_Vencimento' || training.status === 'Vencido') && <AlertTriangle className="inline-block h-3 w-3 mr-1" />}
                       {training.status.replace('_', ' ')}
                     </Badge>

@@ -1,4 +1,4 @@
-// src/app/trainings/types/page.tsx
+// src/app/cadastros/treinamentos/page.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Search, Edit, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, Search, Edit, Trash2, Loader2, GraduationCap } from 'lucide-react'; // Added GraduationCap
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -22,7 +22,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { TrainingType as PrismaTrainingType } from '@prisma/client';
-import { getTrainingTypes, createTrainingType, updateTrainingType, deleteTrainingType } from '../actions'; // Use actions from parent folder
+// Adjust action import path to reflect new location if actions remain shared
+import { getTrainingTypes, createTrainingType, updateTrainingType, deleteTrainingType } from '@/app/trainings/actions';
 
 type TrainingType = PrismaTrainingType;
 
@@ -43,6 +44,8 @@ export default function TrainingTypesPage() {
   const [defaultLocation, setDefaultLocation] = useState('');
   const [defaultCost, setDefaultCost] = useState<number | undefined>(undefined);
   const [instructorsJson, setInstructorsJson] = useState(''); // Store as string
+  const [requiredNrsJson, setRequiredNrsJson] = useState(''); // Added state for NRs
+  const [validityMonths, setValidityMonths] = useState<number | undefined>(undefined); // Added state for validity
 
   // --- Data Fetching ---
   const fetchData = useCallback(async () => {
@@ -78,6 +81,8 @@ export default function TrainingTypesPage() {
     setDefaultLocation('');
     setDefaultCost(undefined);
     setInstructorsJson('');
+    setRequiredNrsJson(''); // Reset NRs
+    setValidityMonths(undefined); // Reset validity
     setEditingType(null);
   };
 
@@ -89,13 +94,17 @@ export default function TrainingTypesPage() {
       setDefaultDuration(type.defaultDuration || undefined);
       setDefaultLocation(type.defaultLocation || '');
       setDefaultCost(type.defaultCost || undefined);
-      // Safely parse and format instructors JSON for display
+      setValidityMonths(type.validityMonths || undefined);
+      // Safely parse and format JSON strings for display
       try {
         const instructors = type.instructorsJson ? JSON.parse(type.instructorsJson) : [];
-        setInstructorsJson(instructors.join(', ')); // Display as comma-separated string
-      } catch {
-        setInstructorsJson(''); // Handle potential JSON parse error
-      }
+        setInstructorsJson(instructors.join(', '));
+      } catch { setInstructorsJson(''); }
+      try {
+          const nrs = type.requiredNrsJson ? JSON.parse(type.requiredNrsJson) : [];
+          setRequiredNrsJson(nrs.join(', '));
+      } catch { setRequiredNrsJson(''); }
+
     } else {
       resetForm();
     }
@@ -107,6 +116,18 @@ export default function TrainingTypesPage() {
     resetForm();
   };
 
+   // Helper to convert comma-separated string to JSON array string
+   const convertToJsonArrayString = (inputString: string): string | null => {
+        if (!inputString.trim()) return null;
+        try {
+            const array = inputString.split(',').map(s => s.trim()).filter(s => s);
+            return JSON.stringify(array);
+        } catch (e) {
+            return null; // Indicate error if conversion fails
+        }
+    };
+
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name) {
@@ -115,27 +136,30 @@ export default function TrainingTypesPage() {
     }
     setIsSubmitting(true);
 
-    let instructorsData: string | undefined;
-    if (instructorsJson.trim()) {
-        try {
-            // Convert comma-separated string back to JSON array
-            const instructorsArray = instructorsJson.split(',').map(s => s.trim()).filter(s => s);
-            instructorsData = JSON.stringify(instructorsArray);
-        } catch (e) {
-            toast({ title: "Erro", description: "Formato inválido para instrutores (use vírgula para separar).", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
-    }
+    const instructorsData = convertToJsonArrayString(instructorsJson);
+    const nrsData = convertToJsonArrayString(requiredNrsJson);
+
+     if (instructorsJson.trim() && instructorsData === null) {
+         toast({ title: "Erro de Formato", description: "Formato inválido para instrutores (use vírgula para separar).", variant: "destructive" });
+         setIsSubmitting(false);
+         return;
+     }
+     if (requiredNrsJson.trim() && nrsData === null) {
+          toast({ title: "Erro de Formato", description: "Formato inválido para NRs (use vírgula para separar).", variant: "destructive" });
+          setIsSubmitting(false);
+          return;
+      }
 
 
     const typeData = {
       name,
       description: description || null,
+      validityMonths: validityMonths || null,
+      requiredNrsJson: nrsData, // Use converted JSON string
       defaultDuration: defaultDuration || null,
       defaultLocation: defaultLocation || null,
       defaultCost: defaultCost || null,
-      instructorsJson: instructorsData || null,
+      instructorsJson: instructorsData, // Use converted JSON string
     };
 
     try {
@@ -143,7 +167,8 @@ export default function TrainingTypesPage() {
         await updateTrainingType(editingType.id, typeData);
         toast({ title: "Sucesso", description: "Tipo de treinamento atualizado." });
       } else {
-        await createTrainingType(typeData);
+        // Ensure required fields for creation are present (name is already checked)
+        await createTrainingType(typeData as PrismaTrainingType); // Cast might be needed if optional fields aren't handled perfectly by Prisma types
         toast({ title: "Sucesso", description: "Novo tipo de treinamento criado." });
       }
       handleCloseForm();
@@ -170,12 +195,12 @@ export default function TrainingTypesPage() {
     }
   };
 
-  // Helper to display instructors safely
-  const displayInstructors = (jsonString: string | null | undefined): string => {
+  // Helper to display JSON array string safely
+  const displayJsonArray = (jsonString: string | null | undefined): string => {
         if (!jsonString) return '-';
         try {
-            const instructors = JSON.parse(jsonString);
-            return Array.isArray(instructors) ? instructors.join(', ') : '-';
+            const array = JSON.parse(jsonString);
+            return Array.isArray(array) ? array.join(', ') : '-';
         } catch {
             return 'Erro no formato';
         }
@@ -185,7 +210,10 @@ export default function TrainingTypesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Gerenciar Tipos de Treinamento</h1>
+         <div className="flex items-center gap-2">
+           <GraduationCap className="w-8 h-8 text-primary" />
+           <h1 className="text-3xl font-bold tracking-tight">Cadastro de Tipos de Treinamento</h1>
+         </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting}>
@@ -197,38 +225,50 @@ export default function TrainingTypesPage() {
               <DialogTitle>{editingType ? 'Editar Tipo de Treinamento' : 'Adicionar Novo Tipo de Treinamento'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-              {/* Name */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">Nome*</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required disabled={isSubmitting} />
-              </div>
-              {/* Description */}
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="description" className="text-right pt-2">Descrição</Label>
-                <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" rows={3} disabled={isSubmitting} />
-              </div>
-               {/* Default Duration */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="defaultDuration" className="text-right">Carga Horária (h)</Label>
-                <Input id="defaultDuration" type="number" min="0" value={defaultDuration ?? ''} onChange={(e) => setDefaultDuration(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional" className="col-span-3" disabled={isSubmitting} />
-              </div>
-               {/* Default Location */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="defaultLocation" className="text-right">Local Padrão</Label>
-                <Input id="defaultLocation" value={defaultLocation} onChange={(e) => setDefaultLocation(e.target.value)} placeholder="Opcional" className="col-span-3" disabled={isSubmitting} />
-              </div>
-              {/* Default Cost */}
-               <div className="grid grid-cols-4 items-center gap-4">
-                 <Label htmlFor="defaultCost" className="text-right">Custo Padrão (R$)</Label>
-                 <Input id="defaultCost" type="number" min="0" step="0.01" value={defaultCost ?? ''} onChange={(e) => setDefaultCost(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional" className="col-span-3" disabled={isSubmitting} />
-               </div>
-               {/* Instructors */}
-               <div className="grid grid-cols-4 items-center gap-4">
-                 <Label htmlFor="instructorsJson" className="text-right">Instrutores</Label>
-                 <Input id="instructorsJson" value={instructorsJson} onChange={(e) => setInstructorsJson(e.target.value)} placeholder="Nome A, Nome B (separado por vírgula)" className="col-span-3" disabled={isSubmitting} />
-               </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   {/* Name */}
+                   <div className="space-y-1 md:col-span-2">
+                     <Label htmlFor="name">Nome*</Label>
+                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required disabled={isSubmitting} />
+                   </div>
+                   {/* Description */}
+                   <div className="space-y-1 md:col-span-2">
+                     <Label htmlFor="description">Descrição</Label>
+                     <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={isSubmitting} />
+                   </div>
+                   {/* Validity Months */}
+                  <div className="space-y-1">
+                    <Label htmlFor="validityMonths">Validade (meses)</Label>
+                    <Input id="validityMonths" type="number" min="0" value={validityMonths ?? ''} onChange={(e) => setValidityMonths(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 12)" disabled={isSubmitting} />
+                  </div>
+                  {/* Default Duration */}
+                  <div className="space-y-1">
+                    <Label htmlFor="defaultDuration">Carga Horária Padrão (h)</Label>
+                    <Input id="defaultDuration" type="number" min="0" value={defaultDuration ?? ''} onChange={(e) => setDefaultDuration(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 8)" disabled={isSubmitting} />
+                  </div>
+                  {/* Required NRs */}
+                  <div className="space-y-1 md:col-span-2">
+                    <Label htmlFor="requiredNrsJson">NRs Obrigatórias (separadas por vírgula)</Label>
+                    <Input id="requiredNrsJson" value={requiredNrsJson} onChange={(e) => setRequiredNrsJson(e.target.value)} placeholder="Ex: NR-35, NR-10" disabled={isSubmitting} />
+                  </div>
+                  {/* Default Location */}
+                  <div className="space-y-1">
+                    <Label htmlFor="defaultLocation">Local Padrão</Label>
+                    <Input id="defaultLocation" value={defaultLocation} onChange={(e) => setDefaultLocation(e.target.value)} placeholder="Opcional (ex: Online)" disabled={isSubmitting} />
+                  </div>
+                  {/* Default Cost */}
+                   <div className="space-y-1">
+                     <Label htmlFor="defaultCost">Custo Padrão (R$)</Label>
+                     <Input id="defaultCost" type="number" min="0" step="0.01" value={defaultCost ?? ''} onChange={(e) => setDefaultCost(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 150.00)" disabled={isSubmitting} />
+                   </div>
+                   {/* Instructors */}
+                   <div className="space-y-1 md:col-span-2">
+                     <Label htmlFor="instructorsJson">Instrutores Padrão (separados por vírgula)</Label>
+                     <Input id="instructorsJson" value={instructorsJson} onChange={(e) => setInstructorsJson(e.target.value)} placeholder="Ex: João Silva, Empresa XYZ" disabled={isSubmitting} />
+                   </div>
+                </div>
 
-              <DialogFooter>
+              <DialogFooter className="mt-4">
                 <DialogClose asChild>
                   <Button type="button" variant="outline" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
                 </DialogClose>
@@ -259,16 +299,18 @@ export default function TrainingTypesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              <TableHead>Validade (meses)</TableHead>
               <TableHead>Carga Horária (h)</TableHead>
-              <TableHead>Instrutores</TableHead>
-              <TableHead>Descrição</TableHead>
+              <TableHead>NRs Obrigatórias</TableHead>
+              <TableHead>Instrutores Padrão</TableHead>
+              {/* <TableHead>Descrição</TableHead> */}
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                   Carregando...
                 </TableCell>
@@ -277,11 +319,15 @@ export default function TrainingTypesPage() {
               filteredTrainingTypes.map((type) => (
                 <TableRow key={type.id} className={isDeleting === type.id ? 'opacity-50' : ''}>
                   <TableCell className="font-medium">{type.name}</TableCell>
+                  <TableCell>{type.validityMonths ?? '-'}</TableCell>
                   <TableCell>{type.defaultDuration ?? '-'}</TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={displayInstructors(type.instructorsJson)}>
-                      {displayInstructors(type.instructorsJson)}
+                  <TableCell className="max-w-[150px] truncate" title={displayJsonArray(type.requiredNrsJson)}>
+                    {displayJsonArray(type.requiredNrsJson)}
                   </TableCell>
-                  <TableCell className="max-w-xs truncate" title={type.description ?? ''}>{type.description ?? '-'}</TableCell>
+                  <TableCell className="max-w-[200px] truncate" title={displayJsonArray(type.instructorsJson)}>
+                      {displayJsonArray(type.instructorsJson)}
+                  </TableCell>
+                  {/* <TableCell className="max-w-xs truncate" title={type.description ?? ''}>{type.description ?? '-'}</TableCell> */}
                   <TableCell className="text-right space-x-1">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenForm(type)} disabled={isSubmitting || !!isDeleting}>
                       <Edit className="h-4 w-4" />
@@ -315,7 +361,7 @@ export default function TrainingTypesPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   Nenhum tipo de treinamento encontrado.
                 </TableCell>
               </TableRow>

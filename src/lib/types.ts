@@ -2,6 +2,7 @@
 import type {
     Prisma,
     Employee as PrismaEmployee,
+    TrainingType as PrismaTrainingType, // Added TrainingType
     TrainingRecord as PrismaTrainingRecord,
     PpeRecord as PrismaPpeRecord,
     AsoRecord as PrismaAsoRecord,
@@ -16,25 +17,8 @@ import type {
     LawsuitRecord as PrismaLawsuitRecord,
     AccidentRecord as PrismaAccidentRecord,
     OccupationalDiseaseRecord as PrismaOccupationalDiseaseRecord,
-    // Import Enums directly from Prisma Client where they are defined
-    // If Prisma generates enums as types (depends on generator config), import them.
-    // Otherwise, use string types and potentially define TypeScript enums/union types here.
-    // Assuming Prisma Client exports these:
-    TrainingRecordStatus, // Example if defined by Prisma
-    AsoExamType,
-    AsoResult,
-    ChemicalUnit,
-    JsaStatus,
-    CipaMeetingStatus,
-    ActionStatus,
-    PreventiveActionCategory,
-    PreventiveActionFrequency,
-    DocumentType,
-    DocumentStatus,
-    LawsuitStatus,
-    AccidentType,
-    AccidentCause,
-    InvestigationStatus,
+    // Enums are now mapped to strings in SQLite, so we rely on string types
+    // Or define TS enums if needed for validation/consistency in the frontend
 } from '@prisma/client';
 
 
@@ -42,6 +26,7 @@ import type {
 
 // Use Prisma types directly for models
 export type Employee = PrismaEmployee;
+export type TrainingType = PrismaTrainingType; // Export TrainingType
 export type TrainingRecord = PrismaTrainingRecord & { employeeName?: string | null, trainingTypeName?: string | null };
 export type PpeRecord = PrismaPpeRecord & { employeeName?: string | null };
 export type AsoRecord = PrismaAsoRecord & { employeeName?: string | null };
@@ -58,35 +43,23 @@ export type AccidentRecord = PrismaAccidentRecord & { employeeName?: string | nu
 export type OccupationalDiseaseRecord = PrismaOccupationalDiseaseRecord & { employeeName?: string | null };
 
 
-// --- Export Prisma Enums directly for type safety ---
-// This allows using the defined enums from Prisma throughout the application.
-// If using SQLite where enums are mapped to strings, these exports provide the valid string values.
-export {
-    // TrainingRecordStatus, // Assuming this exists in Prisma Client
-    AsoExamType,
-    AsoResult,
-    ChemicalUnit,
-    JsaStatus,
-    CipaMeetingStatus,
-    ActionStatus,
-    PreventiveActionCategory,
-    PreventiveActionFrequency,
-    DocumentType,
-    DocumentStatus,
-    LawsuitStatus,
-    AccidentType,
-    AccidentCause,
-    InvestigationStatus,
-};
-
-// Define TypeScript enums/types if Prisma doesn't export them or for stricter control
-// Example for TrainingRecordStatus if not exported by Prisma:
-export enum TrainingStatus {
-    Valido = "Valido",
-    Vencido = "Vencido",
-    Proximo_ao_Vencimento = "Proximo_ao_Vencimento",
-}
-// You would then use TrainingStatus in your component logic instead of string directly.
+// Define TypeScript enums/union types for fields previously using Prisma enums,
+// as SQLite maps enums to strings. This helps maintain type safety in the frontend.
+export type TrainingRecordStatus = "Valido" | "Vencido" | "Proximo_ao_Vencimento";
+export type AsoExamType = "Admissional" | "Periodico" | "Demissional" | "Mudanca_de_Risco" | "Retorno_ao_Trabalho";
+export type AsoResult = "Apto" | "Inapto" | "Apto_com_Restricoes";
+export type ChemicalUnit = "kg" | "L" | "g" | "mL" | "unid";
+export type JsaStatus = "Ativo" | "Em_Revisao" | "Arquivado";
+export type CipaMeetingStatus = "Agendada" | "Realizada" | "Cancelada";
+export type ActionStatus = "Pendente" | "Em_Andamento" | "Concluida" | "Atrasada";
+export type PreventiveActionCategory = "Inspecao" | "Treinamento" | "Manutencao" | "EPI" | "Procedimento" | "Outro";
+export type PreventiveActionFrequency = "Diaria" | "Semanal" | "Mensal" | "Trimestral" | "Semestral" | "Anual" | "Unica";
+export type DocumentType = "PGR" | "PCMSO" | "PCA" | "Laudo_Ergonomico" | "Laudo_Insalubridade" | "Laudo_Periculosidade" | "Outro";
+export type DocumentStatus = "Valido" | "Proximo_ao_Vencimento" | "Vencido" | "Em_Revisao";
+export type LawsuitStatus = "Em_Andamento" | "Acordo" | "Finalizado_Favoravel" | "Finalizado_Desfavoravel";
+export type AccidentType = "Leve" | "Grave" | "Fatal" | "Tipico" | "Trajeto";
+export type AccidentCause = "Queda" | "Choque_Eletrico" | "Impacto" | "Corte" | "Projecao_Particulas" | "Quimico" | "Ergonomico" | "Biologico" | "Outro";
+export type InvestigationStatus = "Pendente" | "Em_Andamento" | "Concluida";
 
 
 // --- Statistics Type ---

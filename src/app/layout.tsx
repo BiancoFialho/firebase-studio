@@ -15,14 +15,15 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-} from '@/components/ui/sidebar'; // Ensure Sub components are imported
+  SidebarMenuSub,          // <-- Import Submenu component
+  SidebarMenuSubButton,    // <-- Import Submenu button
+  SidebarMenuSubItem,      // <-- Import Submenu item
+} from '@/components/ui/sidebar';
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
-    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard, Target, Landmark, Folder, GraduationCap, ListPlus // Added Icons
+    BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard,
+    Target, Landmark, Folder, GraduationCap, ListPlus, ChevronDown, Building, UserPlus, Wrench // Added Icons
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react'; // Import React
@@ -72,41 +73,64 @@ export default function RootLayout({
                  {/* Dashboard Link */}
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Dashboard BI">
-                     <Link href="/">
-                       <LayoutDashboard />
-                       <span>Dashboard BI</span>
-                     </Link>
-                   </SidebarMenuButton>
+                      <Link href="/">
+                        <LayoutDashboard />
+                        <span>Dashboard BI</span>
+                      </Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+
+                 {/* Cadastro Section with Submenu */}
+                 <SidebarMenuItem>
+                    <SidebarMenuButton tooltip="Cadastros" isSubmenuTrigger={true}> {/* Mark as submenu trigger */}
+                      <UserPlus />
+                      <span>Cadastros</span>
+                       {/* Chevron is handled internally by isSubmenuTrigger */}
+                    </SidebarMenuButton>
+                    <SidebarMenuSub> {/* Submenu container */}
+                       <SidebarMenuSubItem>
+                           <SidebarMenuSubButton asChild>
+                               <Link href="/cadastros/colaboradores">
+                                   <Users />
+                                   <span>Colaboradores</span>
+                               </Link>
+                           </SidebarMenuSubButton>
+                       </SidebarMenuSubItem>
+                       <SidebarMenuSubItem>
+                            <SidebarMenuSubButton asChild>
+                               <Link href="/cadastros/treinamentos">
+                                   <GraduationCap />
+                                   <span>Tipos de Treinamento</span>
+                               </Link>
+                           </SidebarMenuSubButton>
+                       </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                           <SidebarMenuSubButton asChild>
+                               <Link href="/cadastros/instrutores">
+                                   <UserPlus /> {/* Placeholder icon */}
+                                   <span>Instrutores</span>
+                               </Link>
+                           </SidebarMenuSubButton>
+                       </SidebarMenuSubItem>
+                       <SidebarMenuSubItem>
+                           <SidebarMenuSubButton asChild>
+                               <Link href="/cadastros/responsaveis">
+                                   <Wrench /> {/* Placeholder icon */}
+                                   <span>Responsáveis Técnicos</span>
+                               </Link>
+                           </SidebarMenuSubButton>
+                       </SidebarMenuSubItem>
+                   </SidebarMenuSub>
                  </SidebarMenuItem>
 
                  {/* Core Management Modules */}
-                 <SidebarMenuItem>
-                    {/* Button for the main Trainings section */}
-                    <SidebarMenuButton asChild tooltip="Treinamentos">
-                        <Link href="/trainings">
-                          <GraduationCap /> {/* Changed Icon */}
-                          <span>Treinamentos</span>
-                        </Link>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Registros de Treinamentos">
+                      <Link href="/trainings">
+                         <GraduationCap /> {/* Changed Icon */}
+                         <span>Treinamentos</span>
+                       </Link>
                     </SidebarMenuButton>
-                    {/* Submenu for Trainings */}
-                    <SidebarMenuSub>
-                        <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild>
-                                <Link href="/trainings">
-                                    <ListChecks /> {/* Icon for Records */}
-                                    <span>Registros</span>
-                                </Link>
-                            </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild>
-                                <Link href="/trainings/types">
-                                    <ListPlus /> {/* Icon for Adding Types */}
-                                    <span>Tipos de Treinamento</span>
-                                </Link>
-                            </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                    </SidebarMenuSub>
                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="EPIs">
