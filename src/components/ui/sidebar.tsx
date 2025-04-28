@@ -5,7 +5,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft, ChevronDown } from "lucide-react" // Added ChevronDown
+import { PanelLeft, ChevronDown } from "lucide-react" // Keep ChevronDown in case needed later, but remove active use
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -49,23 +49,7 @@ function useSidebar() {
   return context
 }
 
-// Added context for managing submenu state
-type SidebarMenuContextType = {
-  openSubmenu: string | null
-  setOpenSubmenu: React.Dispatch<React.SetStateAction<string | null>>
-}
-
-const SidebarMenuContext = React.createContext<SidebarMenuContextType | null>(
-  null
-)
-
-function useSidebarMenu() {
-  const context = React.useContext(SidebarMenuContext)
-  if (!context) {
-    throw new Error("useSidebarMenu must be used within a SidebarMenu")
-  }
-  return context
-}
+// Removed SidebarMenuContext and useSidebarMenu as submenu logic is simplified
 
 
 const SidebarProvider = React.forwardRef<
@@ -510,35 +494,25 @@ const SidebarMenu = React.forwardRef<
   HTMLUListElement,
   React.ComponentProps<"ul">
 >(({ className, ...props }, ref) => {
-  // State to manage which submenu is open
-  const [openSubmenu, setOpenSubmenu] = React.useState<string | null>(null)
-
   return (
-     <SidebarMenuContext.Provider value={{ openSubmenu, setOpenSubmenu }}>
         <ul
           ref={ref}
           data-sidebar="menu"
           className={cn("flex w-full min-w-0 flex-col gap-1", className)}
           {...props}
         />
-     </SidebarMenuContext.Provider>
   )
 })
 SidebarMenu.displayName = "SidebarMenu"
 
 const SidebarMenuItem = React.forwardRef<
   HTMLLIElement,
-  React.ComponentProps<"li"> & { itemKey?: string } // Add itemKey prop
->(({ className, itemKey, ...props }, ref) => {
-  // Get submenu state from context
-  const menuContext = useSidebarMenu();
-  const isOpen = menuContext && itemKey && menuContext.openSubmenu === itemKey;
-
+  React.ComponentProps<"li">
+>(({ className, ...props }, ref) => {
   return (
     <li
       ref={ref}
       data-sidebar="menu-item"
-      data-state={isOpen ? "open" : "closed"} // Reflect submenu state
       className={cn("group/menu-item relative", className)}
       {...props}
     />
@@ -547,7 +521,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0", // Added open state styles
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0", // Removed open state styles as submenu is simplified
   {
     variants: {
       variant: {
@@ -574,8 +548,7 @@ const SidebarMenuButton = React.forwardRef<
     asChild?: boolean;
     isActive?: boolean;
     tooltip?: string | React.ComponentProps<typeof TooltipContent>;
-    isSubmenuTrigger?: boolean; // <-- Added prop to identify submenu triggers
-    itemKey?: string; // <-- Add itemKey if this button controls a submenu
+    // Removed submenu related props
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(
   (
@@ -587,40 +560,14 @@ const SidebarMenuButton = React.forwardRef<
       tooltip,
       className,
       children,
-      isSubmenuTrigger = false, // Default to false
-      itemKey,                 // Added itemKey
-      onClick,                 // Capture onClick
+      // Removed submenu related props handling
       ...props
     },
     ref
   ) => {
     const Comp = asChild ? Slot : "button";
     const { isMobile, state } = useSidebar();
-    const menuContext = useSidebarMenu(); // Get submenu context
-
-    const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-      if (isSubmenuTrigger && menuContext && itemKey) {
-        menuContext.setOpenSubmenu((prev) => (prev === itemKey ? null : itemKey));
-      }
-      onClick?.(event); // Call original onClick if provided
-    };
-
-    const isOpen = menuContext && itemKey && menuContext.openSubmenu === itemKey;
-
-    // Use React.Fragment when asChild is false to wrap button content and chevron
-     const ButtonContent = () => (
-        <>
-          {children}
-          {isSubmenuTrigger && ( // Add chevron only for submenu triggers
-            <ChevronDown
-              className={cn(
-                "ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden",
-                isOpen ? "rotate-180" : "" // Rotate chevron when open
-              )}
-            />
-          )}
-        </>
-      );
+    // Removed submenu context usage
 
     const button = (
       <Comp
@@ -628,13 +575,13 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        data-state={isOpen ? "open" : "closed"} // Pass state to button for styling
+        // Removed data-state handling for submenu
         className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
-        onClick={handleClick} // Use the combined handler
+        // Removed onClick handling for submenu
         {...(Comp === "button" && !asChild && { type: "button" })}
         {...props}
       >
-         <ButtonContent />
+         {children}
       </Comp>
     );
 
@@ -757,94 +704,7 @@ const SidebarMenuSkeleton = React.forwardRef<
 })
 SidebarMenuSkeleton.displayName = "SidebarMenuSkeleton"
 
-// Modify SidebarMenuSub to only render if its corresponding item is open
-const SidebarMenuSub = React.forwardRef<
-  HTMLUListElement,
-  React.ComponentProps<"ul">
->(({ className, children, ...props }, ref) => {
-  // We need the parent item's state to decide whether to render the submenu
-  // This assumes SidebarMenuSub is always a direct child of SidebarMenuItem
-  const parentItemRef = React.useRef<HTMLLIElement>(null);
-  const [parentState, setParentState] = React.useState<string | null>(null);
-
-   // Use mutation observer to get parent state (might need refinement)
-   React.useEffect(() => {
-     const parent = parentItemRef.current?.parentElement?.closest('[data-sidebar="menu-item"]');
-     if (parent) {
-       const observer = new MutationObserver((mutations) => {
-         mutations.forEach((mutation) => {
-           if (mutation.type === 'attributes' && mutation.attributeName === 'data-state') {
-             setParentState(parent.getAttribute('data-state'));
-           }
-         });
-       });
-       observer.observe(parent, { attributes: true });
-       setParentState(parent.getAttribute('data-state')); // Initial check
-       return () => observer.disconnect();
-     }
-   }, []);
-
-   const isVisible = parentState === 'open';
-
-   if (!isVisible) {
-     return null; // Don't render if parent is not open
-   }
-
-
-  return (
-      <ul
-        ref={ref}
-        data-sidebar="menu-sub"
-        className={cn(
-          "mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5",
-          "group-data-[collapsible=icon]:hidden", // Hide when sidebar is collapsed
-          "data-[state=closed]:hidden data-[state=open]:flex", // Control visibility based on parent item state
-          className
-        )}
-        {...props}
-       >
-        {children}
-       </ul>
-  )
-})
-SidebarMenuSub.displayName = "SidebarMenuSub"
-
-
-const SidebarMenuSubItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentProps<"li">
->(({ ...props }, ref) => <li ref={ref} {...props} />)
-SidebarMenuSubItem.displayName = "SidebarMenuSubItem"
-
-const SidebarMenuSubButton = React.forwardRef<
-  HTMLAnchorElement,
-  React.ComponentProps<"a"> & {
-    asChild?: boolean
-    size?: "sm" | "md"
-    isActive?: boolean
-  }
->(({ asChild = false, size = "md", isActive, className, ...props }, ref) => {
-  const Comp = asChild ? Slot : "a"
-
-  return (
-    <Comp
-      ref={ref}
-      data-sidebar="menu-sub-button"
-      data-size={size}
-      data-active={isActive}
-      className={cn(
-        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
-        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
-        size === "sm" && "text-xs",
-        size === "md" && "text-sm",
-        "group-data-[collapsible=icon]:hidden",
-        className
-      )}
-      {...props}
-    />
-  )
-})
-SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
+// Removed SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton as they are no longer needed
 
 export {
   Sidebar,
@@ -863,9 +723,7 @@ export {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSkeleton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
+  // Removed submenu exports
   SidebarProvider,
   SidebarRail,
   SidebarSeparator,

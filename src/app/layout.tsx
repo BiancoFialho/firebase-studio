@@ -1,7 +1,7 @@
 
 
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import {
@@ -15,15 +15,13 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,          // <-- Import Submenu component
-  SidebarMenuSubButton,    // <-- Import Submenu button
-  SidebarMenuSubItem,      // <-- Import Submenu item
+  // Removed submenu imports as we simplify the menu structure
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
     BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard,
-    Target, Landmark, Folder, GraduationCap, ListPlus, ChevronDown, Building, UserPlus, Wrench // Added Icons
+    Target, Landmark, Folder, GraduationCap, ListPlus, UserPlus, Wrench // Keep relevant icons
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react'; // Import React
@@ -33,10 +31,6 @@ const geistSans = Geist({
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   title: 'SSMA Control',
@@ -56,7 +50,7 @@ export default function RootLayout({
            <meta name="description" content="Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica" />
        </head>
        {/* Added suppressHydrationWarning={true} to body tag */}
-      <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')} suppressHydrationWarning={true}>
+      <body className={cn(geistSans.variable, 'antialiased')} suppressHydrationWarning={true}>
          <SidebarProvider>
            {/* Sidebar component itself */}
            <Sidebar collapsible="icon" variant="sidebar" side="left">
@@ -69,6 +63,7 @@ export default function RootLayout({
                 <SidebarTrigger className="md:hidden" />
              </SidebarHeader>
              <SidebarContent className="p-2">
+               {/* Use a simple menu structure */}
                <SidebarMenu>
                  {/* Dashboard Link */}
                  <SidebarMenuItem>
@@ -80,47 +75,38 @@ export default function RootLayout({
                     </SidebarMenuButton>
                  </SidebarMenuItem>
 
-                 {/* Cadastro Section with Submenu */}
+                 {/* Cadastro Section - Simple Links */}
                  <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Cadastros" isSubmenuTrigger={true}> {/* Mark as submenu trigger */}
-                      <UserPlus />
-                      <span>Cadastros</span>
-                       {/* Chevron is handled internally by isSubmenuTrigger */}
+                    <SidebarMenuButton asChild tooltip="Colaboradores">
+                        <Link href="/cadastros/colaboradores">
+                            <Users />
+                            <span>Colaboradores</span>
+                        </Link>
                     </SidebarMenuButton>
-                    <SidebarMenuSub> {/* Submenu container */}
-                       <SidebarMenuSubItem>
-                           <SidebarMenuSubButton asChild>
-                               <Link href="/cadastros/colaboradores">
-                                   <Users />
-                                   <span>Colaboradores</span>
-                               </Link>
-                           </SidebarMenuSubButton>
-                       </SidebarMenuSubItem>
-                       <SidebarMenuSubItem>
-                            <SidebarMenuSubButton asChild>
-                               <Link href="/cadastros/treinamentos">
-                                   <GraduationCap />
-                                   <span>Tipos de Treinamento</span>
-                               </Link>
-                           </SidebarMenuSubButton>
-                       </SidebarMenuSubItem>
-                        <SidebarMenuSubItem>
-                           <SidebarMenuSubButton asChild>
-                               <Link href="/cadastros/instrutores">
-                                   <UserPlus /> {/* Placeholder icon */}
-                                   <span>Instrutores</span>
-                               </Link>
-                           </SidebarMenuSubButton>
-                       </SidebarMenuSubItem>
-                       <SidebarMenuSubItem>
-                           <SidebarMenuSubButton asChild>
-                               <Link href="/cadastros/responsaveis">
-                                   <Wrench /> {/* Placeholder icon */}
-                                   <span>Responsáveis Técnicos</span>
-                               </Link>
-                           </SidebarMenuSubButton>
-                       </SidebarMenuSubItem>
-                   </SidebarMenuSub>
+                 </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
+                        <Link href="/cadastros/treinamentos">
+                            <GraduationCap />
+                            <span>Tipos Treinamento</span>
+                        </Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                     <SidebarMenuButton asChild tooltip="Instrutores">
+                         <Link href="/cadastros/instrutores">
+                             <UserPlus /> {/* Placeholder icon */}
+                             <span>Instrutores</span>
+                         </Link>
+                     </SidebarMenuButton>
+                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                     <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
+                         <Link href="/cadastros/responsaveis">
+                             <Wrench /> {/* Placeholder icon */}
+                             <span>Responsáveis Téc.</span>
+                         </Link>
+                     </SidebarMenuButton>
                  </SidebarMenuItem>
 
                  {/* Core Management Modules */}
