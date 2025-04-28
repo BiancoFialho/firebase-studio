@@ -1,7 +1,7 @@
 
-
 import type { Metadata } from 'next';
-import { Geist } from 'next/font/google';
+// Use Geist Sans & Mono directly from the geist package
+import { GeistSans, GeistMono } from 'geist/font';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import {
@@ -15,26 +15,34 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  // Removed submenu imports as we simplify the menu structure
-} from '@/components/ui/sidebar';
+  SidebarSubmenu,
+  SidebarSubmenuTrigger,
+  SidebarSubmenuContent,
+} from '@/components/ui/sidebar'; // Ensure all necessary sidebar components are imported
 import Link from 'next/link';
 import {
-    HardHat, ShieldCheck, Stethoscope, FileText, FlaskConical, ClipboardList,
+    HardHat, ShieldCheck, Stethoscope, FlaskConical, ClipboardList,
     BarChart3, Settings, Activity, Bug, Scale, Users, ListChecks, LayoutDashboard,
-    Target, Landmark, Folder, GraduationCap, ListPlus, UserPlus, Wrench // Keep relevant icons
+    Target, Landmark, Folder, GraduationCap, ListPlus, UserPlus, Wrench, FileCheck2 // Added FileCheck2 for Action Plan
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react'; // Import React
 
-const geistSans = Geist({
+// Initialize the fonts
+const geistSans = GeistSans({
   variable: '--font-geist-sans',
+  subsets: ['latin'],
+});
+
+const geistMono = GeistMono({
+  variable: '--font-geist-mono',
   subsets: ['latin'],
 });
 
 
 export const metadata: Metadata = {
-  title: 'SSMA Control',
-  description: 'Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica',
+  title: 'EHS Control', // Updated Title
+  description: 'Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica', // Updated Description
 };
 
 export default function RootLayout({
@@ -45,76 +53,83 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
        <head>
-           {/* Metadata can be placed here if static */}
-           <title>SSMA Control</title>
+           {/* Metadata is handled by Next.js Metadata API */}
+           <link rel="icon" href="/favicon.ico" sizes="any" />
            <meta name="description" content="Gerenciamento de Segurança, Saúde e Meio Ambiente para Nery Mecatrônica" />
        </head>
-       {/* Added suppressHydrationWarning={true} to body tag */}
-      <body className={cn(geistSans.variable, 'antialiased')} suppressHydrationWarning={true}>
+       {/* Use the font variables correctly */}
+      <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')} suppressHydrationWarning={true}>
          <SidebarProvider>
-           {/* Sidebar component itself */}
-           <Sidebar collapsible="icon" variant="sidebar" side="left">
-             <SidebarHeader className="flex items-center justify-between p-4">
+           <Sidebar collapsible="icon" variant="sidebar" side="left" className="border-r border-sidebar-border">
+             <SidebarHeader className="flex items-center justify-between p-3 border-b border-sidebar-border">
                <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
                  <HardHat className="h-6 w-6 text-primary" />
-                 <span className="font-semibold text-lg text-primary">SSMA Control</span>
+                 <span className="font-semibold text-lg text-primary">EHS Control</span>
                </Link>
-                {/* Ensure trigger is inside header */}
-                <SidebarTrigger className="md:hidden" />
+                <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
              </SidebarHeader>
-             <SidebarContent className="p-2">
-               {/* Use a simple menu structure */}
+
+             <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-1 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2">
                <SidebarMenu>
                  {/* Dashboard Link */}
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Dashboard BI">
                       <Link href="/">
                         <LayoutDashboard />
-                        <span>Dashboard BI</span>
+                        <span className="group-data-[collapsible=icon]:hidden">Dashboard BI</span>
                       </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
 
-                 {/* Cadastro Section - Simple Links */}
-                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Colaboradores">
-                        <Link href="/cadastros/colaboradores">
-                            <Users />
-                            <span>Colaboradores</span>
-                        </Link>
-                    </SidebarMenuButton>
-                 </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
-                        <Link href="/cadastros/treinamentos">
-                            <GraduationCap />
-                            <span>Tipos Treinamento</span>
-                        </Link>
-                    </SidebarMenuButton>
-                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                     <SidebarMenuButton asChild tooltip="Instrutores">
-                         <Link href="/cadastros/instrutores">
-                             <UserPlus /> {/* Placeholder icon */}
-                             <span>Instrutores</span>
-                         </Link>
-                     </SidebarMenuButton>
-                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                     <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
-                         <Link href="/cadastros/responsaveis">
-                             <Wrench /> {/* Placeholder icon */}
-                             <span>Responsáveis Téc.</span>
-                         </Link>
-                     </SidebarMenuButton>
-                 </SidebarMenuItem>
+                 {/* Cadastros Section - Collapsible Submenu */}
+                 <SidebarSubmenu>
+                    <SidebarSubmenuTrigger tooltip="Cadastros">
+                        <ListPlus />
+                        <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
+                    </SidebarSubmenuTrigger>
+                    <SidebarSubmenuContent>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild tooltip="Colaboradores">
+                                <Link href="/cadastros/colaboradores">
+                                    <Users className="text-sidebar-foreground/80" /> {/* Submenu icon style */}
+                                    Colaboradores
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                         <SidebarMenuItem>
+                            <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
+                                <Link href="/cadastros/treinamentos">
+                                    <GraduationCap className="text-sidebar-foreground/80" />
+                                    Tipos Treinamento
+                                </Link>
+                            </SidebarMenuButton>
+                         </SidebarMenuItem>
+                         <SidebarMenuItem>
+                             <SidebarMenuButton asChild tooltip="Instrutores">
+                                 <Link href="/cadastros/instrutores">
+                                     <UserPlus className="text-sidebar-foreground/80" />
+                                     Instrutores
+                                 </Link>
+                             </SidebarMenuButton>
+                         </SidebarMenuItem>
+                          <SidebarMenuItem>
+                              <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
+                                  <Link href="/cadastros/responsaveis">
+                                      <Wrench className="text-sidebar-foreground/80" />
+                                      Responsáveis Téc.
+                                  </Link>
+                              </SidebarMenuButton>
+                          </SidebarMenuItem>
+                    </SidebarSubmenuContent>
+                 </SidebarSubmenu>
+
 
                  {/* Core Management Modules */}
-                  <SidebarMenuItem>
+                  <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0"> {/* Separator look */}
                     <SidebarMenuButton asChild tooltip="Registros de Treinamentos">
                       <Link href="/trainings">
-                         <GraduationCap /> {/* Changed Icon */}
-                         <span>Treinamentos</span>
+                         <GraduationCap />
+                         <span className="group-data-[collapsible=icon]:hidden">Treinamentos</span>
                        </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
@@ -122,7 +137,7 @@ export default function RootLayout({
                     <SidebarMenuButton asChild tooltip="EPIs">
                       <Link href="/ppe">
                          <ShieldCheck />
-                         <span>EPIs</span>
+                         <span className="group-data-[collapsible=icon]:hidden">EPIs</span>
                        </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
@@ -130,7 +145,7 @@ export default function RootLayout({
                    <SidebarMenuButton asChild tooltip="ASOs">
                      <Link href="/asos">
                        <Stethoscope />
-                       <span>ASOs</span>
+                       <span className="group-data-[collapsible=icon]:hidden">ASOs</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
@@ -138,43 +153,44 @@ export default function RootLayout({
                    <SidebarMenuButton asChild tooltip="Inventário Químico">
                      <Link href="/chemicals">
                        <FlaskConical />
-                       <span>Inventário Químico</span>
-                     </Link>
-                   </SidebarMenuButton>
-                 </SidebarMenuItem>
-
-                 {/* Analysis & Planning */}
-                 <SidebarMenuItem>
-                   <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
-                     <Link href="/jsa">
-                       <ClipboardList />
-                       <span>Análise de Riscos</span>
+                       <span className="group-data-[collapsible=icon]:hidden">Inventário Químico</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Documentos (PGR, PCMSO)">
                      <Link href="/documents">
-                       <Folder /> {/* Icon for Documents */}
-                       <span>Documentos</span>
+                       <Folder />
+                       <span className="group-data-[collapsible=icon]:hidden">Documentos</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+
+
+                 {/* Analysis & Planning */}
+                 <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0"> {/* Separator look */}
+                   <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
+                     <Link href="/jsa">
+                       <ClipboardList />
+                       <span className="group-data-[collapsible=icon]:hidden">Análise de Riscos</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                   <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Plano de Ação & NRs">
                      <Link href="/action-plan">
-                       <ListChecks />
-                       <span>Plano de Ação</span>
+                       <FileCheck2 /> {/* Updated Icon */}
+                       <span className="group-data-[collapsible=icon]:hidden">Plano de Ação</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
 
                   {/* Prevention & Health */}
-                  <SidebarMenuItem>
+                  <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0"> {/* Separator look */}
                    <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
                      <Link href="/prevention">
                        <Users />
-                       <span>Prevenção (CIPA)</span>
+                       <span className="group-data-[collapsible=icon]:hidden">Prevenção (CIPA)</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
@@ -182,17 +198,17 @@ export default function RootLayout({
                    <SidebarMenuButton asChild tooltip="Doenças Ocupacionais">
                      <Link href="/diseases">
                        <Bug />
-                       <span>Doenças Ocup.</span>
+                       <span className="group-data-[collapsible=icon]:hidden">Doenças Ocup.</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
 
                  {/* Statistics & Compliance */}
-                 <SidebarMenuItem>
+                 <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0"> {/* Separator look */}
                    <SidebarMenuButton asChild tooltip="Estatísticas Acidentes">
                      <Link href="/statistics">
                        <Activity />
-                       <span>Estatísticas</span>
+                       <span className="group-data-[collapsible=icon]:hidden">Estatísticas</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
@@ -200,37 +216,36 @@ export default function RootLayout({
                    <SidebarMenuButton asChild tooltip="Ações Trabalhistas">
                      <Link href="/lawsuits">
                        <Landmark />
-                       <span>Ações Trab.</span>
+                       <span className="group-data-[collapsible=icon]:hidden">Ações Trab.</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
 
-
-                 {/* Future placeholders */}
-                 {/* ... other future links ... */}
                </SidebarMenu>
              </SidebarContent>
-             <SidebarFooter className="p-2 mt-auto">
+
+             <SidebarFooter className="p-2 mt-auto border-t border-sidebar-border">
                <SidebarMenu>
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Configurações">
                      <Link href="/settings">
                        <Settings />
-                       <span>Configurações</span>
+                       <span className="group-data-[collapsible=icon]:hidden">Configurações</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>
                </SidebarMenu>
              </SidebarFooter>
            </Sidebar>
-           {/* SidebarInset should contain the main content area */}
+
+           {/* Main Content Area */}
            <SidebarInset>
-             <header className="flex items-center justify-between p-4 border-b md:border-none sticky top-0 bg-background/80 backdrop-blur-sm z-10">
-                {/* Trigger for desktop */}
+             <header className="flex items-center justify-between p-4 border-b sticky top-0 bg-background/80 backdrop-blur-sm z-10 md:justify-end">
+                {/* Trigger for desktop moved to the right for better alignment with content */}
                 <SidebarTrigger className="hidden md:flex"/>
                {/* Placeholder for potential header content like user profile */}
-               <div className="flex items-center gap-4">
-                   <span className="text-sm text-muted-foreground hidden sm:inline">Nery Mecatrônica</span>
+               <div className="flex items-center gap-4 md:hidden"> {/* Only show company name on mobile header */}
+                   <span className="text-sm text-muted-foreground">EHS Control</span>
                </div>
              </header>
              <main className="flex-1 p-4 md:p-6 overflow-auto">

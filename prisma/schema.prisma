@@ -10,310 +10,308 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-// ================================================
-//                 Core Data Models
-// ================================================
+// ----------- Core Models -----------
 
 model Employee {
-  id             String           @id @default(cuid())
-  name           String
-  department     String? // Optional: Department the employee belongs to
-  position       String? // Optional: Employee's job position
-  hireDate       DateTime? // Optional: Date the employee was hired
+  id          String   @id @default(uuid())
+  name        String
+  department  String?
+  position    String?
+  hireDate    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  trainings       TrainingRecord[]
-  ppeRecords     PpeRecord[]
-  asoRecords     AsoRecord[]
-  accidents      AccidentRecord[]
-  diseases       OccupationalDiseaseRecord[]
+  ppeRecords    PpeRecord[]
+  asoRecords    AsoRecord[]
+  trainings     TrainingRecord[]
+  accidents     AccidentRecord[]
+  diseases      OccupationalDiseaseRecord[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@map("employees")
 }
 
-
 model TrainingType {
-  id                 String           @id @default(cuid())
-  name               String           @unique // e.g., "NR-35 Trabalho em Altura"
-  description        String?
-  validityMonths     Int?             // How many months the training is valid for (null means no expiry)
-  requiredNrsJson    String?          // JSON string array of associated Normas Regulamentadoras e.g., ["NR-35", "NR-10"]
-  defaultDuration    Int?             // Default duration in hours
-  defaultLocation    String?          // Default location (e.g., "Sala Treinamento A", "Online")
-  defaultCost        Float?           // Default cost per participant
-  instructorsJson    String?          // JSON string array of default instructor names e.g., ["João Silva", "Empresa XYZ"]
+  id              String   @id @default(uuid())
+  name            String   @unique
+  description     String?
+  validityMonths  Int?     // How many months the training is valid for (null means no expiry)
+  requiredNrsJson String?  // Store as JSON string: ["NR-35", "NR-10"]
+  defaultDuration Int?     // Default duration in hours
+  defaultLocation String?
+  defaultCost     Float?   // Default cost in local currency
+  instructorsJson String?  // Store as JSON string: ["Instructor A", "Company B"]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  // Relations
-  records TrainingRecord[] // A training type can have many records
+  // Relation
+  trainingRecords TrainingRecord[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@map("training_types")
 }
 
 
 model TrainingRecord {
-  id                  String    @id @default(cuid())
-  employeeId          String    // Foreign key for Employee
-  trainingTypeId      String    // Foreign key for TrainingType
-  trainingDate        DateTime
-  expiryDate          DateTime? // Date the training certificate expires
-  status              String    // Status (Valido, Vencido, Proximo_ao_Vencimento) - Calculated field, might not be needed in DB
-  attendanceListUrl   String?   // URL/Path to the scanned attendance list
-  certificateUrl      String?   // URL/Path to the scanned certificate
+  id                String   @id @default(uuid())
+  employeeId        String
+  trainingTypeId    String
+  trainingDate      DateTime
+  expiryDate        DateTime? // Calculated based on TrainingType.validityMonths
+  status            String   @default("Valido") // Valido, Vencido, Proximo_ao_Vencimento - Calculated field
+  attendanceListUrl String?  // URL/Path to the scanned attendance list
+  certificateUrl    String?  // URL/Path to the scanned certificate
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
-  employee            Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  trainingType        TrainingType @relation(fields: [trainingTypeId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-   @@index([employeeId])
-   @@index([trainingTypeId])
-}
-
-model PpeRecord {
-  id             String    @id @default(cuid())
-  employeeId     String    // Foreign key for Employee
-  ppeType        String    // e.g., "Capacete de Segurança", "Luvas Nitrílicas"
-  deliveryDate   DateTime
-  caNumber       String?   // Certificado de Aprovação (CA) number
-  quantity       Int       @default(1)
-  returnDate     DateTime? // Date the PPE was returned
-  status         String    // Status like 'Em uso', 'Devolvido', 'Descartado'
-
-  // Relations
-  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  employee     Employee     @relation(fields: [employeeId], references: [id])
+  trainingType TrainingType @relation(fields: [trainingTypeId], references: [id])
 
   @@index([employeeId])
+  @@index([trainingTypeId])
+  @@map("training_records")
 }
 
-model AsoRecord {
-  id             String    @id @default(cuid())
-  employeeId     String    // Foreign key for Employee
-  examType       String    // Admissional, Periodico, Demissional, Mudanca_de_Risco, Retorno_ao_Trabalho
-  examDate       DateTime
-  expiryDate     DateTime  // ASOs typically have an expiry date
-  result         String    // Apto, Inapto, Apto_com_Restricoes
-  status         String    // Valido, Vencido, Proximo_ao_Vencimento (Calculated)
-  attachmentUrl  String?   // Optional URL for the scanned ASO
+model PpeRecord { // Personal Protective Equipment
+  id           String    @id @default(uuid())
+  employeeId   String
+  ppeType      String // e.g., "Capacete", "Luvas de Proteção"
+  caNumber     String? // Certificado de Aprovação
+  deliveryDate DateTime
+  quantity     Int       @default(1)
+  returnDate   DateTime?
+  status       String    @default("Em_Uso") // Em_Uso, Devolvido, Descartado
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  // Relations
-  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  // Relation
+  employee Employee @relation(fields: [employeeId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-   @@index([employeeId])
+  @@index([employeeId])
+  @@map("ppe_records")
 }
 
-model ChemicalRecord {
-  id             String    @id @default(cuid())
-  productName    String
-  casNumber      String?   // Chemical Abstracts Service number
-  location       String    // Storage location
-  quantity       Float     // Use Float for quantities like 1.5 L
-  unit           String    // kg, L, g, mL, unid
-  sdsUrl         String?   // Safety Data Sheet URL
-  lastUpdated    DateTime
+model AsoRecord { // Atestado de Saúde Ocupacional
+  id            String   @id @default(uuid())
+  employeeId    String
+  examType      String   // Admissional, Periodico, Demissional, Mudanca_de_Risco, Retorno_ao_Trabalho
+  examDate      DateTime
+  expiryDate    DateTime // Date the ASO expires
+  result        String   // Apto, Inapto, Apto_com_Restricoes
+  status        String   @default("Valido") // Valido, Vencido, Proximo_ao_Vencimento - Calculated field
+  attachmentUrl String?  // URL/Path to the scanned ASO
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Relation
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@map("aso_records")
 }
 
-model JsaRecord {
-  id             String    @id @default(cuid())
-  taskName       String    // Name of the task/activity being analyzed
-  department     String    // Department responsible
-  analysisDate   DateTime
-  reviewDate     DateTime? // Date for next review
-  status         String    // Ativo, Em_Revisao, Arquivado
-  attachmentUrl  String?   // Link to the JSA document (PDF, Word, etc.)
 
-  // Relations
-  risks RiskItem[] // A JSA has multiple risk items
+model ChemicalRecord { // Chemical Inventory
+  id           String   @id @default(uuid())
+  productName  String
+  casNumber    String?  // Chemical Abstracts Service number
+  location     String   // Storage location
+  quantity     Float    // Amount
+  unit         String   // kg, L, g, mL, unid
+  sdsUrl       String?  // Safety Data Sheet URL/Path
+  lastUpdated  DateTime // Last inventory check/update date
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@map("chemical_records")
 }
 
-model RiskItem {
-  id             String    @id @default(cuid())
-  jsaId          String    // Foreign key for JsaRecord
-  stepNumber     Int?      // Optional step number in the task
-  description    String    // Description of the risk
-  controls       String    // Description of the control measures
 
-  // Relations
-  jsa            JsaRecord @relation(fields: [jsaId], references: [id], onDelete: Cascade)
+model JsaRecord { // Job Safety Analysis / Risk Assessment Record
+  id            String   @id @default(uuid())
+  taskName      String   // Name of the task/activity being analyzed
+  department    String   // Department responsible
+  analysisDate  DateTime
+  reviewDate    DateTime? // Date for next review
+  status        String   @default("Ativo") // Ativo, Em_Revisao, Arquivado
+  attachmentUrl String?  // Link to the JSA document (PDF, Word, etc.)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Relation to Risk Items
+  risks RiskItem[]
+
+  @@map("jsa_records")
+}
+
+model RiskItem { // Risk identified within a JSA
+  id          String  @id @default(uuid())
+  jsaId       String
+  description String  // Description of the risk (e.g., "Queda de altura")
+  controls    String  // Control measures (e.g., "Uso de cinto, linha de vida")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relation
+  jsa JsaRecord @relation(fields: [jsaId], references: [id], onDelete: Cascade) // Cascade delete risks if JSA is deleted
 
   @@index([jsaId])
+  @@map("risk_items")
 }
 
-model CipaMeeting {
-  id                 String    @id @default(cuid())
-  date               DateTime
-  participantsJson   String?   // JSON string array of participant names
-  agenda             String
-  status             String    // Agendada, Realizada, Cancelada
-  minutesUrl         String?   // Link to the meeting minutes document
+model CipaMeeting { // CIPA Meeting Record
+  id               String   @id @default(uuid())
+  date             DateTime
+  participantsJson String?  // JSON string array of participant names
+  agenda           String   // Meeting agenda/topics discussed
+  status           String   @default("Agendada") // Agendada, Realizada, Cancelada
+  minutesUrl       String?  // URL/Path to the meeting minutes document
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  // Relations
-  actionsDefined CipaAction[] // A meeting can define multiple actions
+  // Relation to Actions Defined
+  actionsDefined CipaAction[]
+
+  @@map("cipa_meetings")
+}
+
+model CipaAction { // Action defined during a CIPA meeting
+  id          String   @id @default(uuid())
+  description String
+  responsible String   // Person/Department responsible
+  deadline    DateTime?
+  status      String   @default("Pendente") // Pendente, Em_Andamento, Concluida, Atrasada
+  meetingId   String   // Link back to the CipaMeeting
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
 
-model CipaAction {
-  id             String    @id @default(cuid())
-  meetingId      String?    // Foreign key for CipaMeeting (optional if action can exist independently)
-  description    String
-  responsible    String
-  deadline       DateTime?
-  status         String    // Pendente, Em_Andamento, Concluida, Atrasada
-
-  // Relations
-  meeting        CipaMeeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull) // Action can remain even if meeting is deleted
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Relation
+  meeting CipaMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@index([meetingId])
+  @@map("cipa_actions")
 }
 
-model PreventiveAction {
-  id                 String    @id @default(cuid())
-  description        String
-  category           String    // Inspecao, Treinamento, Manutencao, EPI, Procedimento, Outro
-  responsible        String
-  frequency          String?   // Diaria, Semanal, Mensal, Trimestral, Semestral, Anual, Unica
-  dueDate            DateTime? // Due date (especially for 'Unica' or if overdue)
-  lastCompletedDate  DateTime? // Date the action was last completed
-  status             String    // Pendente, Em_Andamento, Concluida, Atrasada
-  evidenceUrl        String?   // URL/Path to evidence of completion
+model PreventiveAction { // Checklist item or recurring preventive task
+  id                String   @id @default(uuid())
+  description       String
+  category          String   // Inspeção, Treinamento, Manutenção, EPI, Procedimento, Outro
+  responsible       String   // Person/Department responsible
+  frequency         String?  // Diaria, Semanal, Mensal, Trimestral, Semestral, Anual, Unica (If not recurring)
+  dueDate           DateTime? // Due date if it's a one-time task or for the next occurrence
+  lastCompletedDate DateTime? // Last time this action was performed
+  status            String   @default("Pendente") // Pendente, Em_Andamento, Concluida, Atrasada
+  evidenceUrl       String?  // URL/Path to evidence of completion (photo, report)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("preventive_actions")
+}
+
+
+model DocumentRecord { // Records for PGR, PCMSO, Laudos etc.
+  id            String    @id @default(uuid())
+  documentType  String    // PGR, PCMSO, PCA, Laudo_Ergonomico, etc.
+  title         String    // e.g., "PGR Nery Mecatrônica 2024"
+  issueDate     DateTime  // Date the document was issued/created
+  expiryDate    DateTime  // Date the document needs review/renewal
+  responsible   String    // Person/Company responsible for elaboration
+  status        String    @default("Valido") // Valido, Proximo_ao_Vencimento, Vencido, Em_Revisao - Calculated field
+  attachmentUrl String?   // Path/URL to the document file
+  observations  String?   // General observations
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relation to Actions
+  relatedActions DocumentAction[]
+
+  @@map("document_records")
+}
+
+model DocumentAction { // Actions derived from a document (e.g., PGR action plan item)
+  id          String   @id @default(uuid())
+  description String
+  responsible String   // Person/Department responsible
+  deadline    DateTime?
+  status      String   @default("Pendente") // Pendente, Em_Andamento, Concluida, Atrasada
+  documentId  String   // Link back to the DocumentRecord
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relation
+  document DocumentRecord @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("document_actions")
 }
 
-model DocumentRecord {
-  id             String    @id @default(cuid())
-  documentType   String    // PGR, PCMSO, PCA, Laudo_Ergonomico, etc.
-  title          String
-  issueDate      DateTime
-  expiryDate     DateTime
-  responsible    String    // Person/Dept responsible for elaboration/review
-  status         String    // Valido, Proximo_ao_Vencimento, Vencido, Em_Revisao
-  attachmentUrl  String?   // Path/URL to the document file
-  observations   String?   // General observations
 
-  // Relations
-  relatedActions DocumentAction[] // A document can have related actions
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model DocumentAction {
-  id             String    @id @default(cuid())
-  documentId     String    // Foreign key for DocumentRecord
-  description    String
-  responsible    String
-  deadline       DateTime?
-  status         String    // Pendente, Em_Andamento, Concluida, Atrasada
-
-  // Relations
-  document       DocumentRecord @relation(fields: [documentId], references: [id], onDelete: Cascade)
+model LawsuitRecord { // Labor Lawsuits related to EHS
+  id            String    @id @default(uuid())
+  processNumber String    @unique // Court case number
+  plaintiff     String    // Person/Entity suing
+  subject       String    // Main reason (e.g., Insalubridade, Falta de EPI)
+  status        String    @default("Em_Andamento") // Em_Andamento, Acordo, Finalizado_Favoravel, Finalizado_Desfavoravel
+  filingDate    DateTime  // Date the lawsuit was filed
+  hearingDate   DateTime? // Date of the next hearing
+  estimatedCost Float?    // Estimated potential cost
+  finalCost     Float?    // Actual cost if finalized/settled
+  lawyer        String?
+  details       String    // More details about the case
+  relatedNRsJson String?   // Store as JSON string: ["NR-15", "NR-6"]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-   @@index([documentId])
-}
-
-model LawsuitRecord {
-  id             String    @id @default(cuid())
-  processNumber  String    @unique // Lawsuit identification number
-  plaintiff      String    // Person/Entity filing the lawsuit
-  subject        String    // Main subject (e.g., Insalubridade, Acidente)
-  status         String    // Em_Andamento, Acordo, Finalizado_Favoravel, Finalizado_Desfavoravel
-  filingDate     DateTime  // Date the lawsuit was filed
-  hearingDate    DateTime? // Next hearing date
-  estimatedCost  Float?    // Estimated financial impact
-  finalCost      Float?    // Actual final cost after conclusion
-  lawyer         String?
-  details        String
-  relatedNrsJson String?   // JSON string array NRs mentioned or related to the case e.g., ["NR-15", "NR-6"]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@map("lawsuit_records")
 }
 
 model AccidentRecord {
-  id                   String    @id @default(cuid())
-  date                 DateTime
-  time                 String?   // Optional: Time of the accident
-  employeeId           String    // Foreign key for Employee
-  department           String
-  location             String    // Specific location of the accident
-  type                 String    // Leve, Grave, Fatal, Tipico, Trajeto
-  cause                String    // Queda, Choque_Eletrico, Impacto, Corte, etc.
-  causeDetails         String?   // More specific details about the cause
-  daysOff              Int       @default(0) // Days of absence from work
-  description          String
-  cid10Code            String?   // Optional: ICD-10 code if applicable
-  catIssued            Boolean   @default(false) // Whether CAT (Comunicado de Acidente de Trabalho) was issued
-  investigationStatus  String    // Pendente, Em_Andamento, Concluida
-  reportUrl            String?   // Optional: URL/Path to the investigation report
+  id                  String    @id @default(uuid())
+  date                DateTime
+  time                String?   // HH:MM format
+  employeeId          String
+  department          String
+  location            String    // Specific location of the accident
+  type                String    // Leve, Grave, Fatal, Tipico, Trajeto
+  cause               String    // Queda, Choque_Eletrico, Impacto, Corte, Projecao_Particulas, Quimico, Ergonomico, Biologico, Outro
+  causeDetails        String?   // More specific cause description
+  daysOff             Int       @default(0) // Days of absence from work
+  description         String    // Detailed description of the event
+  cid10Code           String?   // ICD-10 code if applicable (more common for diseases but can apply)
+  catIssued           Boolean   @default(false) // Was the CAT (Comunicação de Acidente de Trabalho) issued?
+  investigationStatus String    @default("Pendente") // Pendente, Em_Andamento, Concluida
+  reportUrl           String?   // URL/Path to the investigation report
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  // Relations
-  employee             Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Relation
+  employee Employee @relation(fields: [employeeId], references: [id])
 
   @@index([employeeId])
+  @@map("accident_records")
 }
+
 
 model OccupationalDiseaseRecord {
-  id                  String    @id @default(cuid())
-  employeeId          String    // Foreign key for Employee
-  diseaseType         String    // e.g., LER/DORT, PAIR, Dermatose
-  cid10Code           String    // ICD-10 code for the disease
-  diagnosisDate       DateTime
-  relatedTask         String?   // Task/activity related to the disease
-  daysOff             Int       @default(0)
-  status              String    // Ativo, Afastado, Recuperado
-  medicalReportUrl    String?   // Optional: URL/Path to the medical report
-  pcmsoLink           String?   // Optional: Link or ID related to the PCMSO record
+  id                String   @id @default(uuid())
+  employeeId        String
+  diseaseType       String   // e.g., LER/DORT, PAIR, Dermatose
+  cid10Code         String   // ICD-10 code
+  diagnosisDate     DateTime
+  relatedTask       String?  // Task potentially related to the disease
+  daysOff           Int      @default(0)
+  status            String   @default("Ativo") // Ativo, Afastado, Recuperado
+  medicalReportUrl  String?  // URL/Path to the medical report
+  pcmsoLink         String?  // Link or ID related to the PCMSO record
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  // Relations
-  employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // Relation
+  employee Employee @relation(fields: [employeeId], references: [id])
 
   @@index([employeeId])
+  @@map("occupational_disease_records")
 }
-
-
-// ================================================
-//                Supporting Models (if any)
-// ================================================
-// Example: User model for authentication if implemented later
-// model User {
-//   id        String   @id @default(cuid())
-//   username  String   @unique
-//   password  String   // Hashed password
-//   role      String   // e.g., ADMIN, USER
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-// }

@@ -57,7 +57,7 @@ export async function getTrainingRecords(): Promise<TrainingRecordWithDetails[]>
 
   } catch (error) {
     console.error("Error fetching training records:", error);
-    throw new Error("Failed to fetch training records.");
+    throw new Error(`Failed to fetch training records. (${error instanceof Error ? error.message : String(error)})`); // Include original error message
   }
 }
 
@@ -174,18 +174,25 @@ export async function getTrainingTypes(): Promise<TrainingType[]> {
   }
 }
 
-export async function createTrainingType(data: TrainingTypeCreateInput): Promise<TrainingType> {
-    // Basic validation for JSON strings (can be enhanced)
-    if (data.instructorsJson && !isValidJsonString(data.instructorsJson)) {
+export async function createTrainingType(data: Omit<TrainingType, 'id' | 'createdAt' | 'updatedAt' | 'trainingRecords'>): Promise<TrainingType> {
+    // Ensure JSON fields are strings or null
+    const instructorsJson = data.instructorsJson ? data.instructorsJson : null;
+    const requiredNrsJson = data.requiredNrsJson ? data.requiredNrsJson : null;
+
+    if (instructorsJson && !isValidJsonString(instructorsJson)) {
         throw new Error("Invalid format for Instructors JSON.");
     }
-    if (data.requiredNrsJson && !isValidJsonString(data.requiredNrsJson)) {
+    if (requiredNrsJson && !isValidJsonString(requiredNrsJson)) {
          throw new Error("Invalid format for Required NRs JSON.");
      }
 
   try {
     const newType = await prisma.trainingType.create({
-      data: data,
+      data: {
+        ...data,
+        instructorsJson, // Use validated/nullified value
+        requiredNrsJson, // Use validated/nullified value
+      },
     });
     return newType;
   } catch (error) {
@@ -197,25 +204,36 @@ export async function createTrainingType(data: TrainingTypeCreateInput): Promise
   }
 }
 
-export async function updateTrainingType(id: string, data: TrainingTypeUpdateInput): Promise<TrainingType> {
-     // Basic validation for JSON strings (can be enhanced)
-     if (data.instructorsJson && typeof data.instructorsJson === 'string' && !isValidJsonString(data.instructorsJson)) {
+// Ensure update data uses correct types
+type TrainingTypeUpdatePayload = Omit<Partial<TrainingType>, 'id' | 'createdAt' | 'updatedAt' | 'trainingRecords'>;
+
+
+export async function updateTrainingType(id: string, data: TrainingTypeUpdatePayload): Promise<TrainingType> {
+     // Ensure JSON fields are strings or null before update
+     const instructorsJson = data.instructorsJson ? data.instructorsJson : null;
+     const requiredNrsJson = data.requiredNrsJson ? data.requiredNrsJson : null;
+
+     if (instructorsJson && !isValidJsonString(instructorsJson)) {
          throw new Error("Invalid format for Instructors JSON.");
      }
-    if (data.requiredNrsJson && typeof data.requiredNrsJson === 'string' && !isValidJsonString(data.requiredNrsJson)) {
+     if (requiredNrsJson && !isValidJsonString(requiredNrsJson)) {
          throw new Error("Invalid format for Required NRs JSON.");
      }
 
   try {
     const updatedType = await prisma.trainingType.update({
       where: { id },
-      data: data,
+      data: {
+          ...data,
+          instructorsJson, // Use validated/nullified value
+          requiredNrsJson, // Use validated/nullified value
+      },
     });
     return updatedType;
   } catch (error) {
     console.error(`Error updating training type ${id}:`, error);
      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-          if (error.code === 'P2002') {
+          if (error.code === 'P2002' && data.name) { // Check if name is being updated
                throw new Error(`Failed to update training type: Name "${data.name}" already exists.`);
            }
           if (error.code === 'P2025') {
@@ -225,6 +243,7 @@ export async function updateTrainingType(id: string, data: TrainingTypeUpdateInp
     throw new Error("Failed to update training type.");
   }
 }
+
 
 export async function deleteTrainingType(id: string): Promise<void> {
   try {
@@ -247,13 +266,12 @@ export async function deleteTrainingType(id: string): Promise<void> {
   }
 }
 
-// Helper function to validate JSON string (basic check)
+// Helper function to validate JSON string (basic check - ensure it's parseable as an array)
 function isValidJsonString(str: string | null | undefined): boolean {
     if (!str) return true; // Allow null/undefined
     try {
         const parsed = JSON.parse(str);
-        // Optionally add more checks, e.g., ensure it's an array of strings
-        return Array.isArray(parsed);
+        return Array.isArray(parsed); // Check if it parses to an array
     } catch (e) {
         return false;
     }
