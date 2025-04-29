@@ -293,7 +293,7 @@ SidebarInset.displayName = "SidebarInset"
 // --- Basic Sidebar Sections ---
 const SidebarHeader = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div">
+  React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
   return (
     <div
@@ -308,7 +308,7 @@ SidebarHeader.displayName = "SidebarHeader"
 
 const SidebarFooter = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div">
+  React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
   return (
     <div
@@ -323,7 +323,7 @@ SidebarFooter.displayName = "SidebarFooter"
 
 const SidebarContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div">
+  React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
   return (
     <div
@@ -360,7 +360,7 @@ SidebarMenu.displayName = "SidebarMenu"
 
 const SidebarMenuItem = React.forwardRef<
   HTMLLIElement,
-  React.ComponentProps<"li">
+  React.HTMLAttributes<HTMLLIElement>
 >(({ className, ...props }, ref) => {
   return (
     <li
@@ -420,14 +420,12 @@ const SidebarMenuButton = React.forwardRef<
     const buttonContent = (
       <>
         {children}
-         {isSubmenuTrigger && ( // Add chevron only for submenu triggers
-              <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[collapsible=icon]:hidden" />
+        {isSubmenuTrigger && state === 'expanded' && ( // Add chevron only for submenu triggers when expanded
+              <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
          )}
       </>
     );
 
-
-    // Direct children are now passed, Slot/Button handles the layout
     const buttonElement = (
       <Comp
         ref={ref as any}
@@ -438,7 +436,7 @@ const SidebarMenuButton = React.forwardRef<
         {...(Comp === "button" && !asChild && { type: "button" })}
         {...props}
       >
-         {buttonContent}
+        {buttonContent}
       </Comp>
     );
 
@@ -491,7 +489,6 @@ const SidebarSubmenu = React.forwardRef<
 ));
 SidebarSubmenu.displayName = "SidebarSubmenu";
 
-// New Item wrapper for Submenu Trigger/Content
 const SidebarSubmenuItem = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
@@ -508,26 +505,25 @@ SidebarSubmenuItem.displayName = "SidebarSubmenuItem";
 const SidebarSubmenuTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> & {
-      asChild?: boolean;
       tooltip?: string | React.ComponentProps<typeof TooltipContent>;
       isActive?: boolean; // Add isActive prop
   }
->(({ className, children, tooltip, isActive, asChild = false, ...props }, ref) => ( // Default asChild to false
-     // Removed AccordionHeader, Trigger now wraps SidebarMenuButton directly
-     <AccordionPrimitive.Trigger asChild>
-         <SidebarMenuButton
-            ref={ref}
-            className={cn("w-full", className)}
-            isActive={isActive} // Pass isActive
-            tooltip={tooltip} // Pass tooltip
-            isSubmenuTrigger={true} // Mark as submenu trigger
-            asChild={asChild} // Pass asChild through
-            {...props}
-         >
-             {children} {/* Button content */}
-             {/* Chevron is now part of SidebarMenuButton */}
-         </SidebarMenuButton>
-     </AccordionPrimitive.Trigger>
+>(({ className, children, tooltip, isActive, ...props }, ref) => (
+     <AccordionPrimitive.Header className="flex">
+         <AccordionPrimitive.Trigger asChild>
+            <SidebarMenuButton
+               ref={ref}
+               className={cn("w-full", className)}
+               isActive={isActive}
+               tooltip={tooltip}
+               isSubmenuTrigger={true} // Mark as submenu trigger
+               {...props}
+            >
+                 {children}
+                 {/* Chevron is now part of SidebarMenuButton */}
+             </SidebarMenuButton>
+         </AccordionPrimitive.Trigger>
+     </AccordionPrimitive.Header>
 ));
 SidebarSubmenuTrigger.displayName = "SidebarSubmenuTrigger";
 
