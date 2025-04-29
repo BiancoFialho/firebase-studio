@@ -16,18 +16,18 @@ import {
     SidebarMenuItem,
     SidebarMenuButton,
     SidebarSubmenu,
-    SidebarSubmenuItem, // Make sure this is imported correctly
+    SidebarSubmenuItem,
     SidebarSubmenuTrigger,
     SidebarSubmenuContent,
-} from '@/components/ui/sidebar'; // Ensure all necessary sidebar components are imported
+} from '@/components/ui/sidebar';
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FlaskConical, ClipboardList,
     Users, GraduationCap, ListPlus, UserPlus, Wrench, FileCheck2, Folder,
-    Bug, Activity, Landmark, Settings, LayoutDashboard, BarChart3, Scale // Added BarChart3 for Reports
+    Bug, Activity, Landmark, Settings, LayoutDashboard, BarChart3, Scale
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
-import React from 'react'; // Import React
+import React from 'react';
 
 // Initialize the fonts correctly
 const geistSans = GeistSans; // Use the imported object directly
@@ -54,7 +54,7 @@ export default function RootLayout({
        {/* Use the font variables correctly */}
       <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')} suppressHydrationWarning={true}>
          <SidebarProvider>
-           <Sidebar collapsible="icon" variant="sidebar" side="left" className="border-r border-sidebar-border">
+           <Sidebar collapsible="icon" variant="sidebar" side="left" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
              <SidebarHeader className="flex items-center justify-between p-3 border-b border-sidebar-border">
                <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
                  <HardHat className="h-6 w-6 text-primary" />
@@ -63,7 +63,7 @@ export default function RootLayout({
                 <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
              </SidebarHeader>
 
-             <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-1 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2"> {/* Sidebar Content adjustments */}
+             <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-2 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2"> {/* Sidebar Content adjustments */}
                <SidebarMenu>
                  {/* Dashboard Link */}
                  <SidebarMenuItem>
@@ -75,52 +75,53 @@ export default function RootLayout({
                     </SidebarMenuButton>
                  </SidebarMenuItem>
 
-                  {/* --- Cadastros Section --- Corrected Structure */}
+                  {/* --- Cadastros Section --- */}
                   <SidebarSubmenu>
-                    <SidebarSubmenuItem value="cadastros"> {/* Value for accordion item */}
-                      <SidebarSubmenuTrigger tooltip="Cadastros">
-                        <ListPlus />
-                        <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
-                      </SidebarSubmenuTrigger>
-                      <SidebarSubmenuContent>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild tooltip="Colaboradores">
-                            <Link href="/cadastros/colaboradores">
-                              <Users className="text-sidebar-foreground/80" />
-                              Colaboradores
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
-                            <Link href="/cadastros/treinamentos">
-                              <GraduationCap className="text-sidebar-foreground/80" />
-                              Tipos Treinamento
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild tooltip="Instrutores">
-                            <Link href="/cadastros/instrutores">
-                              <UserPlus className="text-sidebar-foreground/80" />
-                              Instrutores
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
-                            <Link href="/cadastros/responsaveis">
-                              <Wrench className="text-sidebar-foreground/80" />
-                              Responsáveis Téc.
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </SidebarSubmenuContent>
+                    <SidebarSubmenuItem value="cadastros"> {/* Ensure this value is unique */}
+                        <SidebarSubmenuTrigger tooltip="Cadastros">
+                          <ListPlus />
+                          <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
+                        </SidebarSubmenuTrigger>
+                        <SidebarSubmenuContent>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild tooltip="Colaboradores">
+                              <Link href="/cadastros/colaboradores">
+                                <Users className="text-sidebar-foreground/80" />
+                                Colaboradores
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
+                              <Link href="/cadastros/treinamentos">
+                                <GraduationCap className="text-sidebar-foreground/80" />
+                                Tipos Treinamento
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild tooltip="Instrutores">
+                              <Link href="/cadastros/instrutores">
+                                <UserPlus className="text-sidebar-foreground/80" />
+                                Instrutores
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
+                              <Link href="/cadastros/responsaveis">
+                                <Wrench className="text-sidebar-foreground/80" />
+                                Responsáveis Téc.
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </SidebarSubmenuContent>
                     </SidebarSubmenuItem>
                   </SidebarSubmenu>
 
+
                  {/* --- Separator --- */}
-                 <div className="my-2 border-t border-sidebar-border mx-2 group-data-[collapsible=icon]:mx-0"></div>
+                 <div className="my-2 border-t border-sidebar-border/50 mx-2 group-data-[collapsible=icon]:mx-0"></div>
 
                  {/* --- Módulos Principais --- */}
                  <SidebarMenuItem>
@@ -165,7 +166,7 @@ export default function RootLayout({
                  </SidebarMenuItem>
 
                   {/* --- Separator --- */}
-                  <div className="my-2 border-t border-sidebar-border mx-2 group-data-[collapsible=icon]:mx-0"></div>
+                  <div className="my-2 border-t border-sidebar-border/50 mx-2 group-data-[collapsible=icon]:mx-0"></div>
 
                  {/* --- Análise e Planejamento --- */}
                  <SidebarMenuItem>
@@ -186,7 +187,7 @@ export default function RootLayout({
                  </SidebarMenuItem>
 
                  {/* --- Separator --- */}
-                 <div className="my-2 border-t border-sidebar-border mx-2 group-data-[collapsible=icon]:mx-0"></div>
+                 <div className="my-2 border-t border-sidebar-border/50 mx-2 group-data-[collapsible=icon]:mx-0"></div>
 
                   {/* --- Prevenção e Saúde --- */}
                   <SidebarMenuItem>
@@ -207,7 +208,7 @@ export default function RootLayout({
                  </SidebarMenuItem>
 
                  {/* --- Separator --- */}
-                 <div className="my-2 border-t border-sidebar-border mx-2 group-data-[collapsible=icon]:mx-0"></div>
+                 <div className="my-2 border-t border-sidebar-border/50 mx-2 group-data-[collapsible=icon]:mx-0"></div>
 
                  {/* --- Estatísticas, Relatórios e Compliance --- */}
                  <SidebarMenuItem>
@@ -254,15 +255,15 @@ export default function RootLayout({
 
            {/* Main Content Area */}
            <SidebarInset>
-             <header className="flex items-center justify-between p-4 border-b sticky top-0 bg-background/80 backdrop-blur-sm z-10 md:justify-end">
+             <header className="flex items-center justify-between p-3 border-b sticky top-0 bg-background/95 backdrop-blur-sm z-10 md:justify-end h-14"> {/* Reduced padding, fixed height */}
                 {/* Trigger for desktop moved to the right */}
                 <SidebarTrigger className="hidden md:flex"/>
                {/* Placeholder for potential header content like user profile */}
                <div className="flex items-center gap-4 md:hidden"> {/* Only show company name on mobile header */}
-                   <span className="text-sm text-muted-foreground">EHS Control</span>
+                   <span className="text-sm font-medium text-muted-foreground">EHS Control</span>
                </div>
              </header>
-             <main className="flex-1 p-4 md:p-6 overflow-auto">
+             <main className="flex-1 p-6 md:p-8 overflow-auto bg-muted/30"> {/* Increased padding, lighter background */}
                {children}
              </main>
            </SidebarInset>

@@ -1,11 +1,13 @@
-// src/app/page.tsx (Previously Dashboard)
+// src/app/page.tsx (Dashboard)
 'use client';
 
 import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { HardHat, ShieldCheck, Stethoscope, AlertTriangle, CheckCircle, Clock, Activity, Bug, Scale, Users, TrendingUp, TrendingDown, Calculator, Landmark, Target } from 'lucide-react'; // Added Target, Landmark
+import { HardHat, ShieldCheck, Stethoscope, AlertTriangle, CheckCircle, Clock, Activity, Bug, Scale, Users, TrendingUp, TrendingDown, Calculator, Landmark, Target, FileCheck2 } from 'lucide-react'; // Added FileCheck2
 import type { AccidentRecord, OccupationalDiseaseRecord, LawsuitRecord, CipaMeetingRecord, StatisticsData } from '@/lib/types';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
 
@@ -14,7 +16,7 @@ import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
 
 const mockAccidents: AccidentRecord[] = [
   { id: 'acc1', date: new Date(2024, 0, 15), employeeName: 'Carlos Pereira', department: 'Produção', location: 'Máquina XPTO', type: 'Leve', cause: 'Corte', daysOff: 2, description: 'Corte superficial no dedo ao manusear peça.', catIssued: true, investigationStatus: 'Concluída' },
-  { id: 'acc3', date: new Date(2024, 4, 20), time: '10:30', employeeName: 'João Silva', department: 'Manutenção', location: 'Painel Elétrico Z', type: 'Grave', cause: 'Choque Elétrico', daysOff: 15, description: 'Contato acidental com fiação exposta durante manutenção.', catIssued: true, investigationStatus: 'Em Andamento', cid10Code: 'T75.4' },
+  { id: 'acc3', date: new Date(2024, 4, 20), time: '10:30', employeeName: 'João Silva', department: 'Manutenção', location: 'Painel Elétrico Z', type: 'Grave', cause: 'Choque_Eletrico', daysOff: 15, description: 'Contato acidental com fiação exposta durante manutenção.', catIssued: true, investigationStatus: 'Em_Andamento', cid10Code: 'T75.4' },
   { id: 'acc5', date: new Date(2024, 6, 10), employeeName: 'Ana Costa', department: 'Logística', location: 'Empilhadeira 2', type: 'Leve', cause: 'Impacto', daysOff: 0, description: 'Colisão leve com prateleira.', catIssued: false, investigationStatus: 'Concluída' },
   // Add more relevant accidents for the current period (e.g., 2024)
 ];
@@ -23,12 +25,12 @@ const mockDiseases: OccupationalDiseaseRecord[] = [
     { id: 'dis3', employeeName: 'Ana Costa', diseaseType: 'Dermatose Ocupacional', cid10Code: 'L23.5', diagnosisDate: new Date(2024, 5, 5), relatedTask: 'Manuseio de Químicos', daysOff: 7, status: 'Recuperado' },
 ];
 const mockLawsuits: LawsuitRecord[] = [
-    { id: 'law1', processNumber: '0012345-67.2024.5.15.0001', plaintiff: 'João Silva', subject: 'Insalubridade - Ruído', status: 'Em Andamento', filingDate: new Date(2024, 1, 10), hearingDate: new Date(2024, 8, 15), estimatedCost: 15000, details: 'Reclama adicional de insalubridade por exposição a ruído acima dos limites na linha de produção X.', relatedNRs: ['NR-15'] },
+    { id: 'law1', processNumber: '0012345-67.2024.5.15.0001', plaintiff: 'João Silva', subject: 'Insalubridade - Ruído', status: 'Em_Andamento', filingDate: new Date(2024, 1, 10), hearingDate: new Date(2024, 8, 15), estimatedCost: 15000, details: 'Reclama adicional de insalubridade por exposição a ruído acima dos limites na linha de produção X.', relatedNRs: ['NR-15'] },
     { id: 'law2', processNumber: '0098765-43.2023.5.15.0002', plaintiff: 'Maria Oliveira', subject: 'Acidente de Trabalho - Falta de EPI', status: 'Acordo', filingDate: new Date(2023, 5, 20), finalCost: 8000, details: 'Acordo realizado referente a acidente ocorrido por suposta falta de luvas adequadas.', relatedNRs: ['NR-6'] },
 ];
 const mockCipaMeetings: CipaMeetingRecord[] = [
-    { id: 'cipa1', date: new Date(2024, 6, 10), participants: ['João Silva', 'Maria Oliveira', 'Carlos Pereira'], agenda: 'Discussão sobre EPIs, análise de incidente leve.', status: 'Realizada', actionsDefined: [{ id: 'act1', description: 'Verificar validade dos protetores auriculares', responsible: 'Almoxarifado', deadline: new Date(2024, 6, 17), status: 'Concluída' }] },
-    { id: 'cipa2', date: new Date(2024, 5, 12), participants: ['João Silva', 'Maria Oliveira', 'Ana Costa'], agenda: 'Planejamento SIPAT, riscos ergonômicos.', status: 'Realizada', minutesUrl: 'https://example.com/cipa/ata-junho', actionsDefined: [{ id: 'act2', description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em Andamento' }] },
+    { id: 'cipa1', date: new Date(2024, 6, 10), participants: ['João Silva', 'Maria Oliveira', 'Carlos Pereira'], agenda: 'Discussão sobre EPIs, análise de incidente leve.', status: 'Realizada', actionsDefined: [{ id: 'act1', description: 'Verificar validade dos protetores auriculares', responsible: 'Almoxarifado', deadline: new Date(2024, 6, 17), status: 'Concluida' }] },
+    { id: 'cipa2', date: new Date(2024, 5, 12), participants: ['João Silva', 'Maria Oliveira', 'Ana Costa'], agenda: 'Planejamento SIPAT, riscos ergonômicos.', status: 'Realizada', minutesUrl: 'https://example.com/cipa/ata-junho', actionsDefined: [{ id: 'act2', description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em_Andamento' }] },
     { id: 'cipa3', date: new Date(2024, 7, 14), participants: [], agenda: 'Próxima reunião ordinária.', status: 'Agendada', actionsDefined: [] },
 ];
 const mockHoursWorked = 500000; // Example HHT for the period (e.g., YTD 2024)
@@ -36,6 +38,26 @@ const NATIONAL_TF_AVERAGE = 14.3; // Example national average TF (adjust per ind
 const NATIONAL_FATALITIES_2022 = 2538; // National data (example)
 const NATIONAL_ACCIDENTS_2022 = 612920; // National data (example)
 const COMPANY_TF_TARGET = 15; // Company specific target for TF
+
+// Mock Compliance Data (from action-plan page)
+interface ComplianceItem {
+    nr: string;
+    description: string;
+    status: 'Conforme' | 'Requer Atenção' | 'Não Conforme' | 'Não Aplicável';
+    details: string;
+    lastCheck?: Date;
+    evidenceUrl?: string;
+}
+
+const complianceStatus: ComplianceItem[] = [
+    { nr: 'NR-6', description: 'Equipamento de Proteção Individual - EPI', status: 'Conforme', details: 'Fichas de EPI atualizadas, CA válidos para EPIs em uso.', lastCheck: new Date(2024, 6, 1), evidenceUrl: '/docs/epi-check.pdf' },
+    { nr: 'NR-7', description: 'Programa de Controle Médico de Saúde Ocupacional - PCMSO', status: 'Conforme', details: 'ASOs em dia, programa implementado e coordenado por médico responsável.', lastCheck: new Date(2024, 5, 20)},
+    { nr: 'NR-9', description: 'Avaliação e Controle das Exposições Ocupacionais a Agentes Físicos, Químicos e Biológicos (PGR)', status: 'Requer Atenção', details: 'Revisão anual do PGR pendente (prazo: 30/08/2024). Inventário de Riscos atualizado.', lastCheck: new Date(2023, 8, 15) },
+    { nr: 'NR-15', description: 'Atividades e Operações Insalubres', status: 'Conforme', details: 'Laudos de insalubridade (ruído, químicos) atualizados. Medidas de controle implementadas.', lastCheck: new Date(2024, 4, 10), evidenceUrl: '/docs/laudo-insalubridade.pdf' },
+    { nr: 'NR-17', description: 'Ergonomia', status: 'Requer Atenção', details: 'Análise Ergonômica do Trabalho (AET) da linha de montagem desatualizada.', lastCheck: new Date(2023, 1, 5) },
+    { nr: 'NR-35', description: 'Trabalho em Altura', status: 'Conforme', details: 'Treinamentos válidos, procedimentos de permissão de trabalho (PT) em uso, equipamentos inspecionados.', lastCheck: new Date(2024, 6, 5) },
+];
+
 
 // --- Chart Configurations ---
 const trainingsData = [ // Example data, fetch from trainings page/service
@@ -57,7 +79,7 @@ const asoChartConfig = {
 const incidentChartConfig = { incidents: { label: "Acidentes", color: "hsl(var(--destructive))" } } satisfies ChartConfig;
 
 
-export default function HomePage() { // Renamed component to HomePage
+export default function HomePage() {
   // Calculate Statistics - Moved inside the component
   const calculatedStats = useMemo((): StatisticsData => {
       const currentYear = new Date().getFullYear();
@@ -80,7 +102,7 @@ export default function HomePage() { // Renamed component to HomePage
         period: `Ano ${currentYear}`, // Example period label
         fatalAccidents: fatalAccidents,
         // Optional: Add these if needed for display, fetching mock data
-        activeLawsuits: mockLawsuits.filter(l => l.status === 'Em Andamento').length,
+        activeLawsuits: mockLawsuits.filter(l => l.status === 'Em_Andamento').length,
         cipaMeetingsHeld: mockCipaMeetings.filter(m => m.status === 'Realizada' && m.date.getFullYear() === currentYear).length,
         occupationalDiseases: mockDiseases.filter(d => d.diagnosisDate.getFullYear() === currentYear).length,
       };
@@ -102,6 +124,13 @@ export default function HomePage() { // Renamed component to HomePage
   const tfComparisonColor = calculatedStats.tf !== null && calculatedStats.tf > NATIONAL_TF_AVERAGE ? 'text-destructive' : 'text-green-600';
   const tfTargetComparison = calculatedStats.tf !== null && calculatedStats.tf > COMPANY_TF_TARGET ? 'Acima da Meta' : 'Abaixo/Igual à Meta';
   const tfTargetComparisonColor = calculatedStats.tf !== null && calculatedStats.tf > COMPANY_TF_TARGET ? 'text-destructive' : 'text-green-600';
+
+  const getComplianceBadgeVariant = (status: ComplianceItem['status']): "default" | "secondary" | "destructive" | "outline" => {
+       if (status === 'Conforme') return 'default'; // Green/Primary
+       if (status === 'Requer Atenção') return 'secondary'; // Orange/Yellow
+       if (status === 'Não Conforme') return 'destructive'; // Red
+       return 'outline'; // Grey for Not Applicable
+   };
 
 
   return (
@@ -221,16 +250,60 @@ export default function HomePage() { // Renamed component to HomePage
         </Card>
       </div>
 
-       {/* Optional: Add more charts like Trainings or PPE */}
-       {/*
-       <div className="grid gap-4 md:grid-cols-2">
-         <Card> ... Trainings Chart ... </Card>
-         <Card> ... PPE Chart ... </Card>
-       </div>
-       */}
+       {/* --- Action Plan / Compliance Table --- */}
+       <Card>
+           <CardHeader>
+               <div className="flex items-center gap-2">
+                   <FileCheck2 className="w-6 h-6"/>
+                   <CardTitle className="text-2xl">Plano de Ação / Conformidade NR</CardTitle>
+               </div>
+               <CardDescription>Status de conformidade e ações pendentes.</CardDescription>
+           </CardHeader>
+           <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>NR</TableHead>
+                                <TableHead>Descrição</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Detalhes/Observações</TableHead>
+                                <TableHead>Última Verificação</TableHead>
+                                {/* <TableHead className="text-right">Ações</TableHead> */}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {complianceStatus.map((item) => (
+                                <TableRow key={item.nr}>
+                                    <TableCell className="font-medium">{item.nr}</TableCell>
+                                    <TableCell>{item.description}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={getComplianceBadgeVariant(item.status)}>{item.status}</Badge>
+                                    </TableCell>
+                                    <TableCell className="max-w-xs truncate">{item.details}</TableCell>
+                                    <TableCell>{item.lastCheck?.toLocaleDateString('pt-BR') || '-'}</TableCell>
+                                    {/* <TableCell className="text-right">
+                                        {item.evidenceUrl && <Button variant="outline" size="sm" asChild><a href={item.evidenceUrl} target="_blank">Ver Evidência</a></Button> }
+                                        <Button variant="outline" size="sm" className="ml-2">Atualizar</Button> // Future functionality
+                                    </TableCell> */}
+                                </TableRow>
+                            ))}
+                             <TableRow>
+                                 <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-4">
+                                     (Tabela de exemplo. Ações detalhadas no módulo "Plano de Ação")
+                                 </TableCell>
+                             </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
+           </CardContent>
+        </Card>
 
+       {/* --- Footer Notes --- */}
        <p className="text-xs text-center text-muted-foreground pt-4">* Média nacional de TF pode variar por setor e ano. Valor exemplificativo.</p>
 
     </div>
   );
 }
+
+    
