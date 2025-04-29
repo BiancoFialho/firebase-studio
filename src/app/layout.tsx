@@ -16,7 +16,7 @@ import {
     SidebarMenuItem,
     SidebarMenuButton,
     SidebarSubmenu,
-    SidebarSubmenuItem,
+    SidebarSubmenuItem, // Make sure this is imported correctly
     SidebarSubmenuTrigger,
     SidebarSubmenuContent,
 } from '@/components/ui/sidebar'; // Ensure all necessary sidebar components are imported
@@ -75,47 +75,47 @@ export default function RootLayout({
                     </SidebarMenuButton>
                  </SidebarMenuItem>
 
-                  {/* --- Cadastros Section --- */}
-                  <SidebarSubmenu value="cadastros">
-                    <SidebarSubmenuItem value="cadastros-trigger">
-                        <SidebarSubmenuTrigger tooltip="Cadastros">
-                            <ListPlus />
-                            <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
-                        </SidebarSubmenuTrigger>
-                        <SidebarSubmenuContent>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild tooltip="Colaboradores">
-                                    <Link href="/cadastros/colaboradores">
-                                        <Users className="text-sidebar-foreground/80" />
-                                        Colaboradores
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
-                                    <Link href="/cadastros/treinamentos">
-                                        <GraduationCap className="text-sidebar-foreground/80" />
-                                        Tipos Treinamento
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild tooltip="Instrutores">
-                                    <Link href="/cadastros/instrutores">
-                                        <UserPlus className="text-sidebar-foreground/80" />
-                                        Instrutores
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
-                                    <Link href="/cadastros/responsaveis">
-                                        <Wrench className="text-sidebar-foreground/80" />
-                                        Responsáveis Téc.
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </SidebarSubmenuContent>
+                  {/* --- Cadastros Section --- Corrected Structure */}
+                  <SidebarSubmenu>
+                    <SidebarSubmenuItem value="cadastros"> {/* Value for accordion item */}
+                      <SidebarSubmenuTrigger tooltip="Cadastros">
+                        <ListPlus />
+                        <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
+                      </SidebarSubmenuTrigger>
+                      <SidebarSubmenuContent>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild tooltip="Colaboradores">
+                            <Link href="/cadastros/colaboradores">
+                              <Users className="text-sidebar-foreground/80" />
+                              Colaboradores
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
+                            <Link href="/cadastros/treinamentos">
+                              <GraduationCap className="text-sidebar-foreground/80" />
+                              Tipos Treinamento
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild tooltip="Instrutores">
+                            <Link href="/cadastros/instrutores">
+                              <UserPlus className="text-sidebar-foreground/80" />
+                              Instrutores
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
+                            <Link href="/cadastros/responsaveis">
+                              <Wrench className="text-sidebar-foreground/80" />
+                              Responsáveis Téc.
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </SidebarSubmenuContent>
                     </SidebarSubmenuItem>
                   </SidebarSubmenu>
 

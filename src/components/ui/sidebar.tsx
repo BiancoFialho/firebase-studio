@@ -418,12 +418,13 @@ const SidebarMenuButton = React.forwardRef<
     const { isMobile, state } = useSidebar();
 
     const buttonContent = (
-      <>
+      // Use React.Fragment to avoid invalid prop warning
+      <React.Fragment>
         {children}
         {isSubmenuTrigger && state === 'expanded' && ( // Add chevron only for submenu triggers when expanded
               <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
          )}
-      </>
+      </React.Fragment>
     );
 
     const buttonElement = (
@@ -520,7 +521,7 @@ const SidebarSubmenuTrigger = React.forwardRef<
                {...props}
             >
                  {children}
-                 {/* Chevron is now part of SidebarMenuButton */}
+                 {/* Chevron is now part of SidebarMenuButton when isSubmenuTrigger=true */}
              </SidebarMenuButton>
          </AccordionPrimitive.Trigger>
      </AccordionPrimitive.Header>
