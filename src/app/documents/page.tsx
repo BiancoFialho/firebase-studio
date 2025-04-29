@@ -2,8 +2,8 @@
 // src/app/documents/page.tsx
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,11 +20,11 @@ import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from '@/components/ui/badge';
 import type { DocumentRecord, DocumentType, DocumentStatus } from '@/lib/types';
 
 // Helper function to calculate status based on expiry date
@@ -58,8 +58,8 @@ const mockDocuments: DocumentRecord[] = [
     status: 'Válido',
     attachmentUrl: '/uploads/docs/pgr-2024.pdf',
     relatedActions: [
-        { id: 'actPGR1', description: 'Revisar inventário de riscos da área de pintura.', responsible: 'Eng. Segurança', deadline: new Date(2024, 8, 30), status: 'Em Andamento' },
-        { id: 'actPGR2', description: 'Implementar proteção acústica na máquina X.', responsible: 'Manutenção', deadline: new Date(2024, 9, 15), status: 'Pendente' },
+      { id: 'actPGR1', description: 'Revisar inventário de riscos da área de pintura.', responsible: 'Eng. Segurança', deadline: new Date(2024, 8, 30), status: 'Em Andamento' },
+      { id: 'actPGR2', description: 'Implementar proteção acústica na máquina X.', responsible: 'Manutenção', deadline: new Date(2024, 9, 15), status: 'Pendente' },
     ],
   },
   {
@@ -72,18 +72,18 @@ const mockDocuments: DocumentRecord[] = [
     status: 'Válido',
     relatedActions: [],
   },
-   {
+  {
     id: 'doc3',
     documentType: 'Laudo Ergonômico',
     title: 'AET Linha de Montagem',
     issueDate: new Date(2022, 5, 20),
     expiryDate: new Date(2024, 5, 19), // Expired
     responsible: 'Ergonomista Contratado',
-    status: 'Vencido',
-     attachmentUrl: '/uploads/docs/aet-montagem.pdf',
-    relatedActions: [ { id: 'actAET1', description: 'Adquirir cadeiras ergonômicas novas.', responsible: 'Compras', deadline: new Date(2024, 7, 31), status: 'Pendente' },]
-  },
-  {
+      status: 'Vencido',
+      attachmentUrl: '/uploads/docs/aet-montagem.pdf',
+      relatedActions: [{ id: 'actAET1', description: 'Adquirir cadeiras ergonômicas novas.', responsible: 'Compras', deadline: new Date(2024, 7, 31), status: 'Pendente' }]
+    },
+    {
     id: 'doc4',
     documentType: 'PCA',
     title: 'Programa de Conservação Auditiva 2024',
@@ -113,7 +113,7 @@ export default function DocumentsPage() {
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [responsible, setResponsible] = useState('');
   const [status, setStatus] = useState<DocumentStatus>('Válido');
-  const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachment, setAttachment] = useState<File | null>(null);    
   const [currentAttachmentUrl, setCurrentAttachmentUrl] = useState<string | undefined>(undefined);
   const [actionsText, setActionsText] = useState(''); // Simple text area for actions
 
@@ -164,21 +164,21 @@ export default function DocumentsPage() {
     resetForm();
   };
 
-   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-     if (event.target.files && event.target.files[0]) {
-       setAttachment(event.target.files[0]);
-       setCurrentAttachmentUrl(undefined); // Clear existing URL if new file is selected
-     } else {
-       setAttachment(null);
-       // Maybe restore currentAttachmentUrl if file is deselected? Depends on UX.
-        if (editingRecord) {
-           setCurrentAttachmentUrl(editingRecord.attachmentUrl);
-        }
-     }
-   };
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setAttachment(event.target.files[0]);
+      setCurrentAttachmentUrl(undefined); // Clear existing URL if new file is selected
+    } else {
+      setAttachment(null);
+      // Maybe restore currentAttachmentUrl if file is deselected? Depends on UX.
+      if (editingRecord) {
+        setCurrentAttachmentUrl(editingRecord.attachmentUrl);
+      }
+    }
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+    event.preventDefault();    
     if (!documentType || !title || !issueDate || !expiryDate || !responsible || !status) {
       toast({
         title: "Erro",
@@ -188,33 +188,33 @@ export default function DocumentsPage() {
       return;
     }
 
-     // --- Mock File Upload Logic ---
-     let attachmentUrl = currentAttachmentUrl; // Keep existing URL if editing and no new file
-     if (attachment) {
-       // In a real app, you would upload the file here and get back a URL
-       attachmentUrl = `/uploads/docs/${Date.now()}-${encodeURIComponent(attachment.name)}`; // Example simulated URL
-       console.log(`Simulating upload for: ${attachment.name} to ${attachmentUrl}`);
-       toast({ title: "Simulação de Upload", description: `Documento "${attachment.name}" salvo em ${attachmentUrl}`});
-       // In a real app: attachmentUrl = await uploadFile(attachment);
-     }
-     // --- End Mock File Upload Logic ---
+    // --- Mock File Upload Logic ---
+    let attachmentUrl = currentAttachmentUrl; // Keep existing URL if editing and no new file
+    if (attachment) {
+      // In a real app, you would upload the file here and get back a URL
+      attachmentUrl = `/uploads/docs/${Date.now()}-${encodeURIComponent(attachment.name)}`; // Example simulated URL
+      console.log(`Simulating upload for: ${attachment.name} to ${attachmentUrl}`);
+      toast({ title: "Simulação de Upload", description: `Documento "${attachment.name}" salvo em ${attachmentUrl}` });
+      // In a real app: attachmentUrl = await uploadFile(attachment);
+    }
+    // --- End Mock File Upload Logic ---
 
-     // Basic parsing of actions - similar to CIPA page, refine if needed
-      const actionsArray = actionsText.split('\n').map((line, index) => {
-          const match = line.match(/(.+)\s\(Resp:\s*(.+),\s*Prazo:\s*(.+),\s*Status:\s*(.+)\)/);
-          if (match) {
-              let deadline: Date | undefined = undefined;
-              const dateParts = match[3]?.trim().split('/');
-              if (dateParts?.length === 3) {
-                 const day = parseInt(dateParts[0], 10);
-                 const month = parseInt(dateParts[1], 10) - 1;
-                 const year = parseInt(dateParts[2], 10);
-                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    deadline = new Date(year, month, day);
-                 }
-              }
-              return {
-                  id: `actDoc${editingRecord?.id || 'new'}-${index}`,
+    // Basic parsing of actions - similar to CIPA page, refine if needed
+    const actionsArray = actionsText.split('\n').map((line, index) => {
+      const match = line.match(/(.+)\s\(Resp:\s*(.+),\s*Prazo:\s*(.+),\s*Status:\s*(.+)\)/);
+      if (match) {
+        let deadline: Date | undefined = undefined;
+        const dateParts = match[3]?.trim().split('/');
+        if (dateParts?.length === 3) {
+          const day = parseInt(dateParts[0], 10);
+          const month = parseInt(dateParts[1], 10) - 1;
+          const year = parseInt(dateParts[2], 10);
+          if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            deadline = new Date(year, month, day);
+          }
+        }
+        return {
+          id: `actDoc${editingRecord?.id || 'new'}-${index}`,
                   description: match[1]?.trim() || 'Descrição não informada',
                   responsible: match[2]?.trim() || 'Responsável não informado',
                   deadline: deadline,
@@ -223,7 +223,7 @@ export default function DocumentsPage() {
           }
           return null;
       }).filter(a => a !== null) as DocumentRecord['relatedActions'];
-
+  
 
     const newRecord: DocumentRecord = {
       id: editingRecord ? editingRecord.id : `doc${Date.now()}`,
@@ -265,24 +265,24 @@ export default function DocumentsPage() {
     }
   };
 
-   const handleViewFile = (url: string | undefined, fileName: string) => {
-        if (url) {
-            // In a real app, you might open the actual URL
-            // window.open(url, '_blank');
-            // For simulation, show a toast message
-            toast({
-                title: "Visualização Simulada",
-                description: `Abriria o arquivo: ${fileName} (${url})`,
-            });
-        } else {
-             toast({
-                 title: "Arquivo Indisponível",
-                 description: `Nenhum ${fileName} anexado.`,
-                 variant: "destructive"
-             });
-        }
-   };
-
+  const handleViewFile = (url: string | undefined, fileName: string) => {
+    if (url) {
+      // In a real app, you might open the actual URL
+      // window.open(url, '_blank');
+      // For simulation, show a toast message
+      toast({
+        title: "Visualização Simulada",
+        description: `Abriria o arquivo: ${fileName} (${url})`,
+      });
+    } else {
+      toast({
+        title: "Arquivo Indisponível",
+        description: `Nenhum ${fileName} anexado.`,
+        variant: "destructive"
+      });
+    }
+  };
+  
 
   return (
     <div className="space-y-6">
@@ -298,11 +298,11 @@ export default function DocumentsPage() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingRecord ? 'Editar Documento' : 'Registrar Novo Documento'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DialogHeader>
+                  <DialogTitle>{editingRecord ? 'Editar Documento' : 'Registrar Novo Documento'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    {/* Document Type */}
                   <div className="space-y-1">
                     <Label htmlFor="documentType">Tipo de Documento*</Label>
@@ -354,27 +354,27 @@ export default function DocumentsPage() {
                    </div>
                    {/* Attachment */}
                    <div className="space-y-1 md:col-span-2">
-                         <Label htmlFor="attachment">Anexo (PDF, DOCX, etc.)</Label>
-                         <div className="flex items-center gap-2">
-                              <Input id="attachment" type="file" onChange={handleFileChange} className="flex-1" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" />
-                              {currentAttachmentUrl && !attachment && (
-                                   <Button
-                                       type="button"
-                                       variant="link"
-                                       size="sm"
-                                       className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[150px]"
-                                       onClick={() => handleViewFile(currentAttachmentUrl, 'anexo atual')}
-                                       title={currentAttachmentUrl.split('/').pop()}
-                                   >
-                                       Ver anexo atual
-                                   </Button>
-                              )}
-                               {attachment && (
-                                  <span className="text-xs text-muted-foreground truncate max-w-[150px]" title={attachment.name}>
-                                      {attachment.name}
-                                  </span>
-                               )}
-                         </div>
+                      <Label htmlFor="attachment">Anexo (PDF, DOCX, etc.)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input id="attachment" type="file" onChange={handleFileChange} className="flex-1" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" />
+                        {currentAttachmentUrl && !attachment && (
+                          <Button
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[150px]"
+                            onClick={() => handleViewFile(currentAttachmentUrl, 'anexo atual')}
+                            title={currentAttachmentUrl.split('/').pop()}
+                          >
+                            Ver anexo atual
+                          </Button>
+                        )}
+                        {attachment && (
+                          <span className="text-xs text-muted-foreground truncate max-w-[150px]" title={attachment.name}>
+                            {attachment.name}
+                          </span>
+                        )}
+                      </div>
                    </div>
                </div>
 
@@ -390,7 +390,7 @@ export default function DocumentsPage() {
                     />
                     <p className="text-xs text-muted-foreground">Ex: Realizar medição de ruído (Resp: SESMT, Prazo: 30/09/2024, Status: Pendente)</p>
                 </div>
-
+                
 
               <DialogFooter className="mt-4">
                 <DialogClose asChild>
@@ -401,7 +401,7 @@ export default function DocumentsPage() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+      </div> 
 
       <div className="relative">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -433,56 +433,56 @@ export default function DocumentsPage() {
             {filteredDocuments.length > 0 ? (
               filteredDocuments.map((record) => {
                  const pendingActionsCount = record.relatedActions.filter(a => a.status === 'Pendente' || a.status === 'Em Andamento').length;
-                 return (
+                return (
                     <TableRow key={record.id} className={record.status === 'Vencido' ? 'bg-destructive/10' : ''}>
                       <TableCell className="font-medium">{record.documentType}</TableCell>
                       <TableCell className="max-w-xs truncate" title={record.title}>{record.title}</TableCell>
                       <TableCell>{record.issueDate.toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell>{record.expiryDate.toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell>{record.responsible}</TableCell>
-                      <TableCell>
+                        <TableCell>
                         <Badge variant={getStatusBadgeVariant(record.status)}>
                           {(record.status === 'Vencido' || record.status === 'Próximo ao Vencimento') && <AlertTriangle className="inline-block h-3 w-3 mr-1" />}
                           {record.status}
                         </Badge>
-                      </TableCell>
-                       <TableCell>
-                           {pendingActionsCount > 0 ? (
-                              <Badge variant="secondary">{pendingActionsCount}</Badge>
-                           ) : (
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                           )}
-                       </TableCell>
-                      <TableCell className="text-right space-x-1">
-                         <Button variant="ghost" size="icon" onClick={() => handleViewFile(record.attachmentUrl, 'documento anexado')} disabled={!record.attachmentUrl} title="Ver Anexo">
-                           <Link2 className={record.attachmentUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
-                           <span className="sr-only">Ver Anexo</span>
-                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)} title="Editar / Ver Ações">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Excluir">
-                              <Trash2 className="h-4 w-4" />
+                        </TableCell>
+                        <TableCell>
+                            {pendingActionsCount > 0 ? (
+                                <Badge variant="secondary">{pendingActionsCount}</Badge>
+                            ) : (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                            )}
+                        </TableCell>
+                        <TableCell className="text-right space-x-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleViewFile(record.attachmentUrl, 'documento anexado')} disabled={!record.attachmentUrl} title="Ver Anexo">
+                                <Link2 className={record.attachmentUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
+                                <span className="sr-only">Ver Anexo</span>
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro do documento <span className="font-medium">{record.title}</span> ({record.documentType}).
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)} title="Editar / Ver Ações">
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Excluir">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro do documento <span className="font-medium">{record.title}</span> ({record.documentType}).
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                            Excluir
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </TableCell>
                     </TableRow>
                  );
                 })
@@ -494,7 +494,7 @@ export default function DocumentsPage() {
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </Table>
       </div>
     </div>
   );

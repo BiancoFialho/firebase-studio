@@ -11,7 +11,7 @@ const RadioGroup = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
 >(({ className, ...props }, ref) => {
   return (
-    <RadioGroupPrimitive.Root
+    <RadioGroupPrimitive.Root 
       className={cn("grid gap-2", className)}
       {...props}
       ref={ref}
@@ -27,14 +27,14 @@ const RadioGroupItem = React.forwardRef<
   return (
     <RadioGroupPrimitive.Item
       ref={ref}
-      className={cn(
-        "aspect-square h-4 w-4 rounded-full border border-primary text-primary ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
+      className={cn("peer h-4 w-4 shrink-0 rounded-full border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary", className)}
       {...props}
     >
-      <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-        <Circle className="h-2.5 w-2.5 fill-current text-current" />
+      <RadioGroupPrimitive.Indicator className="flex items-center justify-center text-current">
+          <span className="relative flex h-[10px] w-[10px] items-center justify-center rounded-full bg-primary text-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary">
+             <Circle className="absolute h-2.5 w-2.5 fill-background text-background peer-data-[state=checked]:block hidden" />
+          </span>
+          
       </RadioGroupPrimitive.Indicator>
     </RadioGroupPrimitive.Item>
   )

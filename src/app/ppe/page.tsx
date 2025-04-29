@@ -1,13 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/date-picker';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { PlusCircle, Search, Edit, Trash2, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -21,7 +18,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge"; // Import Badge component
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Mock data structure
 interface PpeRecord {
@@ -49,6 +47,7 @@ export default function PpePage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<PpeRecord | null>(null);
   const { toast } = useToast();
+  const [open, setOpen] = React.useState(false)
 
   // Form state
   const [employeeName, setEmployeeName] = useState('');
@@ -165,120 +164,121 @@ export default function PpePage() {
    };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de EPIs</h1>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-                <Button onClick={() => handleOpenForm()}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Registrar Entrega/Devolução
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
-                <DialogHeader>
-                    <DialogTitle>{editingRecord ? 'Editar Registro de EPI' : 'Registrar EPI'}</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="employeeName" className="text-right">
-                            Colaborador
-                        </Label>
-                        <Input id="employeeName" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="ppeType" className="text-right">
-                            Tipo de EPI
-                        </Label>
-                        <Select value={ppeType} onValueChange={setPpeType}>
-                             <SelectTrigger id="ppeType" className="col-span-3">
-                                 <SelectValue placeholder="Selecione o EPI" />
-                             </SelectTrigger>
-                             <SelectContent>
-                                 <SelectItem value="Capacete de Segurança">Capacete de Segurança</SelectItem>
-                                 <SelectItem value="Luvas de Proteção">Luvas de Proteção</SelectItem>
-                                 <SelectItem value="Óculos de Proteção">Óculos de Proteção</SelectItem>
-                                 <SelectItem value="Protetor Auricular">Protetor Auricular</SelectItem>
-                                 <SelectItem value="Botas de Segurança">Botas de Segurança</SelectItem>
-                                 <SelectItem value="Máscara Respiratória">Máscara Respiratória</SelectItem>
-                                 <SelectItem value="Cinto de Segurança (NR-35)">Cinto de Segurança (NR-35)</SelectItem>
-                                 <SelectItem value="Outro">Outro</SelectItem>
-                             </SelectContent>
-                         </Select>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="caNumber" className="text-right">
-                            C.A.
-                        </Label>
-                        <Input id="caNumber" value={caNumber} onChange={(e) => setCaNumber(e.target.value)} className="col-span-3" placeholder="Opcional" />
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="quantity" className="text-right">
-                             Quantidade
-                         </Label>
-                         <Input id="quantity" type="number" min="1" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 1)} className="col-span-3" required />
-                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="deliveryDate" className="text-right">
-                            Data Entrega
-                        </Label>
-                        <DatePicker date={deliveryDate} setDate={setDeliveryDate} className="col-span-3" required />
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="returnDate" className="text-right">
-                             Data Devolução
-                         </Label>
-                         <DatePicker date={returnDate} setDate={setReturnDate} className="col-span-3" />
-                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="status" className="text-right">
-                             Status
-                         </Label>
-                         <Select value={status} onValueChange={(value: PpeRecord['status']) => setStatus(value)}>
-                              <SelectTrigger id="status" className="col-span-3">
-                                  <SelectValue placeholder="Selecione o status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="Em uso">Em uso</SelectItem>
-                                  <SelectItem value="Devolvido">Devolvido</SelectItem>
-                                  <SelectItem value="Descartado">Descartado</SelectItem>
-                              </SelectContent>
-                          </Select>
-                      </div>
-                    <DialogFooter>
-                         <DialogClose asChild>
-                             <Button type="button" variant="outline" onClick={handleCloseForm}>Cancelar</Button>
-                         </DialogClose>
-                        <Button type="submit">{editingRecord ? 'Salvar Alterações' : 'Registrar'}</Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
+    <div className="container mx-auto p-4 md:p-8">
+      {/* Header */}
+      <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-800">
+          Gerenciamento de EPIs
+        </h1>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen} >
+          <DialogTrigger asChild>
+            <Button onClick={() => handleOpenForm()}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Registrar Entrega/Devolução
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogHeader>
+              <DialogTitle>
+                {editingRecord ? 'Editar Registro de EPI' : 'Registrar EPI'}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="employeeName" className="text-right">
+                  Colaborador
+                </Label>
+                <Input id="employeeName" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="col-span-3" required />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="ppeType" className="text-right">
+                  Tipo de EPI
+                </Label>
+                <Select value={ppeType} onValueChange={setPpeType}>
+                  <SelectTrigger id="ppeType" className="col-span-3">
+                    <SelectValue placeholder="Selecione o EPI" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Capacete de Segurança">Capacete de Segurança</SelectItem>
+                    <SelectItem value="Luvas de Proteção">Luvas de Proteção</SelectItem>
+                    <SelectItem value="Óculos de Proteção">Óculos de Proteção</SelectItem>
+                    <SelectItem value="Protetor Auricular">Protetor Auricular</SelectItem>
+                    <SelectItem value="Botas de Segurança">Botas de Segurança</SelectItem>
+                    <SelectItem value="Máscara Respiratória">Máscara Respiratória</SelectItem>
+                    <SelectItem value="Cinto de Segurança (NR-35)">Cinto de Segurança (NR-35)</SelectItem>
+                    <SelectItem value="Outro">Outro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="caNumber" className="text-right">
+                  C.A.
+                </Label>
+                <Input id="caNumber" value={caNumber} onChange={(e) => setCaNumber(e.target.value)} className="col-span-3" placeholder="Opcional" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="quantity" className="text-right">
+                  Quantidade
+                </Label>
+                <Input id="quantity" type="number" min="1" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 1)} className="col-span-3" required />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="deliveryDate" className="text-right">
+                  Data Entrega
+                </Label>
+                <DatePicker date={deliveryDate} setDate={setDeliveryDate} className="col-span-3" required />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="returnDate" className="text-right">
+                  Data Devolução
+                </Label>
+                <DatePicker date={returnDate} setDate={setReturnDate} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="status" className="text-right">
+                  Status
+                </Label>
+                <Select value={status} onValueChange={(value: PpeRecord['status']) => setStatus(value)}>
+                  <SelectTrigger id="status" className="col-span-3">
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Em uso">Em uso</SelectItem>
+                    <SelectItem value="Devolvido">Devolvido</SelectItem>
+                    <SelectItem value="Descartado">Descartado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" onClick={handleCloseForm}>Cancelar</Button>
+                </DialogClose>
+                <Button type="submit">{editingRecord ? 'Salvar Alterações' : 'Registrar'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
         </Dialog>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Buscar por colaborador, EPI ou C.A...."
-          className="pl-8 w-full sm:w-1/2 md:w-1/3"
-          value={searchTerm}
-          onChange={handleSearch}
-        />
+      {/* Search Bar */}
+      <div className="mb-6 relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <Input type="search" placeholder="Buscar por colaborador, EPI ou C.A...." className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full" value={searchTerm} onChange={handleSearch} />
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      {/* Table */}
+      <div className="border border-gray-200 rounded-md overflow-hidden">
         <Table>
           <TableCaption>Registros de entrega e devolução de EPIs.</TableCaption>
-          <TableHeader>
+          <TableHeader className="bg-gray-50">
             <TableRow>
-              <TableHead>Colaborador</TableHead>
-              <TableHead>Tipo de EPI</TableHead>
-              <TableHead>C.A.</TableHead>
-              <TableHead>Qtd.</TableHead>
-              <TableHead>Data Entrega</TableHead>
-              <TableHead>Data Devolução</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="font-semibold">Colaborador</TableHead>
+              <TableHead className="font-semibold">Tipo de EPI</TableHead>
+              <TableHead className="font-semibold">C.A.</TableHead>
+              <TableHead className="font-semibold">Qtd.</TableHead>
+              <TableHead className="font-semibold">Data Entrega</TableHead>
+              <TableHead className="font-semibold">Data Devolução</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="text-right font-semibold">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -292,39 +292,34 @@ export default function PpePage() {
                   <TableCell>{record.deliveryDate.toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>{record.returnDate ? record.returnDate.toLocaleDateString('pt-BR') : '-'}</TableCell>
                   <TableCell>
-                     <Badge variant={getStatusBadgeVariant(record.status)}>{record.status}</Badge>
+                    <Badge variant={getStatusBadgeVariant(record.status)}>{record.status}</Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                     {/* Add History Button if needed */}
-                     {/* <Button variant="ghost" size="icon" title="Ver Histórico (Em breve)">
-                         <History className="h-4 w-4 text-muted-foreground" />
-                         <span className="sr-only">Histórico</span>
-                     </Button> */}
                     <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)}>
                       <Edit className="h-4 w-4" />
-                       <span className="sr-only">Editar</span>
+                      <span className="sr-only">Editar</span>
                     </Button>
                     <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Excluir</span>
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro de EPI para <span className="font-medium">{record.employeeName}</span> ({record.ppeType}).
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                    Excluir
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir</span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro de EPI para <span className="font-medium">{record.employeeName}</span> ({record.ppeType}).
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
                     </AlertDialog>
                   </TableCell>
                 </TableRow>
@@ -339,6 +334,6 @@ export default function PpePage() {
           </TableBody>
         </Table>
       </div>
-    </div>
+                    </div>
   );
 }

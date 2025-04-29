@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 // Mock data structure
@@ -46,7 +47,7 @@ const getAsoStatus = (aso: AsoRecord): AsoRecord['status'] => {
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(today.getDate() + 30);
   thirtyDaysFromNow.setHours(0, 0, 0, 0);
-
+  
 
   if (expiry < today) return 'Vencido';
   if (expiry <= thirtyDaysFromNow) return 'Próximo ao Vencimento';
@@ -71,6 +72,7 @@ export default function AsosPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AsoRecord | null>(null);
   const { toast } = useToast();
+  
 
   // Form state
   const [employeeName, setEmployeeName] = useState('');
@@ -81,7 +83,7 @@ export default function AsosPage() {
   const [attachment, setAttachment] = useState<File | null>(null); // State for file upload
   const [currentAttachmentUrl, setCurrentAttachmentUrl] = useState<string | undefined>(undefined);
 
-
+  
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
   };
@@ -104,21 +106,21 @@ export default function AsosPage() {
   };
 
   const handleOpenForm = (record: AsoRecord | null = null) => {
-      if (record) {
-          setEditingRecord(record);
-          setEmployeeName(record.employeeName);
-          setExamType(record.examType);
-          setExamDate(record.examDate);
-          setExpiryDate(record.expiryDate);
-          setResult(record.result);
-          setCurrentAttachmentUrl(record.attachmentUrl);
-          setAttachment(null); // Clear file input on edit
-      } else {
-          resetForm();
-      }
-      setIsFormOpen(true);
+    if (record) {
+      setEditingRecord(record);
+      setEmployeeName(record.employeeName);
+      setExamType(record.examType);
+      setExamDate(record.examDate);
+      setExpiryDate(record.expiryDate);
+      setResult(record.result);
+      setCurrentAttachmentUrl(record.attachmentUrl);
+      setAttachment(null); // Clear file input on edit
+    } else {
+      resetForm();
+    }
+    setIsFormOpen(true);
   };
-
+  
   const handleCloseForm = () => {
       setIsFormOpen(false);
       resetForm();
@@ -132,12 +134,12 @@ export default function AsosPage() {
       setAttachment(null);
       // Optionally restore currentAttachmentUrl if file is deselected
        if (editingRecord) {
-           setCurrentAttachmentUrl(editingRecord.attachmentUrl);
+         setCurrentAttachmentUrl(editingRecord.attachmentUrl);
        }
     }
   };
 
-
+  
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!employeeName || !examType || !examDate || !expiryDate || !result) {
@@ -149,18 +151,18 @@ export default function AsosPage() {
       return;
     }
 
-     // --- Mock File Upload Logic ---
-     let attachmentUrl = currentAttachmentUrl; // Keep existing URL if editing and no new file
-     if (attachment) {
-       // In a real app, you would upload the file here and get back a URL
-       // For now, we'll just simulate a URL based on the filename
-       attachmentUrl = `/uploads/asos/${Date.now()}-${encodeURIComponent(attachment.name)}`; // Example simulated URL
-       console.log(`Simulating upload for: ${attachment.name} to ${attachmentUrl}`);
-       toast({ title: "Simulação de Upload", description: `ASO "${attachment.name}" salvo em ${attachmentUrl}`});
-       // In a real app: attachmentUrl = await uploadFile(attachment);
-     }
-     // --- End Mock File Upload Logic ---
-
+    // --- Mock File Upload Logic ---
+    let attachmentUrl = currentAttachmentUrl; // Keep existing URL if editing and no new file
+    if (attachment) {
+      // In a real app, you would upload the file here and get back a URL
+      // For now, we'll just simulate a URL based on the filename
+      attachmentUrl = `/uploads/asos/${Date.now()}-${encodeURIComponent(attachment.name)}`; // Example simulated URL
+      console.log(`Simulating upload for: ${attachment.name} to ${attachmentUrl}`);
+      toast({ title: "Simulação de Upload", description: `ASO "${attachment.name}" salvo em ${attachmentUrl}`});
+      // In a real app: attachmentUrl = await uploadFile(attachment);
+    }
+    // --- End Mock File Upload Logic ---
+    
 
     const newRecord: AsoRecord = {
       id: editingRecord ? editingRecord.id : `aso${Date.now()}`,
@@ -173,60 +175,60 @@ export default function AsosPage() {
       attachmentUrl: attachmentUrl, // Add the URL
     };
     newRecord.status = getAsoStatus(newRecord); // Recalculate status
-
-
+    
+    
     if (editingRecord) {
       setAsoRecords(asoRecords.map(r => r.id === editingRecord.id ? newRecord : r));
       toast({
-          title: "Sucesso",
-          description: "ASO atualizado com sucesso.",
+        title: "Sucesso",
+        description: "ASO atualizado com sucesso.",
       });
     } else {
       setAsoRecords([newRecord, ...asoRecords]);
       toast({
-          title: "Sucesso",
-          description: "ASO adicionado com sucesso.",
+        title: "Sucesso",
+        description: "ASO adicionado com sucesso.",
       });
     }
-
+    
     handleCloseForm();
   };
-
+  
   const handleDelete = (id: string) => {
     setAsoRecords(asoRecords.filter(r => r.id !== id));
-     toast({
-         title: "Sucesso",
-         description: "ASO excluído com sucesso.",
-         variant: "destructive"
-     });
+    toast({
+      title: "Sucesso",
+      description: "ASO excluído com sucesso.",
+      variant: "destructive"
+    });
   };
-
-    const getStatusBadgeVariant = (status: AsoRecord['status']): "default" | "secondary" | "destructive" | "outline" => {
-      switch (status) {
-        case 'Válido':
-          return 'default'; // Green (using primary color via default)
-        case 'Vencido':
-          return 'destructive'; // Red
-        case 'Próximo ao Vencimento':
-          return 'secondary'; // Orange (using secondary for now, could customize)
-        default:
-          return 'outline';
-      }
+  
+  const getStatusBadgeVariant = (status: AsoRecord['status']): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'Válido':
+        return 'default'; // Green (using primary color via default)
+      case 'Vencido':
+        return 'destructive'; // Red
+      case 'Próximo ao Vencimento':
+        return 'secondary'; // Orange (using secondary for now, could customize)
+      default:
+        return 'outline';
+    }
+  };
+  
+  const getResultBadgeVariant = (result: AsoRecord['result']): "default" | "secondary" | "destructive" | "outline" => {
+    switch (result) {
+      case 'Apto':
+        return 'default'; // Green
+      case 'Inapto':
+        return 'destructive'; // Red
+      case 'Apto com Restrições':
+        return 'secondary'; // Orange/Yellow
+      default:
+        return 'outline';
     };
-
-     const getResultBadgeVariant = (result: AsoRecord['result']): "default" | "secondary" | "destructive" | "outline" => {
-       switch (result) {
-         case 'Apto':
-           return 'default'; // Green
-         case 'Inapto':
-           return 'destructive'; // Red
-         case 'Apto com Restrições':
-           return 'secondary'; // Orange/Yellow
-         default:
-           return 'outline';
-       }
-     };
-
+  };
+  
    const handleViewFile = (url: string | undefined, fileName: string) => {
         if (url) {
             // In a real app, you might open the actual URL
@@ -244,11 +246,11 @@ export default function AsosPage() {
              });
         }
    };
-
-
+  
+  
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="container mx-auto p-4 space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de ASOs</h1>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
@@ -257,20 +259,20 @@ export default function AsosPage() {
                 </Button>
             </DialogTrigger>
              <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
-                <DialogHeader>
-                    <DialogTitle>{editingRecord ? 'Editar ASO' : 'Adicionar Novo ASO'}</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-                    {/* Employee Name */}
-                     <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="employeeName" className="text-right">
-                             Colaborador
-                         </Label>
-                         <Input id="employeeName" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="col-span-3" required />
-                     </div>
+              <DialogHeader>
+                <DialogTitle>{editingRecord ? 'Editar ASO' : 'Adicionar Novo ASO'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                {/* Employee Name */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="employeeName" className="text-right">
+                    Colaborador
+                  </Label>
+                  <Input id="employeeName" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="col-span-3" required />
+                </div>
                     {/* Exam Type */}
-                     <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="examType" className="text-right">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="examType" className="text-right">
                              Tipo Exame
                          </Label>
                           <Select value={examType} onValueChange={(value: AsoRecord['examType']) => setExamType(value)} required>
@@ -286,14 +288,14 @@ export default function AsosPage() {
                              </SelectContent>
                          </Select>
                      </div>
-                    {/* Exam Date */}
-                     <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="examDate" className="text-right">
-                             Data Exame
-                         </Label>
-                         <DatePicker date={examDate} setDate={setExamDate} className="col-span-3" required />
-                     </div>
-                    {/* Expiry Date */}
+                {/* Exam Date */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="examDate" className="text-right">
+                    Data Exame
+                  </Label>
+                  <DatePicker date={examDate} setDate={setExamDate} className="col-span-3" required />
+                </div>
+                {/* Expiry Date */}
                      <div className="grid grid-cols-4 items-center gap-4">
                          <Label htmlFor="expiryDate" className="text-right">
                              Vencimento
@@ -301,8 +303,8 @@ export default function AsosPage() {
                          <DatePicker date={expiryDate} setDate={setExpiryDate} className="col-span-3" required />
                      </div>
                     {/* Result */}
-                      <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="result" className="text-right">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="result" className="text-right">
                              Resultado
                          </Label>
                           <Select value={result} onValueChange={(value: AsoRecord['result']) => setResult(value)} required>
@@ -317,25 +319,25 @@ export default function AsosPage() {
                          </Select>
                      </div>
                      {/* Attachment Upload */}
-                     <div className="grid grid-cols-4 items-center gap-4">
-                         <Label htmlFor="attachment" className="text-right">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="attachment" className="text-right">
                              Anexo
                          </Label>
-                         <div className="col-span-3 flex items-center gap-2">
-                             <Input id="attachment" type="file" onChange={handleFileChange} className="flex-1" accept=".pdf,.jpg,.jpeg,.png" />
-                             {/* Optionally show the name of the currently selected/uploaded file */}
-                             {currentAttachmentUrl && !attachment && (
-                                  <Button
-                                      type="button"
-                                      variant="link"
-                                      size="sm"
-                                      className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
-                                      onClick={() => handleViewFile(currentAttachmentUrl, 'anexo atual')}
-                                      title={`Ver anexo atual: ${currentAttachmentUrl.split('/').pop()}`}
-                                   >
-                                       Ver atual
-                                   </Button>
-                             )}
+                  <div className="col-span-3 flex items-center gap-2">
+                    <Input id="attachment" type="file" onChange={handleFileChange} className="flex-1" accept=".pdf,.jpg,.jpeg,.png" />
+                    {/* Optionally show the name of the currently selected/uploaded file */}
+                    {currentAttachmentUrl && !attachment && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+                        onClick={() => handleViewFile(currentAttachmentUrl, 'anexo atual')}
+                        title={`Ver anexo atual: ${currentAttachmentUrl.split('/').pop()}`}
+                      >
+                        Ver atual
+                      </Button>
+                    )}
                               {attachment && (
                                  <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={attachment.name}>
                                      {attachment.name}
@@ -343,20 +345,20 @@ export default function AsosPage() {
                               )}
                          </div>
                      </div>
-
-                    <DialogFooter>
-                         <DialogClose asChild>
-                             <Button type="button" variant="outline" onClick={handleCloseForm}>Cancelar</Button>
-                         </DialogClose>
-                        <Button type="submit">{editingRecord ? 'Salvar Alterações' : 'Adicionar ASO'}</Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
+                  
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" onClick={handleCloseForm}>Cancelar</Button>
+                  </DialogClose>
+                  <Button type="submit">{editingRecord ? 'Salvar Alterações' : 'Adicionar ASO'}</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>          
         </Dialog>
       </div>
 
       <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Buscar por colaborador, tipo ou resultado..."
@@ -366,9 +368,9 @@ export default function AsosPage() {
         />
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="rounded-lg overflow-hidden">
         <Table>
-          <TableCaption>Registros de Atestados de Saúde Ocupacional.</TableCaption>
+          <TableCaption className="mt-4">Registros de Atestados de Saúde Ocupacional.</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Colaborador</TableHead>
@@ -390,36 +392,37 @@ export default function AsosPage() {
                   <TableCell>{record.expiryDate.toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>
                       <Badge variant={getResultBadgeVariant(record.result)}>{record.result}</Badge>
-                  </TableCell>
-                  <TableCell>
-                       <Badge variant={getStatusBadgeVariant(record.status)}>
-                         {record.status === 'Próximo ao Vencimento' || record.status === 'Vencido' ? <AlertTriangle className="inline-block h-3 w-3 mr-1" /> : null}
-                         {record.status}
-                       </Badge>
-                  </TableCell>
-                  <TableCell className="text-right space-x-1">
-                     <Button variant="ghost" size="icon" onClick={() => handleViewFile(record.attachmentUrl, 'ASO anexado')} disabled={!record.attachmentUrl} title="Visualizar Anexo">
-                           <Eye className={record.attachmentUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
-                           <span className="sr-only">Visualizar Anexo</span>
-                      </Button>
+                  </TableCell>                  
+                  <TableCell>                    
+                    <Badge variant={getStatusBadgeVariant(record.status)}>
+                      {record.status === 'Próximo ao Vencimento' || record.status === 'Vencido' ? <AlertTriangle className="inline-block h-3 w-3 mr-1" /> : null}
+                      {record.status}
+                    </Badge>
+                  </TableCell>                  
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-1">
+                     <Button variant="ghost" size="icon" className={cn(record.attachmentUrl ? "hover:bg-muted" : "text-muted-foreground")} onClick={() => handleViewFile(record.attachmentUrl, 'ASO anexado')} disabled={!record.attachmentUrl} title="Visualizar Anexo">
+                       <Eye className="h-4 w-4" />
+                       <span className="sr-only">Visualizar Anexo</span>
+                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)}>
                       <Edit className="h-4 w-4" />
                       <span className="sr-only">Editar</span>
                     </Button>
-                     <AlertDialog>
-                         <AlertDialogTrigger asChild>
-                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                 <Trash2 className="h-4 w-4" />
-                                 <span className="sr-only">Excluir</span>
-                             </Button>
-                         </AlertDialogTrigger>
-                         <AlertDialogContent>
-                             <AlertDialogHeader>
-                                 <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                 <AlertDialogDescription>
-                                     Essa ação não pode ser desfeita. Isso excluirá permanentemente o ASO de <span className="font-medium">{record.employeeName}</span> ({record.examType} - {record.examDate.toLocaleDateString('pt-BR')}).
-                                 </AlertDialogDescription>
-                             </AlertDialogHeader>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir</span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Essa ação não pode ser desfeita. Isso excluirá permanentemente o ASO de <span className="font-medium">{record.employeeName}</span> ({record.examType} - {record.examDate.toLocaleDateString('pt-BR')}).
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
                              <AlertDialogFooter>
                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                  <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
@@ -428,10 +431,11 @@ export default function AsosPage() {
                              </AlertDialogFooter>
                          </AlertDialogContent>
                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
-            ) : (
+              ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
                   Nenhum ASO encontrado.

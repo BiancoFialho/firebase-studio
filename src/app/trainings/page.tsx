@@ -1,6 +1,6 @@
 
 
-'use client';
+'use client'; // Mark this file as a client component
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { TrainingRecord as PrismaTrainingRecord, TrainingType as PrismaTrainingType } from '@prisma/client';
+import type { TrainingRecord as PrismaTrainingRecord, TrainingType as PrismaTrainingType, Employee } from '@prisma/client';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { getTrainingRecords, createTrainingRecord, updateTrainingRecord, deleteTrainingRecord, getTrainingTypes, getEmployees } from './actions'; // Import server actions
@@ -35,6 +35,7 @@ type TrainingType = PrismaTrainingType; // Assuming we get the full TrainingType
 type EmployeeForSelect = EmployeeSelectItem; // Use the simplified type
 
 // Helper function to calculate status based on dates
+
 const getTrainingStatus = (training: PrismaTrainingRecord): TrainingRecordStatus => {
   if (!training.expiryDate) return 'Valido';
   const today = new Date();
@@ -50,6 +51,7 @@ const getTrainingStatus = (training: PrismaTrainingRecord): TrainingRecordStatus
   return 'Valido';
 };
 
+// TrainingsPage component
 
 export default function TrainingsPage() {
   const [trainings, setTrainings] = useState<TrainingRecord[]>([]);
@@ -62,7 +64,6 @@ export default function TrainingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track deleting ID
   const { toast } = useToast();
-
   // Form state
   // const [employeeName, setEmployeeName] = useState(''); // No longer needed directly
   const [employeeId, setEmployeeId] = useState(''); // Use employeeId
@@ -74,29 +75,31 @@ export default function TrainingsPage() {
   const [currentAttendanceListUrl, setCurrentAttendanceListUrl] = useState<string | undefined>(undefined);
   const [currentCertificateUrl, setCurrentCertificateUrl] = useState<string | undefined>(undefined);
 
-   // --- Data Fetching ---
-   const fetchData = useCallback(async () => {
+  // --- Data Fetching ---
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [fetchedTrainings, fetchedTypes, fetchedEmployees] = await Promise.all([
-          getTrainingRecords(),
-          getTrainingTypes(),
-          getEmployees() // Fetch employees
+        getTrainingRecords(),
+        getTrainingTypes(),
+        getEmployees() // Fetch employees
       ]);
       // Process trainings to include type name and calculate status
       const processedTrainings = fetchedTrainings.map(t => {
-          const type = fetchedTypes.find(tt => tt.id === t.trainingTypeId);
-          return {
-              ...t,
-              status: getTrainingStatus(t) as TrainingRecordStatus, // Recalculate status and cast
-              trainingTypeName: type?.name ?? 'Tipo Desconhecido' // Get name from fetched types
-          };
+        const type = fetchedTypes.find(tt => tt.id === t.trainingTypeId);
+        return {
+          ...t,
+          status: getTrainingStatus(t) as TrainingRecordStatus, // Recalculate status and cast
+          trainingTypeName: type?.name ?? 'Tipo Desconhecido' // Get name from fetched types
+        };
       });
       setTrainings(processedTrainings);
       setTrainingTypes(fetchedTypes);
       setEmployees(fetchedEmployees.map(e => ({ id: e.id, name: e.name }))); // Map to select item format
     } catch (error: any) {
       console.error("Error fetching data:", error);
+
+      // Display error toast
       toast({
           title: "Erro ao Carregar Dados",
           description: error.message || "Não foi possível buscar os dados. Tente recarregar.",
@@ -111,9 +114,9 @@ export default function TrainingsPage() {
     }
    }, [toast]);
 
-   useEffect(() => {
-      fetchData();
-   }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,7 +127,6 @@ export default function TrainingsPage() {
     (training.employeeName?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
     (training.trainingTypeName?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
   ), [trainings, searchTerm]);
-
 
   const resetForm = () => {
     // setEmployeeName('');
@@ -139,23 +141,23 @@ export default function TrainingsPage() {
     setEditingTraining(null);
   };
 
-   const handleOpenForm = (training: TrainingRecord | null = null) => {
-       if (training) {
-           setEditingTraining(training);
-           // setEmployeeName(training.employeeName || ''); // No longer needed directly
-           setEmployeeId(training.employeeId || ''); // Make sure employeeId exists
-           setTrainingTypeId(training.trainingTypeId);
-           setTrainingDate(training.trainingDate ? new Date(training.trainingDate) : undefined);
-           setExpiryDate(training.expiryDate ? new Date(training.expiryDate) : undefined);
-           setCurrentAttendanceListUrl(training.attendanceListUrl || undefined);
-           setCurrentCertificateUrl(training.certificateUrl || undefined);
-           setAttendanceListFile(null);
-           setCertificateFile(null);
-       } else {
-           resetForm();
-       }
-       setIsFormOpen(true);
-   };
+  const handleOpenForm = (training: TrainingRecord | null = null) => {
+    if (training) {
+      setEditingTraining(training);
+      // setEmployeeName(training.employeeName || ''); // No longer needed directly
+      setEmployeeId(training.employeeId || ''); // Make sure employeeId exists
+      setTrainingTypeId(training.trainingTypeId);
+      setTrainingDate(training.trainingDate ? new Date(training.trainingDate) : undefined);
+      setExpiryDate(training.expiryDate ? new Date(training.expiryDate) : undefined);
+      setCurrentAttendanceListUrl(training.attendanceListUrl || undefined);
+      setCurrentCertificateUrl(training.certificateUrl || undefined);
+      setAttendanceListFile(null);
+      setCertificateFile(null);
+    } else {
+      resetForm();
+    }
+    setIsFormOpen(true);
+  };
 
   const handleCloseForm = () => {
       setIsFormOpen(false);
@@ -164,13 +166,13 @@ export default function TrainingsPage() {
 
   // Handlers for file inputs
   const handleAttendanceFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      if (event.target.files && event.target.files[0]) {
-          setAttendanceListFile(event.target.files[0]);
-          setCurrentAttendanceListUrl(undefined);
-      } else {
-          setAttendanceListFile(null);
-          if (editingTraining) setCurrentAttendanceListUrl(editingTraining.attendanceListUrl || undefined);
-      }
+    if (event.target.files && event.target.files[0]) {
+      setAttendanceListFile(event.target.files[0]);
+      setCurrentAttendanceListUrl(undefined);
+    } else {
+      setAttendanceListFile(null);
+      if (editingTraining) setCurrentAttendanceListUrl(editingTraining.attendanceListUrl || undefined);
+    }
   };
 
   const handleCertificateFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,19 +190,19 @@ export default function TrainingsPage() {
     event.preventDefault();
     // Add validation for employeeId and trainingTypeId
     if (!employeeId || !trainingTypeId || !trainingDate) {
-        toast({
-            title: "Erro",
-            description: "Colaborador, Tipo de Treinamento e Data são obrigatórios.",
-            variant: "destructive",
-        });
-        return;
+      toast({
+        title: "Erro",
+        description: "Colaborador, Tipo de Treinamento e Data são obrigatórios.",
+        variant: "destructive",
+      });
+      return;
     }
     setIsSubmitting(true);
 
 
-     // --- Mock File Upload Logic (Needs real implementation) ---
-     let attendanceUrl = currentAttendanceListUrl;
-     if (attendanceListFile) {
+    // --- Mock File Upload Logic (Needs real implementation) ---
+    let attendanceUrl = currentAttendanceListUrl;
+    if (attendanceListFile) {
        attendanceUrl = `/uploads/attendance/${Date.now()}-${encodeURIComponent(attendanceListFile.name)}`;
        console.log(`Simulating upload for attendance list: ${attendanceListFile.name} to ${attendanceUrl}`);
        // In a real app: attendanceUrl = await uploadFile(attendanceListFile);
@@ -224,67 +226,63 @@ export default function TrainingsPage() {
     };
 
     try {
-        let savedRecord;
-        if (editingTraining) {
-            // For update, pass only the fields that might change. Prisma needs ID in where clause.
-            await updateTrainingRecord(editingTraining.id, trainingData);
-            toast({ title: "Sucesso", description: "Treinamento atualizado." });
-        } else {
-             // For create, pass the full data payload
-            await createTrainingRecord(trainingData);
-            toast({ title: "Sucesso", description: "Treinamento adicionado." });
-        }
-        handleCloseForm();
-        fetchData(); // Re-fetch data
+      if (editingTraining) {
+        // For update, pass only the fields that might change. Prisma needs ID in where clause.
+        await updateTrainingRecord(editingTraining.id, trainingData);
+        toast({ title: "Sucesso", description: "Treinamento atualizado." });
+      } else {
+        // For create, pass the full data payload
+        await createTrainingRecord(trainingData);
+        toast({ title: "Sucesso", description: "Treinamento adicionado." });
+      }
+      handleCloseForm();
+      fetchData(); // Re-fetch data
     } catch (error: any) {
-        console.error("Error saving training:", error);
-        toast({ title: "Erro ao Salvar", description: error.message || "Falha ao salvar o treinamento.", variant: "destructive" });
+      console.error("Error saving training:", error);
+      toast({ title: "Erro ao Salvar", description: error.message || "Falha ao salvar o treinamento.", variant: "destructive" });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
- const handleDelete = async (id: string) => {
-     setIsDeleting(id);
-     try {
-         await deleteTrainingRecord(id);
-         toast({ title: "Sucesso", description: "Treinamento excluído.", variant: "destructive" });
-         fetchData(); // Re-fetch data after deletion
-     } catch (error: any) {
-         console.error("Error deleting training:", error);
-         toast({ title: "Erro ao Excluir", description: error.message || "Falha ao excluir o treinamento.", variant: "destructive" });
-     } finally {
-         setIsDeleting(null);
-     }
- };
+  const handleDelete = async (id: string) => {
+    setIsDeleting(id);
+    try {
+      await deleteTrainingRecord(id);
+      toast({ title: "Sucesso", description: "Treinamento excluído.", variant: "destructive" });
+      fetchData(); // Re-fetch data after deletion
+    } catch (error: any) {
+      console.error("Error deleting training:", error);
+      toast({ title: "Erro ao Excluir", description: error.message || "Falha ao excluir o treinamento.", variant: "destructive" });
+    } finally {
+      setIsDeleting(null);
+    }
+  };
 
 
-   const getStatusBadgeVariant = (status: TrainingRecordStatus): "default" | "secondary" | "destructive" | "outline" => {
-     switch (status) {
-       case 'Valido': return 'default';
-       case 'Vencido': return 'destructive';
-       case 'Proximo_ao_Vencimento': return 'secondary';
-       default: return 'outline';
-     }
-   };
+  const getStatusBadgeVariant = (status: TrainingRecordStatus): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'Valido': return 'default';
+      case 'Vencido': return 'destructive';
+      case 'Proximo_ao_Vencimento': return 'secondary';
+      default: return 'outline';
+    }
+  };
 
-   const handleViewFile = (url: string | undefined, fileName: string) => {
-        if (url) {
-            // In a real app, open the actual URL or trigger download
-            // window.open(url, '_blank');
-            toast({
-                title: "Visualização Simulada",
-                description: `Abriria o arquivo: ${fileName} (${url})`,
-            });
-        } else {
-             toast({
-                 title: "Arquivo Indisponível",
-                 description: `Nenhum ${fileName} anexado.`,
-                 variant: "destructive"
-             });
-        }
-   };
-
+  const handleViewFile = (url: string | undefined, fileName: string) => {
+    if (url) {
+      toast({
+        title: "Visualização Simulada",
+        description: `Abriria o arquivo: ${fileName} (${url})`,
+      });
+    } else {
+      toast({
+        title: "Arquivo Indisponível",
+        description: `Nenhum ${fileName} anexado.`,
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -307,13 +305,13 @@ export default function TrainingsPage() {
                              Colaborador*
                          </Label>
                           <Select value={employeeId} onValueChange={setEmployeeId} required disabled={isSubmitting || isLoading}>
-                             <SelectTrigger id="employeeId" className="col-span-3">
-                                 <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o colaborador"} />
-                             </SelectTrigger>
-                             <SelectContent>
-                                {employees.map(emp => (
-                                    <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-                                ))}
+                            <SelectTrigger id="employeeId" className="col-span-3">
+                              <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o colaborador"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {employees.map(emp => (
+                                <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                              ))}
                                 {employees.length === 0 && !isLoading && <SelectItem value="" disabled>Nenhum colaborador cadastrado</SelectItem>}
                              </SelectContent>
                          </Select>
@@ -324,11 +322,11 @@ export default function TrainingsPage() {
                              Tipo*
                          </Label>
                          <Select value={trainingTypeId} onValueChange={setTrainingTypeId} required disabled={isSubmitting || isLoading}>
-                             <SelectTrigger id="trainingTypeId" className="col-span-3">
-                                 <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o tipo"} />
-                             </SelectTrigger>
-                             <SelectContent>
-                                {trainingTypes.map(type => (
+                          <SelectTrigger id="trainingTypeId" className="col-span-3">
+                            <SelectValue placeholder={isLoading ? "Carregando..." : "Selecione o tipo"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {trainingTypes.map(type => (
                                     <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                                 ))}
                                 {trainingTypes.length === 0 && !isLoading && <SelectItem value="" disabled>Nenhum tipo cadastrado</SelectItem>}
@@ -339,7 +337,7 @@ export default function TrainingsPage() {
                          <Label htmlFor="trainingDate" className="text-right">
                              Data*
                          </Label>
-                         <DatePicker date={trainingDate} setDate={setTrainingDate} className="col-span-3" required disabled={isSubmitting} />
+                        <DatePicker date={trainingDate} setDate={setTrainingDate} className="col-span-3" required disabled={isSubmitting} />
                      </div>
                      <div className="grid grid-cols-4 items-center gap-4">
                          <Label htmlFor="expiryDate" className="text-right">
@@ -350,32 +348,32 @@ export default function TrainingsPage() {
                      {/* Attendance List Upload */}
                       <div className="grid grid-cols-4 items-center gap-4">
                           <Label htmlFor="attendanceFile" className="text-right">
-                              Lista Presença
+                            Lista Presença
                           </Label>
                           <div className="col-span-3 flex items-center gap-2">
-                              <Input id="attendanceFile" type="file" onChange={handleAttendanceFileChange} className="flex-1" accept=".pdf,.doc,.docx,.jpg,.png" disabled={isSubmitting}/>
-                              {currentAttendanceListUrl && !attendanceListFile && (
-                                  <Button
-                                      type="button" variant="link" size="sm"
-                                      className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
-                                      onClick={() => handleViewFile(currentAttendanceListUrl, 'lista de presença atual')}
-                                      title={`Ver lista atual: ${currentAttendanceListUrl.split('/').pop()}`}
-                                      disabled={isSubmitting} >
-                                      Ver atual
-                                  </Button>
-                              )}
-                              {attendanceListFile && (
-                                  <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={attendanceListFile.name}>
-                                      {attendanceListFile.name}
-                                  </span>
-                              )}
+                            <Input id="attendanceFile" type="file" onChange={handleAttendanceFileChange} className="flex-1" accept=".pdf,.doc,.docx,.jpg,.png" disabled={isSubmitting}/>
+                            {currentAttendanceListUrl && !attendanceListFile && (
+                              <Button
+                                type="button" variant="link" size="sm"
+                                className="h-auto p-0 text-xs text-blue-600 hover:underline truncate max-w-[100px]"
+                                onClick={() => handleViewFile(currentAttendanceListUrl, 'lista de presença atual')}
+                                title={`Ver lista atual: ${currentAttendanceListUrl.split('/').pop()}`}
+                                disabled={isSubmitting} >
+                                Ver atual
+                              </Button>
+                            )}
+                            {attendanceListFile && (
+                              <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={attendanceListFile.name}>
+                                {attendanceListFile.name}
+                              </span>
+                            )}
                           </div>
-                      </div>
-                      {/* Certificate Upload */}
-                       <div className="grid grid-cols-4 items-center gap-4">
-                           <Label htmlFor="certificateFile" className="text-right">
-                               Certificado
-                           </Label>
+                        </div>
+                        {/* Certificate Upload */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="certificateFile" className="text-right">
+                            Certificado
+                          </Label>
                            <div className="col-span-3 flex items-center gap-2">
                                <Input id="certificateFile" type="file" onChange={handleCertificateFileChange} className="flex-1" accept=".pdf,.jpg,.png" disabled={isSubmitting}/>
                                {currentCertificateUrl && !certificateFile && (
@@ -396,7 +394,7 @@ export default function TrainingsPage() {
                            </div>
                        </div>
 
-                     <DialogFooter>
+                     <DialogFooter >
                           <DialogClose asChild>
                               <Button type="button" variant="outline" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
                           </DialogClose>
@@ -433,13 +431,13 @@ export default function TrainingsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Colaborador</TableHead>
-              <TableHead>Tipo de Treinamento</TableHead>
+              <TableHead className="hidden md:table-cell">Tipo de Treinamento</TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
-          </TableHeader>
+          </TableHeader >
           <TableBody>
              {isLoading ? (
                  <TableRow>
@@ -450,38 +448,38 @@ export default function TrainingsPage() {
                  </TableRow>
              ) : filteredTrainings.length > 0 ? (
               filteredTrainings.map((training) => (
-                <TableRow key={training.id} className={isDeleting === training.id ? 'opacity-50' : ''}>
+                <TableRow key={training.id} className={isDeleting === training.id ? 'opacity-50 transition-opacity duration-300' : 'transition-opacity duration-300'}>
                   <TableCell className="font-medium">{training.employeeName ?? 'N/A'}</TableCell>
-                  <TableCell>{training.trainingTypeName ?? 'N/A'}</TableCell>
+                  <TableCell className="hidden md:table-cell">{training.trainingTypeName ?? 'N/A'}</TableCell>
                   <TableCell>{format(new Date(training.trainingDate), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>{training.expiryDate ? format(new Date(training.expiryDate), 'dd/MM/yyyy') : 'N/A'}</TableCell>
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(training.status as TrainingRecordStatus)}>
-                      {(training.status === 'Proximo_ao_Vencimento' || training.status === 'Vencido') && <AlertTriangle className="inline-block h-3 w-3 mr-1" />}
-                      {training.status.replace('_', ' ')}
-                    </Badge>
+                      <Badge variant={getStatusBadgeVariant(training.status as TrainingRecordStatus)}>
+                        {(training.status === 'Proximo_ao_Vencimento' || training.status === 'Vencido') && <AlertTriangle className="inline-block h-3 w-3 mr-1" />}
+                        {training.status.replace('_', ' ')}
+                      </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-1">
-                     {/* View Buttons */}
-                    <Button variant="ghost" size="icon" title="Ver Lista de Presença" onClick={() => handleViewFile(training.attendanceListUrl || undefined, 'lista de presença')} disabled={!training.attendanceListUrl || isSubmitting || !!isDeleting}>
-                         <Users className={training.attendanceListUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
-                       </Button>
-                     <Button variant="ghost" size="icon" title="Ver Certificado" onClick={() => handleViewFile(training.certificateUrl || undefined, 'certificado')} disabled={!training.certificateUrl || isSubmitting || !!isDeleting}>
-                         <Award className={training.certificateUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
-                       </Button>
-                     {/* Edit and Delete Buttons */}
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(training)} title="Editar" disabled={isSubmitting || !!isDeleting}>
-                      <Edit className="h-4 w-4" />
+                  {/* View Buttons */}
+                    <Button variant="ghost" size="icon" title="Ver Lista de Presença" onClick={() => handleViewFile(training.attendanceListUrl || undefined, 'lista de presença')} disabled={!training.attendanceListUrl || isSubmitting || !!isDeleting} >
+                      <Users className={training.attendanceListUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
                     </Button>
-                     <AlertDialog>
-                         <AlertDialogTrigger asChild>
-                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Excluir" disabled={isSubmitting || !!isDeleting}>
-                                  {isDeleting === training.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
-                             </Button>
-                         </AlertDialogTrigger>
-                         <AlertDialogContent>
+                    <Button variant="ghost" size="icon" title="Ver Certificado" onClick={() => handleViewFile(training.certificateUrl || undefined, 'certificado')} disabled={!training.certificateUrl || isSubmitting || !!isDeleting}>
+                      <Award className={training.certificateUrl ? "h-4 w-4" : "h-4 w-4 text-muted-foreground/50"} />
+                    </Button>
+                  {/* Edit and Delete Buttons */}
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenForm(training)} title="Editar" disabled={isSubmitting || !!isDeleting}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Excluir" disabled={isSubmitting || !!isDeleting}>
+                        {isDeleting === training.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
                              <AlertDialogHeader>
-                                 <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                 <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                                  <AlertDialogDescription>
                                      Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro de treinamento para <span className="font-medium">{training.employeeName}</span> ({training.trainingTypeName}).
                                  </AlertDialogDescription>

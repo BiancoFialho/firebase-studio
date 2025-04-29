@@ -1,7 +1,7 @@
 // src/app/chemicals/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge"; // Optional for status/tags
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 // Data structure for Chemical Inventory
 interface ChemicalRecord {
@@ -49,6 +49,7 @@ export default function ChemicalsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ChemicalRecord | null>(null);
   const { toast } = useToast();
+  const [windowWidth, setWindowWidth] = useState<number>(0);
 
   // Form state
   const [productName, setProductName] = useState('');
@@ -57,6 +58,18 @@ export default function ChemicalsPage() {
   const [quantity, setQuantity] = useState<number>(0);
   const [unit, setUnit] = useState<ChemicalRecord['unit'] | ''>('');
   const [sdsUrl, setSdsUrl] = useState('');
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    setWindowWidth(window.innerWidth);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 768;
+
+  const tableClassName = isMobile ? "text-xs" : "text-sm";
+
   const [lastUpdated, setLastUpdated] = useState<Date | undefined>(new Date()); // Default to today
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,7 +163,7 @@ export default function ChemicalsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Inventário Químico</h1>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -243,83 +256,85 @@ export default function ChemicalsPage() {
         />
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableCaption>Inventário de produtos químicos.</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Produto Químico</TableHead>
-              <TableHead>Nº CAS</TableHead>
-              <TableHead>Localização</TableHead>
-              <TableHead>Quantidade</TableHead>
-              <TableHead>Unidade</TableHead>
-              <TableHead>Últ. Atualização</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredChemicalRecords.length > 0 ? (
-              filteredChemicalRecords.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell className="font-medium">{record.productName}</TableCell>
-                  <TableCell>{record.casNumber || '-'}</TableCell>
-                  <TableCell>{record.location}</TableCell>
-                  <TableCell>{record.quantity}</TableCell>
-                  <TableCell>{record.unit}</TableCell>
-                  <TableCell>{record.lastUpdated.toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell className="text-right space-x-1">
-                    {record.sdsUrl ? (
-                      <Button variant="ghost" size="icon" asChild>
-                        <a href={record.sdsUrl} target="_blank" rel="noopener noreferrer" title="Ver FISPQ">
-                          <FileText className="h-4 w-4" />
-                          <span className="sr-only">Ver FISPQ</span>
-                        </a>
-                      </Button>
-                    ) : (
-                       <Button variant="ghost" size="icon" disabled title="FISPQ não disponível">
-                           <FileText className="h-4 w-4 text-muted-foreground/50" />
-                           <span className="sr-only">FISPQ não disponível</span>
-                       </Button>
-                    )}
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)}>
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Editar</span>
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Excluir</span>
+      <ScrollArea className="border rounded-lg overflow-hidden">
+          <Table className={tableClassName}>
+            <TableCaption>Inventário de produtos químicos.</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Produto Químico</TableHead>
+                <TableHead>Nº CAS</TableHead>
+                <TableHead>Localização</TableHead>
+                <TableHead>Quantidade</TableHead>
+                <TableHead>Unidade</TableHead>
+                <TableHead>Últ. Atualização</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredChemicalRecords.length > 0 ? (
+                filteredChemicalRecords.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell className="font-medium">{record.productName}</TableCell>
+                    <TableCell>{record.casNumber || '-'}</TableCell>
+                    <TableCell>{record.location}</TableCell>
+                    <TableCell>{record.quantity}</TableCell>
+                    <TableCell>{record.unit}</TableCell>
+                    <TableCell>{record.lastUpdated.toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      {record.sdsUrl ? (
+                        <Button variant="ghost" size="icon" asChild>
+                          <a href={record.sdsUrl} target="_blank" rel="noopener noreferrer" title="Ver FISPQ">
+                            <FileText className="h-4 w-4" />
+                            <span className="sr-only">Ver FISPQ</span>
+                          </a>
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro do produto químico <span className="font-medium">{record.productName}</span>.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                      ) : (
+                        <Button variant="ghost" size="icon" disabled title="FISPQ não disponível">
+                          <FileText className="h-4 w-4 text-muted-foreground/50" />
+                          <span className="sr-only">FISPQ não disponível</span>
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenForm(record)}>
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Editar</span>
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Excluir</span>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Essa ação não pode ser desfeita. Isso excluirá permanentemente o registro do produto químico <span className="font-medium">{record.productName}</span>.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(record.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    Nenhum produto químico encontrado.
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  Nenhum produto químico encontrado.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              )}
+            </TableBody>
+          </Table>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+    
     </div>
   );
 }

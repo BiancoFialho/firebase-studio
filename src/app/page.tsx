@@ -3,24 +3,24 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { XAxis, YAxis, CartesianGrid,  } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { HardHat, ShieldCheck, Stethoscope, AlertTriangle, CheckCircle, Clock, Activity, Bug, Scale, Users, TrendingUp, TrendingDown, Calculator, Landmark, Target, FileCheck2, ListChecks } from 'lucide-react'; // Added ListChecks
+import { AlertTriangle, CheckCircle, Clock, Activity, Bug, Users, TrendingDown, Landmark, Target, FileCheck2, ListChecks } from 'lucide-react'; // Added ListChecks
 import type { AccidentRecord, OccupationalDiseaseRecord, LawsuitRecord, CipaMeetingRecord, StatisticsData, PreventiveAction } from '@/lib/types';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
-import { PieChart, Pie, Cell } from 'recharts';
-import { LineChart, Line } from 'recharts';
-import Link from 'next/link'; // Import Link
-import { Button } from '@/components/ui/button'; // Import Button
+import { PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 // --- Mock Data - Replace with actual data fetching and processing ---
 // Assume this data comes from respective pages or a central service
 
 const mockAccidents: AccidentRecord[] = [
-    { id: 'acc1', date: new Date(2024, 0, 15), employeeName: 'Carlos Pereira', department: 'Produção', location: 'Máquina XPTO', type: 'Leve', cause: 'Corte', daysOff: 2, description: 'Corte superficial no dedo ao manusear peça.', catIssued: true, investigationStatus: 'Concluida' },
+    { id: 'acc1', date: new Date(2024, 0, 15), employeeName: 'Carlos Pereira', department: 'Produção', location: 'Máquina XPTO', type: 'Leve', cause: 'Corte', daysOff: 2, description: 'Corte superficial no dedo ao manusear peça.', catIssued: true, investigationStatus: 'Concluida', time: '10:00' },
     { id: 'acc3', date: new Date(2024, 4, 20), time: '10:30', employeeName: 'João Silva', department: 'Manutenção', location: 'Painel Elétrico Z', type: 'Grave', cause: 'Choque_Eletrico', daysOff: 15, description: 'Contato acidental com fiação exposta durante manutenção.', catIssued: true, investigationStatus: 'Em_Andamento', cid10Code: 'T75.4' },
     { id: 'acc5', date: new Date(2024, 6, 10), employeeName: 'Ana Costa', department: 'Logística', location: 'Empilhadeira 2', type: 'Leve', cause: 'Impacto', daysOff: 0, description: 'Colisão leve com prateleira.', catIssued: false, investigationStatus: 'Concluida' },
     { id: 'acc6', date: new Date(2024, 7, 10), employeeName: 'Ana Costa', department: 'Logística', location: 'Empilhadeira 2', type: 'Leve', cause: 'Impacto', daysOff: 0, description: 'Colisão leve com prateleira.', catIssued: false, investigationStatus: 'Concluida' },
@@ -47,7 +47,7 @@ const NATIONAL_ACCIDENTS_2022 = 612920; // National data (example)
 const COMPANY_TF_TARGET = 15; // Company specific target for TF
 const mockPreventiveActions: PreventiveAction[] = [
   { id: 'pa1', description: 'Verificar validade dos protetores auriculares', category: 'EPI', responsible: 'Almoxarifado', dueDate: new Date(2024, 6, 17), status: 'Concluida', lastCompletedDate: new Date(2024, 6, 10) },
-  { id: 'pa2', description: 'Contratar palestra sobre ergonomia', category: 'Treinamento', responsible: 'RH', dueDate: new Date(2024, 7, 1), status: 'Em_Andamento', lastCompletedDate: new Date(2024, 5, 12) },
+  { id: 'pa2', description: 'Contratar palestra sobre ergonomia', category: 'Treinamento', responsible: 'RH', dueDate: new Date(2024, 7, 1), status: 'Em_Andamento', lastCompletedDate: new Date(2024, 5, 12)},
   { id: 'pa3', description: 'Revisar os extintores de incêndio.', category: 'Inspeção', responsible: 'Segurança', dueDate: new Date(2024, 8, 1), status: 'Em_Andamento', lastCompletedDate: new Date(2024, 7, 1) },
   { id: 'pa4', description: 'Verificar validade do treinamento de NR-35.', category: 'Treinamento', responsible: 'Segurança', dueDate: new Date(2024, 5, 17), status: 'Concluida', lastCompletedDate: new Date(2024, 5, 10) },
   { id: 'pa5', description: 'Criar um laudo ergonômico.', category: 'Documento', responsible: 'Segurança', dueDate: new Date(2023, 12, 17), status: 'Concluida', lastCompletedDate: new Date(2023, 11, 10) },
@@ -92,7 +92,7 @@ const asoChartConfig = {
     value: { label: "Quantidade" }, Válido: { label: "Válido", color: "hsl(var(--chart-1))" },
     "Próximo Venc.": { label: "Próximo Venc.", color: "hsl(var(--chart-2))" }, Vencido: { label: "Vencido", color: "hsl(var(--destructive))" },
 } satisfies ChartConfig;
-const incidentChartConfig = { incidents: { label: "Acidentes", color: "hsl(var(--destructive))" } } satisfies ChartConfig;
+const incidentChartConfig = { incidents: { label: "Acidentes", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
 
 
 export default function HomePage() {
@@ -187,13 +187,13 @@ export default function HomePage() {
   return (
     // Adjusted main container spacing
     <div className="space-y-8 xl:space-y-10">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard BI - Indicadores Chave (KPIs)</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Dashboard - Indicadores Chave (KPIs)</h1>
       <p className="text-muted-foreground">
         Análise visual dos indicadores chave de Segurança, Saúde e Meio Ambiente ({calculatedStats.period}).
       </p>
 
       {/* --- KPI Row --- Adjusted grid for responsiveness */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ">
          <Card className="bg-card border-l-4 border-destructive">
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
              <CardTitle className="text-sm font-medium">Acidentes no Período</CardTitle>
@@ -220,13 +220,13 @@ export default function HomePage() {
              </p>
            </CardContent>
          </Card>
-        <Card className={`bg-card border-l-4 ${calculatedStats.tf !== null && calculatedStats.tf > COMPANY_TF_TARGET ? 'border-destructive' : 'border-green-600'}`}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Frequência (TF)</CardTitle>
-             <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
+        <Card className={`bg-card border-l-4 ${calculatedStats.tf !== null && calculatedStats.tf > COMPANY_TF_TARGET ? 'border-destructive' : 'border-green-600'}`}>          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taxa de Frequência (TF)</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{calculatedStats.tf?.toFixed(2) ?? 'N/A'}</div>
+            <div className="text-2xl font-bold">
+                {calculatedStats.tf?.toFixed(2) ?? 'N/A'}</div>
             <p className={`text-xs ${tfTargetComparisonColor}`}>
                  {tfTargetComparison} ({COMPANY_TF_TARGET})
             </p>
@@ -257,11 +257,11 @@ export default function HomePage() {
            </CardContent>
          </Card>
           <Card className="bg-card border-l-4 border-blue-500">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Reuniões CIPA</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Reuniões CIPA</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
                   <div className="text-lg font-bold">Agendadas: {calculatedStats.cipaMeetingsStatus?.Agendada ?? '0'}</div>
                   <div className="text-lg font-bold">Realizadas: {calculatedStats.cipaMeetingsStatus?.Realizada ?? '0'}</div>
                   <div className="text-lg font-bold">Canceladas: {calculatedStats.cipaMeetingsStatus?.Cancelada ?? '0'}</div>
@@ -290,7 +290,7 @@ export default function HomePage() {
       </div>
 
       {/* --- Charts and Tables Row --- Adjusted grid for better spacing */}
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3 xl:gap-8">
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
 
           {/* Accident Trend Chart */}
           <Card className="xl:col-span-2">
@@ -331,6 +331,7 @@ export default function HomePage() {
             </CardContent>
           </Card>
 
+          <Separator className="xl:hidden"/>
 
          {/* Action Plan / Compliance Table */}
          <Card className="xl:col-span-3">
@@ -382,7 +383,7 @@ export default function HomePage() {
           </Card>
 
           {/* Overdue Preventive Actions */}
-         <Card className="lg:col-span-1 xl:col-span-2">
+         <Card className="lg:col-span-1 xl:col-span-2 ">
              <CardHeader>
                   <div className="flex items-center justify-between">
                      <div className="flex items-center gap-2">
@@ -396,7 +397,7 @@ export default function HomePage() {
                    <CardDescription>Ações preventivas que passaram do prazo.</CardDescription>
              </CardHeader>
              <CardContent>
-                  <div className="border rounded-lg overflow-hidden">
+                  <div className="border rounded-lg">
                       <Table>
                           <TableHeader>
                               <TableRow>
@@ -419,12 +420,13 @@ export default function HomePage() {
                               )}
                           </TableBody>
                       </Table>
-                  </div>
+                     </div>
              </CardContent>
          </Card>
 
+          <Separator className="xl:hidden"/>
           {/* Upcoming Preventive Actions */}
-         <Card className="lg:col-span-1 xl:col-span-1">
+         <Card className="lg:col-span-1 xl:col-span-1 ">
              <CardHeader>
                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -435,7 +437,7 @@ export default function HomePage() {
                   <CardDescription>Ações preventivas pendentes ou em andamento.</CardDescription>
              </CardHeader>
              <CardContent>
-                   <div className="border rounded-lg overflow-hidden">
+                   <div className="border rounded-lg">
                        <Table>
                            <TableHeader>
                                <TableRow>
@@ -456,20 +458,21 @@ export default function HomePage() {
                                )}
                            </TableBody>
                        </Table>
-                       {upcomingActions.length > 3 && (
-                            <div className="text-center py-2">
-                               <Button variant="link" size="sm" asChild>
-                                  <Link href="/prevention">Ver mais...</Link>
-                               </Button>
-                           </div>
-                       )}
-                   </div>
+                    </div>
              </CardContent>
+                 {upcomingActions.length > 3 && (
+                     <CardFooter className="pt-0 pb-4">
+                         <Button variant="link" size="sm" asChild>
+                             <Link href="/prevention">Ver mais...</Link>
+                         </Button>
+                     </CardFooter>
+                 )}
          </Card>
 
 
 
       </div>
+          <Separator/>
 
 
        {/* --- Footer Notes --- */}

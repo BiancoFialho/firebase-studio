@@ -1,7 +1,7 @@
 // src/app/cadastros/treinamentos/page.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, ChangeEvent, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,9 +21,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { TrainingType as PrismaTrainingType } from '@prisma/client';
-// Adjust action import path to reflect new location if actions remain shared
+import { TrainingType as PrismaTrainingType } from '@prisma/client';
 import { getTrainingTypes, createTrainingType, updateTrainingType, deleteTrainingType } from '@/app/trainings/actions';
+import { cn } from '@/lib/utils';
 
 type TrainingType = PrismaTrainingType;
 
@@ -59,7 +59,7 @@ export default function TrainingTypesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [getTrainingTypes, toast]);
 
   useEffect(() => {
     fetchData();
@@ -69,10 +69,10 @@ export default function TrainingTypesPage() {
     setSearchTerm(event.target.value);
   };
 
-  const filteredTrainingTypes = useMemo(() => trainingTypes.filter((type) =>
-    type.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (type.description?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
-  ), [trainingTypes, searchTerm]);
+  const filteredTrainingTypes = useMemo(() => trainingTypes.filter((type) => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return type.name.toLowerCase().includes(lowerSearchTerm) || (type.description?.toLowerCase() ?? '').includes(lowerSearchTerm);
+  }), [trainingTypes, searchTerm]);
 
   const resetForm = () => {
     setName('');
@@ -101,13 +101,13 @@ export default function TrainingTypesPage() {
         setInstructorsJson(instructors.join(', '));
       } catch { setInstructorsJson(''); }
       try {
-          const nrs = type.requiredNrsJson ? JSON.parse(type.requiredNrsJson) : [];
-          setRequiredNrsJson(nrs.join(', '));
+        const nrs = type.requiredNrsJson ? JSON.parse(type.requiredNrsJson) : [];
+        setRequiredNrsJson(nrs.join(', '));
       } catch { setRequiredNrsJson(''); }
 
     } else {
       resetForm();
-    }
+    } 
     setIsFormOpen(true);
   };
 
@@ -116,46 +116,45 @@ export default function TrainingTypesPage() {
     resetForm();
   };
 
-   // Helper to convert comma-separated string to JSON array string
-   const convertToJsonArrayString = (inputString: string): string | null => {
-        if (!inputString.trim()) return null;
-        try {
-            const array = inputString.split(',').map(s => s.trim()).filter(s => s);
-            return JSON.stringify(array);
-        } catch (e) {
-            return null; // Indicate error if conversion fails
-        }
-    };
+  // Helper to convert comma-separated string to JSON array string
+  const convertToJsonArrayString = (inputString: string): string | null => {
+    if (!inputString.trim()) return null;
+    try {
+      const array = inputString.split(',').map(s => s.trim()).filter(s => s);
+      return JSON.stringify(array);
+    } catch (e) {
+      return null; // Indicate error if conversion fails
+    }
+  };
 
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!name) {
       toast({ title: "Erro", description: "O nome do treinamento é obrigatório.", variant: "destructive" });
       return;
     }
     setIsSubmitting(true);
-
+  
     const instructorsData = convertToJsonArrayString(instructorsJson);
     const nrsData = convertToJsonArrayString(requiredNrsJson);
 
-     if (instructorsJson.trim() && instructorsData === null) {
-         toast({ title: "Erro de Formato", description: "Formato inválido para instrutores (use vírgula para separar).", variant: "destructive" });
-         setIsSubmitting(false);
-         return;
-     }
-     if (requiredNrsJson.trim() && nrsData === null) {
-          toast({ title: "Erro de Formato", description: "Formato inválido para NRs (use vírgula para separar).", variant: "destructive" });
-          setIsSubmitting(false);
-          return;
-      }
-
+    if (instructorsJson.trim() && instructorsData === null) {
+      toast({ title: "Erro de Formato", description: "Formato inválido para instrutores (use vírgula para separar).", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
+    if (requiredNrsJson.trim() && nrsData === null) {
+      toast({ title: "Erro de Formato", description: "Formato inválido para NRs (use vírgula para separar).", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
 
     const typeData = {
       name,
       description: description || null,
       validityMonths: validityMonths || null,
-      requiredNrsJson: nrsData, // Use converted JSON string
+      requiredNrsJson: nrsData,
       defaultDuration: defaultDuration || null,
       defaultLocation: defaultLocation || null,
       defaultCost: defaultCost || null,
@@ -167,7 +166,7 @@ export default function TrainingTypesPage() {
         await updateTrainingType(editingType.id, typeData);
         toast({ title: "Sucesso", description: "Tipo de treinamento atualizado." });
       } else {
-        // Ensure required fields for creation are present (name is already checked)
+
         await createTrainingType(typeData as PrismaTrainingType); // Cast might be needed if optional fields aren't handled perfectly by Prisma types
         toast({ title: "Sucesso", description: "Novo tipo de treinamento criado." });
       }
@@ -175,7 +174,7 @@ export default function TrainingTypesPage() {
       fetchData(); // Re-fetch data
     } catch (error: any) {
       console.error("Error saving training type:", error);
-      toast({ title: "Erro", description: error.message || "Falha ao salvar o tipo de treinamento.", variant: "destructive" });
+      toast({ title: "Erro", description: error.message || "Falha ao salvar o tipo de treinamento.", variant: "destructive" })
     } finally {
       setIsSubmitting(false);
     }
@@ -188,27 +187,26 @@ export default function TrainingTypesPage() {
       toast({ title: "Sucesso", description: "Tipo de treinamento excluído.", variant: "destructive" });
       fetchData(); // Re-fetch data after deletion
     } catch (error: any) {
-      console.error("Error deleting training type:", error);
-      toast({ title: "Erro", description: error.message || "Falha ao excluir o tipo de treinamento.", variant: "destructive" });
+      toast({ title: "Erro", description: error.message || "Falha ao excluir o tipo de treinamento.", variant: "destructive" })
     } finally {
       setIsDeleting(null);
     }
   };
 
   // Helper to display JSON array string safely
-  const displayJsonArray = (jsonString: string | null | undefined): string => {
-        if (!jsonString) return '-';
-        try {
-            const array = JSON.parse(jsonString);
-            return Array.isArray(array) ? array.join(', ') : '-';
-        } catch {
-            return 'Erro no formato';
-        }
-    };
+  const displayJsonArray = (jsonString: string | null | undefined): string => {        
+    if (!jsonString) return '-';
+    try {
+      const array = JSON.parse(jsonString);
+      return Array.isArray(array) ? array.join(', ') : '-';
+    } catch {
+      return 'Erro no formato';
+    }
+  };
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
          <div className="flex items-center gap-2">
            <GraduationCap className="w-8 h-8 text-primary" />
@@ -216,8 +214,8 @@ export default function TrainingTypesPage() {
          </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Tipo
+            <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting} className="gap-2">
+              <PlusCircle className="h-4 w-4" /> Adicionar Tipo
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-2xl" onInteractOutside={(e) => e.preventDefault()}>
@@ -226,48 +224,47 @@ export default function TrainingTypesPage() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {/* Name */}
-                   <div className="space-y-1 md:col-span-2">
-                     <Label htmlFor="name">Nome*</Label>
-                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required disabled={isSubmitting} />
-                   </div>
-                   {/* Description */}
-                   <div className="space-y-1 md:col-span-2">
-                     <Label htmlFor="description">Descrição</Label>
-                     <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={isSubmitting} />
-                   </div>
-                   {/* Validity Months */}
+                  {/* Name */}
+                  <div className="space-y-1 md:col-span-2">
+                    <Label htmlFor="name">Nome*</Label>
+                    <Input id="name" value={name} onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)} required disabled={isSubmitting} />
+                  </div>
+                  {/* Description */}
+                  <div className="space-y-1 md:col-span-2">
+                    <Label htmlFor="description">Descrição</Label>
+                    <Textarea id="description" value={description} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)} rows={3} disabled={isSubmitting} />
+                  </div>
+                  {/* Validity Months */}
                   <div className="space-y-1">
                     <Label htmlFor="validityMonths">Validade (meses)</Label>
-                    <Input id="validityMonths" type="number" min="0" value={validityMonths ?? ''} onChange={(e) => setValidityMonths(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 12)" disabled={isSubmitting} />
+                    <Input id="validityMonths" type="number" min="0" value={validityMonths ?? ''} onChange={(e: ChangeEvent<HTMLInputElement>) => setValidityMonths(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 12)" disabled={isSubmitting} />
                   </div>
                   {/* Default Duration */}
                   <div className="space-y-1">
                     <Label htmlFor="defaultDuration">Carga Horária Padrão (h)</Label>
-                    <Input id="defaultDuration" type="number" min="0" value={defaultDuration ?? ''} onChange={(e) => setDefaultDuration(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 8)" disabled={isSubmitting} />
+                    <Input id="defaultDuration" type="number" min="0" value={defaultDuration ?? ''} onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultDuration(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 8)" disabled={isSubmitting} />
                   </div>
                   {/* Required NRs */}
                   <div className="space-y-1 md:col-span-2">
                     <Label htmlFor="requiredNrsJson">NRs Obrigatórias (separadas por vírgula)</Label>
-                    <Input id="requiredNrsJson" value={requiredNrsJson} onChange={(e) => setRequiredNrsJson(e.target.value)} placeholder="Ex: NR-35, NR-10" disabled={isSubmitting} />
+                    <Input id="requiredNrsJson" value={requiredNrsJson} onChange={(e: ChangeEvent<HTMLInputElement>) => setRequiredNrsJson(e.target.value)} placeholder="Ex: NR-35, NR-10" disabled={isSubmitting} />
                   </div>
                   {/* Default Location */}
                   <div className="space-y-1">
                     <Label htmlFor="defaultLocation">Local Padrão</Label>
-                    <Input id="defaultLocation" value={defaultLocation} onChange={(e) => setDefaultLocation(e.target.value)} placeholder="Opcional (ex: Online)" disabled={isSubmitting} />
+                    <Input id="defaultLocation" value={defaultLocation} onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultLocation(e.target.value)} placeholder="Opcional (ex: Online)" disabled={isSubmitting} />
                   </div>
                   {/* Default Cost */}
-                   <div className="space-y-1">
-                     <Label htmlFor="defaultCost">Custo Padrão (R$)</Label>
-                     <Input id="defaultCost" type="number" min="0" step="0.01" value={defaultCost ?? ''} onChange={(e) => setDefaultCost(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 150.00)" disabled={isSubmitting} />
-                   </div>
-                   {/* Instructors */}
-                   <div className="space-y-1 md:col-span-2">
-                     <Label htmlFor="instructorsJson">Instrutores Padrão (separados por vírgula)</Label>
-                     <Input id="instructorsJson" value={instructorsJson} onChange={(e) => setInstructorsJson(e.target.value)} placeholder="Ex: João Silva, Empresa XYZ" disabled={isSubmitting} />
-                   </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="defaultCost">Custo Padrão (R$)</Label>
+                    <Input id="defaultCost" type="number" min="0" step="0.01" value={defaultCost ?? ''} onChange={(e: ChangeEvent<HTMLInputElement>) => setDefaultCost(e.target.value ? Number(e.target.value) : undefined)} placeholder="Opcional (ex: 150.00)" disabled={isSubmitting} />
+                  </div>
+                  {/* Instructors */}
+                  <div className="space-y-1 md:col-span-2">
+                    <Label htmlFor="instructorsJson">Instrutores Padrão (separados por vírgula)</Label>
+                    <Input id="instructorsJson" value={instructorsJson} onChange={(e: ChangeEvent<HTMLInputElement>) => setInstructorsJson(e.target.value)} placeholder="Ex: João Silva, Empresa XYZ" disabled={isSubmitting} />
+                  </div>
                 </div>
-
               <DialogFooter className="mt-4">
                 <DialogClose asChild>
                   <Button type="button" variant="outline" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
@@ -286,10 +283,10 @@ export default function TrainingTypesPage() {
         <Input
           type="search"
           placeholder="Buscar por nome ou descrição..."
-          className="pl-8 w-full sm:w-1/2 md:w-1/3"
+          className="pl-8 w-full sm:w-1/2 md:w-1/3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           value={searchTerm}
           onChange={handleSearch}
-          disabled={isLoading}
+          disabled={isLoading}          
         />
       </div>
 
@@ -318,25 +315,23 @@ export default function TrainingTypesPage() {
             ) : filteredTrainingTypes.length > 0 ? (
               filteredTrainingTypes.map((type) => (
                 <TableRow key={type.id} className={isDeleting === type.id ? 'opacity-50' : ''}>
-                  <TableCell className="font-medium">{type.name}</TableCell>
+                  <TableCell className="font-medium max-w-[150px] truncate">{type.name}</TableCell>
                   <TableCell>{type.validityMonths ?? '-'}</TableCell>
                   <TableCell>{type.defaultDuration ?? '-'}</TableCell>
-                  <TableCell className="max-w-[150px] truncate" title={displayJsonArray(type.requiredNrsJson)}>
-                    {displayJsonArray(type.requiredNrsJson)}
+                  <TableCell className="max-w-[150px] truncate" title={displayJsonArray(type.requiredNrsJson)}>                    
+                    {displayJsonArray(type.requiredNrsJson)}                    
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={displayJsonArray(type.instructorsJson)}>
-                      {displayJsonArray(type.instructorsJson)}
-                  </TableCell>
-                  {/* <TableCell className="max-w-xs truncate" title={type.description ?? ''}>{type.description ?? '-'}</TableCell> */}
+                  <TableCell className="max-w-[200px] truncate" title={displayJsonArray(type.instructorsJson)}>                    
+                    {displayJsonArray(type.instructorsJson)}
+                  </TableCell>                  
                   <TableCell className="text-right space-x-1">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(type)} disabled={isSubmitting || !!isDeleting}>
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(type)} disabled={isSubmitting || !!isDeleting} aria-label="Editar">
                       <Edit className="h-4 w-4" />
-                      <span className="sr-only">Editar</span>
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" disabled={isSubmitting || !!isDeleting}>
-                          {isDeleting === type.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        <Button variant="ghost" size="icon" className={cn("text-destructive hover:text-destructive hover:bg-destructive/10", isDeleting === type.id ? "cursor-wait" : "")} disabled={isSubmitting || !!isDeleting} aria-label="Excluir">
+                          {isDeleting === type.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}                          
                           <span className="sr-only">Excluir</span>
                         </Button>
                       </AlertDialogTrigger>

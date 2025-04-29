@@ -1,15 +1,15 @@
 // src/app/cadastros/colaboradores/page.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { DatePicker } from '@/components/date-picker';
+import { DatePicker } from '@/components/date-picker';import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Search, Edit, Trash2, Loader2, Users } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Prisma, Employee as PrismaEmployee } from '@prisma/client';
+import { format } from 'date-fns';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,13 +21,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Prisma, Employee as PrismaEmployee } from '@prisma/client';
-import { format } from 'date-fns';
 import { createEmployee, getEmployees, updateEmployee, deleteEmployee } from './actions'; // Import server actions
 
 type Employee = PrismaEmployee;
 
-export default function ColaboradoresPage() {
+const ColaboradoresPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -49,7 +47,7 @@ export default function ColaboradoresPage() {
     try {
       const fetchedEmployees = await getEmployees();
       setEmployees(fetchedEmployees);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching employees:", error);
       toast({ title: "Erro", description: "Não foi possível buscar os colaboradores.", variant: "destructive" });
     } finally {
@@ -60,13 +58,16 @@ export default function ColaboradoresPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  
+    const handleSearch = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(event.target.value);
+    }, []);
+  
+    const filteredEmployees = useMemo(() => {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      return employees.filter((employee) =>
+      employee.name.toLowerCase().includes(lowerCaseSearchTerm) ||
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
-
-  const filteredEmployees = useMemo(() => employees.filter((employee) =>
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (employee.department?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
     (employee.position?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
   ), [employees, searchTerm]);
@@ -141,24 +142,24 @@ export default function ColaboradoresPage() {
       toast({ title: "Erro", description: error.message || "Falha ao excluir o colaborador. Verifique se ele possui registros vinculados.", variant: "destructive" });
     } finally {
       setIsDeleting(null);
-    }
+  }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Users className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight">Cadastro de Colaboradores</h1>
-        </div>
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-2 text-primary">
+          <Users className="w-8 h-8" />
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Cadastro de Colaboradores</h1>
+      </div>
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Colaborador
+            <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting} className="flex items-center justify-center gap-2">
+              <PlusCircle className="h-4 w-4" /> Adicionar
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
-            <DialogHeader>
+        </DialogTrigger>
+          <DialogContent className="sm:max-w-md md:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
               <DialogTitle>{editingEmployee ? 'Editar Colaborador' : 'Adicionar Novo Colaborador'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -184,10 +185,10 @@ export default function ColaboradoresPage() {
               </div>
 
               <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" onClick={handleCloseForm} disabled={isSubmitting}>Cancelar</Button>
-                </DialogClose>
-                <Button type="submit" disabled={isSubmitting}>
+              <DialogClose asChild>
+                  <Button type="button" variant="outline" onClick={handleCloseForm} disabled={isSubmitting} className="px-4 py-2">Cancelar</Button>
+              </DialogClose>
+              <Button type="submit" disabled={isSubmitting} className="px-4 py-2">
                   {isSubmitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>) : editingEmployee ? 'Salvar Alterações' : 'Adicionar'}
                 </Button>
               </DialogFooter>
@@ -196,16 +197,17 @@ export default function ColaboradoresPage() {
         </Dialog>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="relative mt-4">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Buscar por nome, departamento ou cargo..."
-          className="pl-8 w-full sm:w-1/2 md:w-1/3"
+          placeholder="Buscar colaboradores..."
+          className="pl-9 w-full md:w-1/3"
           value={searchTerm}
           onChange={handleSearch}
           disabled={isLoading}
         />
+
       </div>
 
       <div className="border rounded-lg overflow-hidden">
@@ -224,8 +226,8 @@ export default function ColaboradoresPage() {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
-                  Carregando...
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" /> Carregando...
+
                 </TableCell>
               </TableRow>
             ) : filteredEmployees.length > 0 ? (
@@ -235,12 +237,12 @@ export default function ColaboradoresPage() {
                   <TableCell>{employee.department ?? '-'}</TableCell>
                   <TableCell>{employee.position ?? '-'}</TableCell>
                   <TableCell>{employee.hireDate ? format(new Date(employee.hireDate), 'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell className="text-right space-x-1">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(employee)} disabled={isSubmitting || !!isDeleting}>
-                      <Edit className="h-4 w-4" />
+                  <TableCell className="text-right space-x-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(employee)} disabled={isSubmitting || !!isDeleting} className="h-8 w-8">
+                      <Edit className="h-4 w-4 " />
                       <span className="sr-only">Editar</span>
                     </Button>
-                    <AlertDialog>
+                  <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" disabled={isSubmitting || !!isDeleting}>
                           {isDeleting === employee.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -278,4 +280,5 @@ export default function ColaboradoresPage() {
       </div>
     </div>
   );
-}
+};
+export default ColaboradoresPage;

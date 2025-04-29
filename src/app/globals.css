@@ -3,12 +3,38 @@
 @tailwind utilities;
 
 body {
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Added fallbacks */
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  line-height: 1.6;
+  min-height: 100vh;
+  
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+/* Improve general spacing and padding */
+body,
+html {
+  padding: 0;
+  margin: 0;
 }
 
 @layer base {
   :root {
-    /* Light Theme - Clean & Modern */
+    /* Light Theme - Modern and Professional */
     --background: 0 0% 100%; /* White */
     --foreground: 240 10% 3.9%; /* Very Dark Gray */
     --card: 0 0% 100%; /* White */
@@ -34,7 +60,7 @@ body {
     --chart-4: 180 80% 35%; /* Darker Teal */
     --chart-5: 38.8 90% 60%; /* Lighter Orange */
     --radius: 0.5rem;
-
+ 
     /* Sidebar Specific Colors - Light Mode */
     --sidebar-background: 240 4.8% 97%; /* Slightly off-white/very light gray */
     --sidebar-foreground: 240 10% 3.9%; /* Dark Gray */
@@ -47,8 +73,8 @@ body {
   }
 
   .dark {
-    /* Dark Theme - Clean & Modern */
-    --background: 240 10% 3.9%; /* Very Dark Blue/Gray */
+    /* Dark Theme - Modern and Professional */
+    --background: 240 10% 3.9%; /* Very Dark Gray */
     --foreground: 0 0% 98%; /* Light Gray */
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
@@ -93,4 +119,28 @@ body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1; /* Enable ligatures */
   }
+  
+  /* Ensure consistent font sizes across different screen sizes */
+  body {
+    @apply text-base md:text-lg lg:text-xl;
+  }
 }
+
+@layer utilities {
+  .dashboard-content {
+    @apply p-4 md:p-8 lg:p-10 w-full;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1400px; /* Wider content area */
+  }
+
+  .sidebar-transition {
+    transition: all 0.3s ease-in-out;
+  }
+
+  /* Ensure the sidebar does not overflow on smaller screens */
+  .no-sidebar-overflow {
+    overflow-x: hidden;
+  }
+}
+/* Improve general spacing and padding */

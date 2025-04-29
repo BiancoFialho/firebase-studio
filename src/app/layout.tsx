@@ -19,7 +19,7 @@ import {
     SidebarSubmenuItem,
     SidebarSubmenuTrigger,
     SidebarSubmenuContent,
-    SidebarSeparator, // Import SidebarSeparator
+    SidebarSeparator,
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import {
@@ -54,7 +54,7 @@ export default function RootLayout({
        </head>
        {/* Use the font variables correctly */}
       <body className={cn(geistSans.variable, geistMono.variable, 'antialiased')} suppressHydrationWarning={true}>
-         <SidebarProvider>
+          <SidebarProvider>
            <div className="flex min-h-svh"> {/* Added flex container */}
              <Sidebar collapsible="icon" variant="sidebar" side="left" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
                <SidebarHeader className="flex items-center justify-between p-3 border-b border-sidebar-border">
@@ -63,13 +63,13 @@ export default function RootLayout({
                    <span className="font-semibold text-lg text-primary">EHS Control</span>
                  </Link>
                   <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
-               </SidebarHeader>
+              </SidebarHeader>
 
                {/* Adjusted Sidebar Content padding and menu gap */}
                <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-1 group-data-[collapsible=icon]:p-2">
                  <SidebarMenu className="gap-1"> {/* Increased gap slightly */}
                    {/* Dashboard Link */}
-                   <SidebarMenuItem>
+                    <SidebarMenuItem>
                       <SidebarMenuButton asChild tooltip="Dashboard BI">
                         <Link href="/">
                           <LayoutDashboard />
@@ -80,11 +80,11 @@ export default function RootLayout({
 
                     {/* --- Cadastros Section --- */}
                     <SidebarSubmenu>
-                       <SidebarSubmenuItem value="cadastros">
-                           <SidebarSubmenuTrigger tooltip="Cadastros">
+                         <SidebarSubmenuItem value="cadastros">
+                           <SidebarSubmenuTrigger className="group-data-[collapsible=icon]:justify-center" tooltip="Cadastros">
                              <ListPlus />
-                             <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
-                           </SidebarSubmenuTrigger>
+                               <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
+                            </SidebarSubmenuTrigger>
                            <SidebarSubmenuContent>
                              <SidebarMenuItem>
                                <SidebarMenuButton asChild tooltip="Colaboradores">
@@ -120,7 +120,7 @@ export default function RootLayout({
                              </SidebarMenuItem>
                            </SidebarSubmenuContent>
                        </SidebarSubmenuItem>
-                     </SidebarSubmenu>
+                    </SidebarSubmenu>
 
                     <SidebarSeparator /> {/* Use dedicated separator */}
 
@@ -132,7 +132,7 @@ export default function RootLayout({
                            <span className="group-data-[collapsible=icon]:hidden">Treinamentos</span>
                          </Link>
                       </SidebarMenuButton>
-                   </SidebarMenuItem>
+                    </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild tooltip="EPIs">
                         <Link href="/ppe">
@@ -193,7 +193,7 @@ export default function RootLayout({
                      <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
                        <Link href="/prevention">
                          <Users />
-                         <span className="group-data-[collapsible=icon]:hidden">Prevenção (CIPA)</span>
+                         <span className="group-data-[collapsible=icon]:hidden">Prevenção</span>
                        </Link>
                      </SidebarMenuButton>
                    </SidebarMenuItem>
@@ -249,14 +249,14 @@ export default function RootLayout({
                      </SidebarMenuButton>
                    </SidebarMenuItem>
                  </SidebarMenu>
-               </SidebarFooter>
-             </Sidebar>
+               </SidebarFooter> 
+            </Sidebar>
 
              {/* Main Content Area */}
              <SidebarInset>
                {/* Adjusted header height and padding */}
                <header className="flex items-center justify-between p-4 border-b sticky top-0 bg-background/80 backdrop-blur-sm z-10 md:justify-end"> {/* Adjusted BG opacity */}
-                  {/* Trigger for desktop moved to the right */}
+                  {/* Trigger for desktop moved to the right */} 
                   <SidebarTrigger className="hidden md:flex"/>
                  {/* Placeholder for potential header content like user profile */}
                  <div className="flex items-center gap-4 md:hidden"> {/* Only show company name on mobile header */}
@@ -270,7 +270,7 @@ export default function RootLayout({
              </SidebarInset>
            </div>
          </SidebarProvider>
-          <Toaster />
+         <Toaster />
       </body>
     </html>
   );

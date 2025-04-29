@@ -2,19 +2,19 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useForm, Controller, SubmitHandler } from 'react-hook-form';
+import { useForm, Controller, SubmitHandler, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/date-picker';
-import { PlusCircle, Search, Edit, Trash2, TrendingUp, BarChartHorizontalBig, AlertCircle, Calculator, Loader2 } from 'lucide-react'; // Added Loader2
+import { PlusCircle, Search, Edit, Trash2, TrendingUp, AlertCircle, Calculator, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -27,13 +27,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { Prisma, AccidentRecord as PrismaAccidentRecord, Employee as PrismaEmployee } from '@prisma/client';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
+import { AccidentRecord as PrismaAccidentRecord } from '@prisma/client';
 // Import string union types defined in lib/types.ts for frontend validation
-import type { AccidentType, AccidentCause, InvestigationStatus, EmployeeSelectItem } from '@/lib/types';
+import type { AccidentType, AccidentCause, InvestigationStatus, EmployeeSelectItem, } from '@/lib/types';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { createAccident, getAccidents, updateAccident, deleteAccident, getEmployees } from './actions'; // Import server actions
@@ -86,7 +86,6 @@ export default function StatisticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false); // For form submission state
   const [isDeleting, setIsDeleting] = useState<string | null>(null); // Track deleting ID
-  const [totalHoursWorked, setTotalHoursWorked] = useState<number>(mockHoursWorked);
 
 
   const { register, handleSubmit, control, reset, setValue, formState: { errors, isDirty } } = useForm<AccidentFormData>({
@@ -104,6 +103,9 @@ export default function StatisticsPage() {
         investigationStatus: "Pendente", // Default string value
     }
   });
+
+  // Access totalHoursWorked from the form state
+  const totalHoursWorked = useWatch({ control, name: "totalHoursWorked", defaultValue: mockHoursWorked });
 
 
   // --- Data Fetching ---
@@ -385,7 +387,7 @@ export default function StatisticsPage() {
            <Card className="md:col-span-2 lg:col-span-4">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Horas Homem Trabalhadas (HHT) no Período</CardTitle>
-                <CardDescription>Valor base para cálculo das taxas. Ajuste conforme necessário.</CardDescription>
+                <CardDescription className='text-muted-foreground'>Valor base para cálculo das taxas. Ajuste conforme necessário.</CardDescription>
               </CardHeader>
               <CardContent className="flex items-center gap-2">
                 <Input
@@ -452,9 +454,11 @@ export default function StatisticsPage() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-2xl font-semibold">Registros de Acidentes</h2>
+           {/* Dialog Form */}
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting}>
+               {/* Open Button */}
+              <Button onClick={() => handleOpenForm()} disabled={isLoading || isSubmitting} size={"sm"} >
                 <PlusCircle className="mr-2 h-4 w-4" /> Registrar Acidente
               </Button>
             </DialogTrigger>
@@ -462,6 +466,7 @@ export default function StatisticsPage() {
               <DialogHeader>
                 <DialogTitle>{editingRecordId ? 'Editar Registro de Acidente' : 'Registrar Novo Acidente'}</DialogTitle>
               </DialogHeader>
+              {/* Form */}
               <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                    {/* Date */}
@@ -591,7 +596,7 @@ export default function StatisticsPage() {
                             control={control}
                             name="catIssued"
                             render={({ field }) => (
-                               <Checkbox id="catIssued" checked={field.value} onCheckedChange={field.onChange} disabled={isSubmitting}/>
+                               <Checkbox id="catIssued" checked={field.value} onCheckedChange={field.onChange} disabled={isSubmitting} />
                             )}
                          />
                          <Label htmlFor="catIssued">Comunicação de Acidente de Trabalho (CAT) Emitida?</Label>
@@ -662,7 +667,7 @@ export default function StatisticsPage() {
                   <TableRow key={record.id} className={isDeleting === record.id ? 'opacity-50' : ''}>
                     <TableCell>{format(new Date(record.date), 'dd/MM/yyyy')}</TableCell>
                     <TableCell className="font-medium">{record.employeeName ?? 'N/A'}</TableCell>
-                    <TableCell>{record.department}</TableCell>
+                     <TableCell>{record.department}</TableCell>
                     <TableCell>
                         <Badge variant={record.type === "Fatal" ? 'destructive' : record.type === "Grave" ? 'secondary' : 'default'}>{record.type.replace('_', ' ')}</Badge>
                     </TableCell>

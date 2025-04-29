@@ -20,7 +20,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle,  
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +48,7 @@ const mockJsaRecords: JsaRecord[] = [
     reviewDate: new Date(2024, 8, 10),
     status: 'Ativo',
     attachmentUrl: '/uploads/jsa/jsa-painel-eletrico.pdf',
-    risks: [
+    risks: [     
       { id: 'r1', description: 'Choque Elétrico', controls: 'Desenergizar painel, usar EPIs (luvas isolantes, capacete com viseira), bloqueio e etiquetagem (LOTO).' },
       { id: 'r2', description: 'Arco Elétrico', controls: 'Vestimenta FR, manter distância segura.' },
     ]
@@ -172,7 +172,7 @@ export default function JsaPage() {
     }
 
      // --- Mock File Upload Logic ---
-     let attachmentUrl = currentAttachmentUrl; // Keep existing URL if editing and no new file
+     let attachmentUrl = currentAttachmentUrl; 
      if (attachment) {
        // In a real app, you would upload the file here and get back a URL
        attachmentUrl = `/uploads/jsa/${Date.now()}-${encodeURIComponent(attachment.name)}`; // Example simulated URL
@@ -278,17 +278,19 @@ export default function JsaPage() {
     };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Análise de Riscos (JSA)</h1>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+    <div className="container p-4 md:p-6 space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">Análises de Risco (JSA)</h1>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen} >
             <DialogTrigger asChild>
-                <Button onClick={() => handleOpenForm()}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Análise
+                <Button onClick={() => handleOpenForm()} className="flex items-center">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Adicionar Análise
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl" onInteractOutside={(e) => e.preventDefault()}> {/* Wider dialog */}
+            <DialogContent className="sm:max-w-2xl" onInteractOutside={(e) => e.preventDefault()}> 
                 <DialogHeader>
+
                     <DialogTitle>{editingRecord ? 'Editar Análise de Risco' : 'Adicionar Nova Análise de Risco'}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -318,7 +320,7 @@ export default function JsaPage() {
                                   </SelectTrigger>
                                   <SelectContent>
                                       <SelectItem value="Ativo">Ativo</SelectItem>
-                                      <SelectItem value="Em Revisão">Em Revisão</SelectItem>
+                                  <SelectItem value="Em Revisão">Em Revisão</SelectItem>
                                       <SelectItem value="Arquivado">Arquivado</SelectItem>
                                   </SelectContent>
                               </Select>
@@ -328,7 +330,7 @@ export default function JsaPage() {
                                 <Label htmlFor="attachment">Anexo (Documento JSA)</Label>
                                  <div className="flex items-center gap-2">
                                     <Input id="attachment" type="file" onChange={handleFileChange} className="flex-1" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" />
-                                    {currentAttachmentUrl && !attachment && (
+                                    {currentAttachmentUrl && !attachment && (                                         
                                          <Button
                                             type="button"
                                             variant="link"
@@ -358,7 +360,7 @@ export default function JsaPage() {
                                 id="risksDescription"
                                 value={risksDescription}
                                 onChange={(e) => setRisksDescription(e.target.value)}
-                                rows={5}
+                                rows={6}
                                 placeholder="Ex: Queda de altura&#10;Ex: Choque elétrico"
                             />
                         </div>
@@ -368,7 +370,7 @@ export default function JsaPage() {
                                 id="controlsDescription"
                                 value={controlsDescription}
                                 onChange={(e) => setControlsDescription(e.target.value)}
-                                rows={5}
+                                rows={6}
                                 placeholder="Ex: Uso de cinto, linha de vida&#10;Ex: Desenergizar, LOTO, EPIs"
                              />
                         </div>
@@ -385,26 +387,25 @@ export default function JsaPage() {
             </DialogContent>
         </Dialog>
       </div>
-
-      <div className="relative">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Buscar por tarefa, departamento ou status..."
-          className="pl-8 w-full sm:w-1/2 md:w-1/3"
-          value={searchTerm}
-          onChange={handleSearch}
-        />
+      <div className="relative max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+              type="search"
+              placeholder="Buscar por tarefa, departamento ou status..."
+              className="pl-8 w-full"
+              value={searchTerm}
+              onChange={handleSearch}
+          />
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
+      <div className="rounded-lg overflow-hidden border">
         <Table>
           <TableCaption>Registros de Análise de Segurança da Tarefa (JSA).</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Tarefa/Atividade</TableHead>
               <TableHead>Departamento</TableHead>
-              <TableHead>Data Análise</TableHead>
+              <TableHead>Análise</TableHead>
               <TableHead>Próx. Revisão</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
@@ -441,7 +442,7 @@ export default function JsaPage() {
                              </Button>
                          </AlertDialogTrigger>
                          <AlertDialogContent>
-                             <AlertDialogHeader>
+                             <AlertDialogHeader>                                 
                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                                  <AlertDialogDescription>
                                      Essa ação não pode ser desfeita. Isso excluirá permanentemente a análise de risco para <span className="font-medium">{record.taskName}</span>.

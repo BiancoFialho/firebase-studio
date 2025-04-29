@@ -3,15 +3,15 @@
 
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input'; // Import Input from your components
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; // Import Table components
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Import Dialog components
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DatePicker } from '@/components/date-picker';
-import { PlusCircle, Search, Edit, Trash2, FileText, LinkIcon, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
-import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { DatePicker } from '@/components/date-picker'; // Import DatePicker
+import { PlusCircle, Search, Edit, Trash2, FileText, LinkIcon, AlertTriangle } from 'lucide-react'; // Import Icons
+import { useToast } from '@/hooks/use-toast'; // Import useToast hook
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,8 +24,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+
 import type { OccupationalDiseaseRecord } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Import Card components
 
 // Mock Data
 const mockDiseases: OccupationalDiseaseRecord[] = [
@@ -40,7 +40,7 @@ const NATIONAL_AVERAGE_ABSENCE_RATE = 2.5; // Example: 2.5% absence rate due to 
 
 export default function DiseasesPage() {
   const [diseases, setDiseases] = useState<OccupationalDiseaseRecord[]>(mockDiseases);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // For search functionality
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<OccupationalDiseaseRecord | null>(null);
   const { toast } = useToast();
@@ -57,14 +57,10 @@ export default function DiseasesPage() {
   const [pcmsoLink, setPcmsoLink] = useState('');
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
+    setSearchTerm(event.target.value); // Update search term on input change
   };
 
-  const filteredDiseases = diseases.filter((record) =>
-    record.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.diseaseType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.cid10Code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter diseases based on the search term
 
   // Calculate statistics
   const averageDaysOff = useMemo(() => {
@@ -75,14 +71,22 @@ export default function DiseasesPage() {
   }, [filteredDiseases]);
 
   const absenceRate = useMemo(() => {
-      // This is a simplified calculation. A real-world scenario would need
-      // total employee count and consider the period.
-      const afastadosCount = filteredDiseases.filter(d => d.status === 'Afastado').length;
-      const totalEmployeesMock = 50; // Mock total employee count
-      if (totalEmployeesMock === 0) return 0;
-      return (afastadosCount / totalEmployeesMock) * 100;
+    const afastadosCount = filteredDiseases.filter(d => d.status === 'Afastado').length;
+    const totalEmployeesMock = 50;
+    if (totalEmployeesMock === 0) return 0;
+    return (afastadosCount / totalEmployeesMock) * 100;
   }, [filteredDiseases]);
 
+  const filteredDiseases = useMemo(() => {
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    return diseases.filter((record) =>
+      record.employeeName.toLowerCase().includes(lowerCaseSearchTerm) ||
+      record.diseaseType.toLowerCase().includes(lowerCaseSearchTerm) ||
+      record.cid10Code.toLowerCase().includes(lowerCaseSearchTerm)
+    );
+  }, [diseases, searchTerm]);
+
+  // Check if the absence rate is high
   const isAbsenceRateHigh = absenceRate > NATIONAL_AVERAGE_ABSENCE_RATE;
 
 
@@ -162,12 +166,12 @@ export default function DiseasesPage() {
   };
 
   const getStatusBadgeVariant = (status: OccupationalDiseaseRecord['status']): "default" | "secondary" | "outline" => {
-    switch (status) {
-      case 'Ativo': return 'default'; // Use primary color
-      case 'Afastado': return 'secondary'; // Use secondary color (Orange/Yellowish)
-      case 'Recuperado': return 'outline'; // Use outline (Grey)
-      default: return 'outline';
-    }
+      switch (status) {
+          case 'Ativo': return 'default'; // Use primary color
+          case 'Afastado': return 'secondary'; // Use secondary color (Orange/Yellowish)
+          case 'Recuperado': return 'outline'; // Use outline (Grey)
+          default: return 'outline';
+      }
   };
 
   return (
@@ -175,50 +179,63 @@ export default function DiseasesPage() {
       <h1 className="text-3xl font-bold tracking-tight">Doenças Ocupacionais</h1>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Registrado</CardTitle>
-             {/* Icon can be changed */}
-             <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredDiseases.length}</div>
-            <p className="text-xs text-muted-foreground">Casos no período</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Média Dias Afastamento</CardTitle>
-             {/* Icon can be changed */}
-             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{averageDaysOff.toFixed(1)}</div>
-             <p className="text-xs text-muted-foreground">Para casos com afastamento</p>
-          </CardContent>
-        </Card>
-         <Card className={isAbsenceRateHigh ? 'border-destructive' : ''}>
-             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-               <CardTitle className="text-sm font-medium">Taxa de Afastamento Atual</CardTitle>
-                {isAbsenceRateHigh && <AlertTriangle className="h-4 w-4 text-destructive" />}
-             </CardHeader>
-             <CardContent>
-               <div className={`text-2xl font-bold ${isAbsenceRateHigh ? 'text-destructive' : ''}`}>{absenceRate.toFixed(1)}%</div>
-               <p className={`text-xs ${isAbsenceRateHigh ? 'text-destructive' : 'text-muted-foreground'}`}>
-                   {isAbsenceRateHigh ? `Acima da média nacional (${NATIONAL_AVERAGE_ABSENCE_RATE}%)` : `Dentro da média nacional (${NATIONAL_AVERAGE_ABSENCE_RATE}%)`}
-               </p>
-             </CardContent>
-         </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Registrado</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{filteredDiseases.length}</div>
+                  <p className="text-xs text-muted-foreground">Casos no período</p>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Média Dias Afastamento</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{averageDaysOff.toFixed(1)}</div>
+                  <p className="text-xs text-muted-foreground">Para casos com afastamento</p>
+              </CardContent>
+          </Card>
+          <Card className={isAbsenceRateHigh ? 'border-destructive' : ''}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Taxa de Afastamento Atual</CardTitle>
+                  {isAbsenceRateHigh && <AlertTriangle className="h-4 w-4 text-destructive" />}
+              </CardHeader>
+              <CardContent>
+                  <div className={`text-2xl font-bold ${isAbsenceRateHigh ? 'text-destructive' : ''}`}>{absenceRate.toFixed(1)}%</div>
+                  <p className={`text-xs ${isAbsenceRateHigh ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      {isAbsenceRateHigh ? `Acima da média nacional (${NATIONAL_AVERAGE_ABSENCE_RATE}%)` : `Dentro da média nacional (${NATIONAL_AVERAGE_ABSENCE_RATE}%)`}
+                  </p>
+              </CardContent>
+          </Card>
       </div>
 
-
-      {/* Table Section */}
-      <div className="space-y-4">
+      {/* Detailed Records */}
+      <div className="mt-6 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h2 className="text-2xl font-semibold">Registros Detalhados</h2>
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-              <DialogTrigger asChild>
+              <h2 className="text-2xl font-semibold">Registros Detalhados</h2>
+              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                  <DialogTrigger asChild>
+                      <Button onClick={() => handleOpenForm()}>
+                          <PlusCircle className="mr-2 h-4 w-4" /> Registrar Doença
+                      </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                          <DialogTitle>{editingRecord ? 'Editar Registro de Doença' : 'Registrar Nova Doença Ocupacional'}</DialogTitle>
+                      </DialogHeader>
+                      {/* Form */}
+                      <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         {/* Employee Name */}
+                         <div className="space-y-1">
+                            <Label htmlFor="employeeName">Colaborador*</Label>
+                            <Input id="employeeName" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} required />
+                         </div>
                 <Button onClick={() => handleOpenForm()}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Registrar Doença
                 </Button>
