@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 // Use Geist Sans & Mono directly from the geist package
 import { GeistSans } from 'geist/font/sans';
@@ -24,7 +25,7 @@ import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FlaskConical, ClipboardList,
     Users, GraduationCap, ListPlus, UserPlus, Wrench, FileCheck2, Folder,
-    Bug, Activity, Landmark, Settings, LayoutDashboard, BarChart3, Scale
+    Bug, Activity, Landmark, Settings, LayoutDashboard, BarChart3, Scale, BarChartHorizontalBig
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react';
@@ -63,7 +64,8 @@ export default function RootLayout({
                 <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
              </SidebarHeader>
 
-             <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-2 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2"> {/* Sidebar Content adjustments */}
+             {/* Adjusted Sidebar Content padding */}
+             <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-2 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2">
                <SidebarMenu>
                  {/* Dashboard Link */}
                  <SidebarMenuItem>
@@ -77,10 +79,10 @@ export default function RootLayout({
 
                   {/* --- Cadastros Section --- */}
                   <SidebarSubmenu>
-                    <SidebarSubmenuItem value="cadastros"> {/* Ensure this value is unique */}
+                    <SidebarSubmenuItem value="cadastros">
                         <SidebarSubmenuTrigger tooltip="Cadastros">
-                          <ListPlus />
-                          <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
+                           <ListPlus />
+                           <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
                         </SidebarSubmenuTrigger>
                         <SidebarSubmenuContent>
                           <SidebarMenuItem>
@@ -222,7 +224,7 @@ export default function RootLayout({
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Relatórios">
                      <Link href="/reports">
-                       <BarChart3 />
+                       <BarChartHorizontalBig /> {/* Changed Icon */}
                        <span className="group-data-[collapsible=icon]:hidden">Relatórios</span>
                      </Link>
                    </SidebarMenuButton>
@@ -239,7 +241,8 @@ export default function RootLayout({
                </SidebarMenu>
              </SidebarContent>
 
-             <SidebarFooter className="p-2 mt-auto border-t border-sidebar-border">
+             {/* Adjusted Sidebar Footer padding */}
+             <SidebarFooter className="p-3 mt-auto border-t border-sidebar-border">
                <SidebarMenu>
                  <SidebarMenuItem>
                    <SidebarMenuButton asChild tooltip="Configurações">
@@ -255,7 +258,8 @@ export default function RootLayout({
 
            {/* Main Content Area */}
            <SidebarInset>
-             <header className="flex items-center justify-between p-3 border-b sticky top-0 bg-background/95 backdrop-blur-sm z-10 md:justify-end h-14"> {/* Reduced padding, fixed height */}
+             {/* Adjusted header height and padding */}
+             <header className="flex items-center justify-between p-4 border-b sticky top-0 bg-background/95 backdrop-blur-sm z-10 md:justify-end h-16">
                 {/* Trigger for desktop moved to the right */}
                 <SidebarTrigger className="hidden md:flex"/>
                {/* Placeholder for potential header content like user profile */}
@@ -263,7 +267,8 @@ export default function RootLayout({
                    <span className="text-sm font-medium text-muted-foreground">EHS Control</span>
                </div>
              </header>
-             <main className="flex-1 p-6 md:p-8 overflow-auto bg-muted/30"> {/* Increased padding, lighter background */}
+             {/* Adjusted main content padding */}
+             <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-auto bg-muted/30">
                {children}
              </main>
            </SidebarInset>

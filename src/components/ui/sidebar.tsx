@@ -23,9 +23,10 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem" // Standard width
-const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3.5rem" // Slightly reduced icon mode width
+// Adjusted widths for better proportions (closer to golden ratio inverse)
+const SIDEBAR_WIDTH = "280px" // Slightly wider for better content fit
+const SIDEBAR_WIDTH_MOBILE = "280px" // Keep consistent mobile width
+const SIDEBAR_WIDTH_ICON = "56px" // Standard icon size (adjust if needed)
 
 // --- Context Setup ---
 type SidebarContext = {
@@ -329,8 +330,8 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-2 py-1.5", // Adjusted padding and gap
-        "group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1.5 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-1.5", // Adjusted icon mode styles
+        "flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-2 py-1.5", // Consistent padding
+        "group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-1.5", // Icon mode adjustments
         className
       )}
       {...props}
@@ -348,8 +349,8 @@ const SidebarMenu = React.forwardRef<
     <ul
       ref={ref}
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-0.5", // Reduced gap
-        "group-data-[collapsible=icon]:gap-1", // Slightly larger gap in icon mode
+      className={cn("flex w-full min-w-0 flex-col gap-0.5", // Maintained reduced gap
+        "group-data-[collapsible=icon]:gap-1.5", // Slightly larger gap in icon mode
         className)}
       {...props}
     />
@@ -373,14 +374,14 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-    "peer/menu-button group/button flex w-full items-center gap-2.5 overflow-hidden rounded-md px-2 py-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg:first-child]:size-4 [&>svg:first-child]:shrink-0 [&>svg:first-child]:text-sidebar-foreground/70 [&>svg:first-child]:group-data-[active=true]/button:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 [&>svg:first-child]:group-data-[collapsible=icon]:size-5 [&_span]:group-data-[collapsible=icon]:hidden", // Adjusted padding, icon size, icon mode size, hide span in icon mode
+    "peer/menu-button group/button flex w-full items-center gap-2.5 overflow-hidden rounded-md px-2.5 py-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg:first-child]:size-4 [&>svg:first-child]:shrink-0 [&>svg:first-child]:text-sidebar-foreground/70 [&>svg:first-child]:group-data-[active=true]/button:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 [&>svg:first-child]:group-data-[collapsible=icon]:size-5", // Keep icon mode compact
     {
         variants: {
             variant: {
                 default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             },
             size: {
-                default: "h-9", // Adjusted default height
+                default: "h-9", // Standard height
             },
         },
         defaultVariants: {
@@ -396,6 +397,7 @@ const SidebarMenuButton = React.forwardRef<
     asChild?: boolean;
     isActive?: boolean;
     tooltip?: string | React.ComponentProps<typeof TooltipContent>;
+    isSubmenuTrigger?: boolean; // Added prop to identify submenu triggers
   } & VariantProps<typeof sidebarMenuButtonVariants>
 >(
   (
@@ -407,12 +409,33 @@ const SidebarMenuButton = React.forwardRef<
       tooltip,
       className,
       children,
+      isSubmenuTrigger = false, // Default to false
       ...props
     },
     ref
   ) => {
     const Comp = asChild ? Slot : "button";
     const { isMobile, state } = useSidebar();
+
+    // Separate icon from the rest of the children to hide text in icon mode
+    const icon = React.Children.toArray(children).find(
+      (child) => React.isValidElement(child) && child.type === 'svg' // Simple check, might need refinement
+    );
+    const textContent = React.Children.toArray(children).filter(
+      (child) => !(React.isValidElement(child) && child.type === 'svg')
+    );
+
+    const buttonContent = (
+       <>
+         {icon}
+         <span className="flex-1 group-data-[collapsible=icon]:hidden"> {/* Span to hide text */}
+           {textContent}
+         </span>
+         {isSubmenuTrigger && state === 'expanded' && ( // Add chevron only for submenu triggers in expanded state
+              <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[collapsible=icon]:hidden" />
+         )}
+       </>
+     );
 
     const buttonElement = (
       <Comp
@@ -424,7 +447,7 @@ const SidebarMenuButton = React.forwardRef<
         {...(Comp === "button" && !asChild && { type: "button" })}
         {...props}
       >
-         {children}
+         {buttonContent}
       </Comp>
     );
 
@@ -480,17 +503,19 @@ const SidebarSubmenu = React.forwardRef<
 ));
 SidebarSubmenu.displayName = "SidebarSubmenu";
 
+// Wrap AccordionPrimitive.Item in SidebarMenuItem for consistent styling
 const SidebarSubmenuItem = React.forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
+    React.ElementRef<typeof AccordionPrimitive.Item>,
+    React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
 >(({ className, ...props }, ref) => (
-  <AccordionPrimitive.Item
-    ref={ref}
-    className={cn("border-none", className)} // Remove default border
-    {...props}
-  />
+    <AccordionPrimitive.Item
+      ref={ref}
+      className={cn("border-none group/submenu-item", className)} // Remove border, add group identifier
+      {...props}
+    />
 ));
 SidebarSubmenuItem.displayName = "SidebarSubmenuItem";
+
 
 
 const SidebarSubmenuTrigger = React.forwardRef<
@@ -507,10 +532,11 @@ const SidebarSubmenuTrigger = React.forwardRef<
                  className={cn("w-full justify-start", className)} // Ensure justification starts left
                  isActive={isActive}
                  tooltip={tooltip}
+                 isSubmenuTrigger={true} // Mark this as a submenu trigger
                  {...props}
               >
-                   {children}
-                   <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[collapsible=icon]:hidden" />
+                 {/* Children are passed down to SidebarMenuButton which handles icon/text separation */}
+                 {children}
                </SidebarMenuButton>
            </AccordionPrimitive.Trigger>
       </AccordionPrimitive.Header>
@@ -530,7 +556,7 @@ const SidebarSubmenuContent = React.forwardRef<
     )}
     {...props}
   >
-    <div className="py-1 pl-8 pr-2"> {/* Adjusted padding for indentation */}
+    <div className="py-1 pl-6 pr-1"> {/* Adjusted padding for clearer indentation */}
         <SidebarMenu className="gap-0.5">
            {children}
         </SidebarMenu>
@@ -589,7 +615,7 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   SidebarSubmenu,
-  SidebarSubmenuItem, // Export new item wrapper
+  SidebarSubmenuItem,
   SidebarSubmenuTrigger,
   SidebarSubmenuContent,
   useSidebar,

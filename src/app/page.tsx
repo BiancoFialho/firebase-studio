@@ -8,11 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-import { HardHat, ShieldCheck, Stethoscope, AlertTriangle, CheckCircle, Clock, Activity, Bug, Scale, Users, TrendingUp, TrendingDown, Calculator, Landmark, Target, FileCheck2 } from 'lucide-react'; // Added FileCheck2
-import type { AccidentRecord, OccupationalDiseaseRecord, LawsuitRecord, CipaMeetingRecord, StatisticsData } from '@/lib/types';
+import { HardHat, ShieldCheck, Stethoscope, AlertTriangle, CheckCircle, Clock, Activity, Bug, Scale, Users, TrendingUp, TrendingDown, Calculator, Landmark, Target, FileCheck2, ListChecks } from 'lucide-react'; // Added ListChecks
+import type { AccidentRecord, OccupationalDiseaseRecord, LawsuitRecord, CipaMeetingRecord, StatisticsData, PreventiveAction } from '@/lib/types';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
 import { PieChart, Pie, Cell } from 'recharts';
 import { LineChart, Line } from 'recharts';
+import Link from 'next/link'; // Import Link
+import { Button } from '@/components/ui/button'; // Import Button
 
 // --- Mock Data - Replace with actual data fetching and processing ---
 // Assume this data comes from respective pages or a central service
@@ -43,14 +45,14 @@ const NATIONAL_TF_AVERAGE = 14.3; // Example national average TF (adjust per ind
 const NATIONAL_FATALITIES_2022 = 2538; // National data (example)
 const NATIONAL_ACCIDENTS_2022 = 612920; // National data (example)
 const COMPANY_TF_TARGET = 15; // Company specific target for TF
-const mockPreventiveActions = [
-  { id: 'pa1', description: 'Verificar validade dos protetores auriculares', responsible: 'Almoxarifado', deadline: new Date(2024, 6, 17), status: 'Concluida', startDate: new Date(2024, 6, 10) },
-  { id: 'pa2', description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em_Andamento', startDate: new Date(2024, 5, 12) },
-  { id: 'pa3', description: 'Revisar os extintores de incêndio.', responsible: 'Segurança', deadline: new Date(2024, 8, 1), status: 'Em_Andamento', startDate: new Date(2024, 7, 1) },
-  { id: 'pa4', description: 'Verificar validade do treinamento de NR-35.', responsible: 'Segurança', deadline: new Date(2024, 5, 17), status: 'Concluida', startDate: new Date(2024, 5, 10) },
-  { id: 'pa5', description: 'Criar um laudo ergonômico.', responsible: 'Segurança', deadline: new Date(2023, 12, 17), status: 'Concluida', startDate: new Date(2023, 11, 10) },
-  { id: 'pa6', description: 'Manutenção da empilhadeira', responsible: 'Manutenção', deadline: new Date(2023, 11, 17), status: 'Atrasada', startDate: new Date(2023, 11, 10) },
-  { id: 'pa7', description: 'Treinamento de brigada de incendio', responsible: 'Segurança', deadline: new Date(2024, 1, 17), status: 'Concluida', startDate: new Date(2023, 12, 10) },
+const mockPreventiveActions: PreventiveAction[] = [
+  { id: 'pa1', description: 'Verificar validade dos protetores auriculares', category: 'EPI', responsible: 'Almoxarifado', dueDate: new Date(2024, 6, 17), status: 'Concluida', lastCompletedDate: new Date(2024, 6, 10) },
+  { id: 'pa2', description: 'Contratar palestra sobre ergonomia', category: 'Treinamento', responsible: 'RH', dueDate: new Date(2024, 7, 1), status: 'Em_Andamento', lastCompletedDate: new Date(2024, 5, 12) },
+  { id: 'pa3', description: 'Revisar os extintores de incêndio.', category: 'Inspeção', responsible: 'Segurança', dueDate: new Date(2024, 8, 1), status: 'Em_Andamento', lastCompletedDate: new Date(2024, 7, 1) },
+  { id: 'pa4', description: 'Verificar validade do treinamento de NR-35.', category: 'Treinamento', responsible: 'Segurança', dueDate: new Date(2024, 5, 17), status: 'Concluida', lastCompletedDate: new Date(2024, 5, 10) },
+  { id: 'pa5', description: 'Criar um laudo ergonômico.', category: 'Documento', responsible: 'Segurança', dueDate: new Date(2023, 12, 17), status: 'Concluida', lastCompletedDate: new Date(2023, 11, 10) },
+  { id: 'pa6', description: 'Manutenção da empilhadeira', category: 'Manutenção', responsible: 'Manutenção', dueDate: new Date(2023, 11, 17), status: 'Atrasada', lastCompletedDate: new Date(2023, 11, 10) },
+  { id: 'pa7', description: 'Treinamento de brigada de incendio', category: 'Treinamento', responsible: 'Segurança', dueDate: new Date(2024, 1, 17), status: 'Concluida', lastCompletedDate: new Date(2023, 12, 10) },
 ];
 
 // Mock Compliance Data (from action-plan page)
@@ -116,7 +118,7 @@ export default function HomePage() {
         // Calculate CIPA meeting status counts
         const cipaMeetingsStatus = mockCipaMeetings.reduce((acc, curr) => {
             if (curr.status === 'Agendada') {
-                acc.scheduled = (acc.scheduled || 0) + 1;
+                acc.Agendada = (acc.Agendada || 0) + 1; // Fix property name
             } else if (curr.status === 'Realizada') {
                 acc.Realizada = (acc.Realizada || 0) + 1;
             } else if (curr.status === 'Cancelada') {
@@ -127,16 +129,9 @@ export default function HomePage() {
 
         // Calculate overdue and completed preventive actions
         const preventiveActionsOverdue = mockPreventiveActions.filter(a => a.status === 'Atrasada').length;
-
-        const preventiveActionsCompleted = mockPreventiveActions.filter(a => a.status === 'Concluida' ).length;
-
-
-        // Calculate overdue and completed preventive actions
-        // const preventiveActionsOverdue = mockPreventiveActions.filter(a => a.status === 'Atrasada').length;
-
-      const preventiveActionsCompletedCurrentYear = mockPreventiveActions.filter(pa => {
-        const currentYear = new Date().getFullYear();
-          return pa.status === 'Concluida' && pa.startDate.getFullYear() === currentYear
+        const preventiveActionsCompletedCurrentYear = mockPreventiveActions.filter(pa => {
+          const currentYear = new Date().getFullYear();
+            return pa.status === 'Concluida' && pa.lastCompletedDate?.getFullYear() === currentYear // Use lastCompletedDate
         }).length;
 
 
@@ -185,16 +180,20 @@ export default function HomePage() {
        return 'outline'; // Grey for Not Applicable
    };
 
+   const overdueActions = mockPreventiveActions.filter(a => a.status === 'Atrasada');
+   const upcomingActions = mockPreventiveActions.filter(a => a.status === 'Pendente' || a.status === 'Em_Andamento');
+
 
   return (
-    <div className="space-y-6">
+    // Adjusted main container spacing
+    <div className="space-y-8 xl:space-y-10">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard BI - Indicadores Chave (KPIs)</h1>
       <p className="text-muted-foreground">
         Análise visual dos indicadores chave de Segurança, Saúde e Meio Ambiente ({calculatedStats.period}).
       </p>
 
-      {/* --- KPI Row --- */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* --- KPI Row --- Adjusted grid for responsiveness */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
          <Card className="bg-card border-l-4 border-destructive">
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
              <CardTitle className="text-sm font-medium">Acidentes no Período</CardTitle>
@@ -210,7 +209,7 @@ export default function HomePage() {
          <Card className="bg-card border-l-4 border-destructive">
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
              <CardTitle className="text-sm font-medium">Óbitos</CardTitle>
-             <Bug className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
+             <Bug className="h-4 w-4 text-muted-foreground" />
            </CardHeader>
            <CardContent>
              <div className={`text-2xl font-bold ${calculatedStats.fatalAccidents > 0 ? 'text-destructive' : 'text-green-600'}`}>
@@ -224,7 +223,7 @@ export default function HomePage() {
         <Card className={`bg-card border-l-4 ${calculatedStats.tf !== null && calculatedStats.tf > COMPANY_TF_TARGET ? 'border-destructive' : 'border-green-600'}`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Taxa de Frequência (TF)</CardTitle>
-             <Target className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
+             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{calculatedStats.tf?.toFixed(2) ?? 'N/A'}</div>
@@ -250,169 +249,228 @@ export default function HomePage() {
          <Card className="bg-card border-l-4 border-blue-500">
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
              <CardTitle className="text-sm font-medium">Ações Trabalhistas Ativas</CardTitle>
-             <Landmark className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
+             <Landmark className="h-4 w-4 text-muted-foreground" />
            </CardHeader>
            <CardContent>
              <div className="text-2xl font-bold">{calculatedStats.activeLawsuits}</div>
               <p className="text-xs text-muted-foreground">Processos em andamento</p>
            </CardContent>
          </Card>
-          {/* Optional: Add more KPIs if needed */}
-          {/*
-            <Card> ... CIPA Meetings ... </Card>
-            <Card> ... Occupational Diseases ... </Card>
-           */}
+          <Card className="bg-card border-l-4 border-blue-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Reuniões CIPA</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-lg font-bold">Agendadas: {calculatedStats.cipaMeetingsStatus?.Agendada ?? '0'}</div>
+                  <div className="text-lg font-bold">Realizadas: {calculatedStats.cipaMeetingsStatus?.Realizada ?? '0'}</div>
+                  <div className="text-lg font-bold">Canceladas: {calculatedStats.cipaMeetingsStatus?.Cancelada ?? '0'}</div>
+              </CardContent>
+          </Card>
+          <Card className="bg-card border-l-4 border-orange-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Ações Prev. Atrasadas</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{calculatedStats.preventiveActionsOverdue}</div>
+                   <p className="text-xs text-muted-foreground">Ações preventivas pendentes</p>
+              </CardContent>
+          </Card>
+          <Card className="bg-card border-l-4 border-green-500">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Ações Prev. Concluídas</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{calculatedStats.preventiveActionsCompleted}</div>
+                   <p className="text-xs text-muted-foreground">No ano atual</p>
+              </CardContent>
+          </Card>
       </div>
 
-         <Card>
-           <CardHeader>
-             <CardTitle>Tipos de Acidentes</CardTitle>
-             <CardDescription>Principais tipos de acidentes registrados.</CardDescription>
-           </CardHeader>
-           <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={Object.entries(calculatedStats.commonAccidentTypes).map(([name, value]) => ({ name, value }))} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 10 }}>
-                    <CartesianGrid horizontal={false} />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="name" />
-                    <RechartsTooltip />
-                    <Bar dataKey="value" fill="#8884d8" />
-                </BarChart>
-             </ResponsiveContainer>
+      {/* --- Charts and Tables Row --- Adjusted grid for better spacing */}
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3 xl:gap-8">
 
-           </CardContent>
+          {/* Accident Trend Chart */}
+          <Card className="xl:col-span-2">
+              <CardHeader>
+                  <CardTitle>Tendência de Acidentes</CardTitle>
+                  <CardDescription>Número de acidentes registrados por mês ({calculatedStats.period}).</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <ChartContainer config={incidentChartConfig} className="h-[300px] w-full">
+                      <LineChart data={incidentTrendData} margin={{ left: 12, right: 12 }} accessibilityLayer>
+                          <CartesianGrid vertical={false} />
+                          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
+                          <YAxis allowDecimals={false} />
+                          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                          <ChartLegend content={<ChartLegendContent />} />
+                          <Line dataKey="incidents" type="monotone" stroke="var(--color-incidents)" strokeWidth={2} dot={true} />
+                      </LineChart>
+                  </ChartContainer>
+              </CardContent>
+          </Card>
+
+          {/* ASO Status Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Status dos ASOs</CardTitle>
+              <CardDescription>Distribuição percentual dos ASOs por status (exemplo).</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center pb-0 pt-4">
+               <ChartContainer config={asoChartConfig} className="mx-auto aspect-square h-[250px]">
+                 <PieChart>
+                    <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
+                   <Pie data={asoStatusData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5}>
+                       {asoStatusData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={entry.fill} /> ))}
+                   </Pie>
+                    <ChartLegend content={<ChartLegendContent nameKey="name" className="flex -translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center" />} />
+                 </PieChart>
+               </ChartContainer>
+            </CardContent>
+          </Card>
+
+
+         {/* Action Plan / Compliance Table */}
+         <Card className="xl:col-span-3">
+             <CardHeader>
+                 <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                         <FileCheck2 className="w-5 h-5"/>
+                         <CardTitle>Plano de Ação / Conformidade NR</CardTitle>
+                     </div>
+                      <Button size="sm" variant="outline" asChild>
+                           <Link href="/action-plan">Ver Plano Completo</Link>
+                      </Button>
+                 </div>
+                 <CardDescription>Status de conformidade e ações pendentes recentes.</CardDescription>
+             </CardHeader>
+             <CardContent>
+                  <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>NR</TableHead>
+                                  <TableHead>Descrição</TableHead>
+                                  <TableHead>Status</TableHead>
+                                  <TableHead>Detalhes/Observações</TableHead>
+                                  <TableHead>Última Verificação</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {complianceStatus.slice(0, 5).map((item) => ( // Show only first 5 for brevity
+                                  <TableRow key={item.nr}>
+                                      <TableCell className="font-medium">{item.nr}</TableCell>
+                                      <TableCell>{item.description}</TableCell>
+                                      <TableCell>
+                                          <Badge variant={getComplianceBadgeVariant(item.status)}>{item.status}</Badge>
+                                      </TableCell>
+                                      <TableCell className="max-w-xs truncate">{item.details}</TableCell>
+                                      <TableCell>{item.lastCheck?.toLocaleDateString('pt-BR') || '-'}</TableCell>
+                                  </TableRow>
+                              ))}
+                               <TableRow>
+                                   <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-3">
+                                       <Link href="/action-plan" className="hover:underline">Ver todos os itens de conformidade...</Link>
+                                   </TableCell>
+                               </TableRow>
+                          </TableBody>
+                      </Table>
+                  </div>
+             </CardContent>
+          </Card>
+
+          {/* Overdue Preventive Actions */}
+         <Card className="lg:col-span-1 xl:col-span-2">
+             <CardHeader>
+                  <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                           <AlertTriangle className="w-5 h-5 text-destructive"/>
+                           <CardTitle>Ações Preventivas Atrasadas</CardTitle>
+                     </div>
+                      <Button size="sm" variant="outline" asChild>
+                           <Link href="/prevention">Ver Todas Ações</Link>
+                      </Button>
+                   </div>
+                   <CardDescription>Ações preventivas que passaram do prazo.</CardDescription>
+             </CardHeader>
+             <CardContent>
+                  <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Descrição</TableHead>
+                                  <TableHead>Responsável</TableHead>
+                                  <TableHead>Prazo</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {overdueActions.length > 0 ? overdueActions.slice(0, 3).map((action) => (
+                                  <TableRow key={action.id} className="bg-destructive/10">
+                                      <TableCell className="font-medium max-w-xs truncate" title={action.description}>{action.description}</TableCell>
+                                      <TableCell>{action.responsible}</TableCell>
+                                      <TableCell>{action.dueDate?.toLocaleDateString('pt-BR') || 'N/A'}</TableCell>
+                                  </TableRow>
+                              )) : (
+                                 <TableRow>
+                                      <TableCell colSpan={3} className="h-20 text-center text-muted-foreground">Nenhuma ação atrasada. ✅</TableCell>
+                                  </TableRow>
+                              )}
+                          </TableBody>
+                      </Table>
+                  </div>
+             </CardContent>
+         </Card>
+
+          {/* Upcoming Preventive Actions */}
+         <Card className="lg:col-span-1 xl:col-span-1">
+             <CardHeader>
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                          <ListChecks className="w-5 h-5"/>
+                          <CardTitle>Próximas Ações Prev.</CardTitle>
+                      </div>
+                   </div>
+                  <CardDescription>Ações preventivas pendentes ou em andamento.</CardDescription>
+             </CardHeader>
+             <CardContent>
+                   <div className="border rounded-lg overflow-hidden">
+                       <Table>
+                           <TableHeader>
+                               <TableRow>
+                                   <TableHead>Descrição</TableHead>
+                                   <TableHead>Prazo</TableHead>
+                               </TableRow>
+                           </TableHeader>
+                           <TableBody>
+                               {upcomingActions.length > 0 ? upcomingActions.slice(0, 3).map((action) => (
+                                   <TableRow key={action.id}>
+                                       <TableCell className="font-medium max-w-xs truncate" title={action.description}>{action.description}</TableCell>
+                                       <TableCell>{action.dueDate?.toLocaleDateString('pt-BR') || action.frequency || 'N/A'}</TableCell>
+                                   </TableRow>
+                               )) : (
+                                  <TableRow>
+                                      <TableCell colSpan={2} className="h-20 text-center text-muted-foreground">Nenhuma ação pendente.</TableCell>
+                                  </TableRow>
+                               )}
+                           </TableBody>
+                       </Table>
+                       {upcomingActions.length > 3 && (
+                            <div className="text-center py-2">
+                               <Button variant="link" size="sm" asChild>
+                                  <Link href="/prevention">Ver mais...</Link>
+                               </Button>
+                           </div>
+                       )}
+                   </div>
+             </CardContent>
          </Card>
 
 
-      {/* --- New Stats Row --- */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-                <Card className="bg-card border-l-4 border-blue-500">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Reuniões CIPA</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            Agendadas: {calculatedStats.cipaMeetingsStatus?.Agendada ?? '0'}
-                        </div>
-                        <div className="text-2xl font-bold">
-                            Realizadas: {calculatedStats.cipaMeetingsStatus?.Realizada ?? '0'}
-                        </div>
-                        <div className="text-2xl font-bold">
-                            Canceladas: {calculatedStats.cipaMeetingsStatus?.Cancelada ?? '0'}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-card border-l-4 border-orange-500">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Ações Atrasadas</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{calculatedStats.preventiveActionsOverdue}</div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-card border-l-4 border-green-500">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Ações Concluídas</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{calculatedStats.preventiveActionsCompleted}</div>
-                         <p className="text-xs text-muted-foreground">No ano atual</p>
-                    </CardContent>
-                </Card>
-            </div>
 
-        <Card>
-                    <CardHeader>
-                        <CardTitle>Tendência de Acidentes</CardTitle>
-                        <CardDescription>Número de acidentes registrados por mês ({calculatedStats.period}).</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={incidentChartConfig} className="h-[300px] w-full">
-                            <LineChart data={incidentTrendData} margin={{ left: 12, right: 12 }} accessibilityLayer>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
-                                <YAxis allowDecimals={false} />
-                                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                                <ChartLegend content={<ChartLegendContent />} />
-                                <Line dataKey="incidents" type="monotone" stroke="var(--color-incidents)" strokeWidth={2} dot={true} />
-                            </LineChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
+      </div>
 
-
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Status dos ASOs</CardTitle>
-            <CardDescription>Distribuição percentual dos ASOs por status (exemplo).</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-center pb-0">
-             <ChartContainer config={asoChartConfig} className="mx-auto aspect-square h-[250px]">
-               <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
-                 <Pie data={asoStatusData} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={5}>
-                     {asoStatusData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={entry.fill} /> ))}
-                 </Pie>
-                  <ChartLegend content={<ChartLegendContent nameKey="name" className="flex -translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center" />} />
-               </PieChart>
-
-
-             </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* --- Action Plan / Compliance Table --- */}
-       <Card>
-           <CardHeader>
-               <div className="flex items-center gap-2">
-                   <FileCheck2 className="w-6 h-6"/>
-                   <CardTitle className="text-2xl">Plano de Ação / Conformidade NR</CardTitle>
-               </div>
-               <CardDescription>Status de conformidade e ações pendentes.</CardDescription>
-           </CardHeader>
-           <CardContent>
-                <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>NR</TableHead>
-                                <TableHead>Descrição</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Detalhes/Observações</TableHead>
-                                <TableHead>Última Verificação</TableHead>
-                                {/* <TableHead className="text-right">Ações</TableHead> */}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {complianceStatus.map((item) => (
-                                <TableRow key={item.nr}>
-                                    <TableCell className="font-medium">{item.nr}</TableCell>
-                                    <TableCell>{item.description}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={getComplianceBadgeVariant(item.status)}>{item.status}</Badge>
-                                    </TableCell>
-                                    <TableCell className="max-w-xs truncate">{item.details}</TableCell>
-                                    <TableCell>{item.lastCheck?.toLocaleDateString('pt-BR') || '-'}</TableCell>
-                                    {/* <TableCell className="text-right">
-                                        {item.evidenceUrl && <Button variant="outline" size="sm" asChild><a href={item.evidenceUrl} target="_blank">Ver Evidência</a></Button> }
-                                        <Button variant="outline" size="sm" className="ml-2">Atualizar</Button> // Future functionality
-                                    </TableCell> */}
-                                </TableRow>
-                            ))}
-                             <TableRow>
-                                 <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-4">
-                                     (Tabela de exemplo. Ações detalhadas no módulo "Plano de Ação")
-                                 </TableCell>
-                             </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
-           </CardContent>
-        </Card>
 
        {/* --- Footer Notes --- */}
        <p className="text-xs text-center text-muted-foreground pt-4">* Média nacional de TF pode variar por setor e ano. Valor exemplificativo.</p>
@@ -420,5 +478,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
