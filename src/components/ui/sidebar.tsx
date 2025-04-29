@@ -2,10 +2,10 @@
 "use client"
 
 import * as React from "react"
+import * as AccordionPrimitive from "@radix-ui/react-accordion"
 import { Slot } from "@radix-ui/react-slot"
-import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft, ChevronDown } from "lucide-react"
-import * as AccordionPrimitive from "@radix-ui/react-accordion" // Import Accordion primitives
+import { cva, type VariantProps } from "class-variance-authority"
+import { ChevronDown, PanelLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -374,7 +374,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-    "peer/menu-button group/button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2.5 text-left text-sm font-medium outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg:first-child]:size-5 [&>svg:first-child]:shrink-0 [&>svg:first-child]:text-sidebar-foreground/70 [&>svg:first-child]:group-data-[active=true]/button:text-sidebar-accent-foreground [&>svg:last-child:not(:first-child)]:ml-auto [&>svg:last-child:not(:first-child)]:size-4 [&>svg:last-child:not(:first-child)]:shrink-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-3 [&>svg:first-child]:group-data-[collapsible=icon]:size-6", // Increased padding, icon size adjustments
+    "peer/menu-button group/button flex w-full items-center gap-2 overflow-hidden rounded-md px-3 py-2.5 text-left text-sm font-medium outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg:first-child]:size-5 [&>svg:first-child]:shrink-0 [&>svg:first-child]:text-sidebar-foreground/70 [&>svg:first-child]:group-data-[active=true]/button:text-sidebar-accent-foreground [&>svg:last-child:not(:first-child)]:ml-auto [&>svg:last-child:not(:first-child)]:size-4 [&>svg:last-child:not(:first-child)]:shrink-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-3 [&>svg:first-child]:group-data-[collapsible=icon]:size-6", // Increased padding, icon size adjustments
     {
         variants: {
             variant: {
@@ -418,13 +418,24 @@ const SidebarMenuButton = React.forwardRef<
     const { isMobile, state } = useSidebar();
 
     const buttonContent = (
-      // Use React.Fragment to avoid invalid prop warning
-      <React.Fragment>
-        {children}
-        {isSubmenuTrigger && state === 'expanded' && ( // Add chevron only for submenu triggers when expanded
-              <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-         )}
-      </React.Fragment>
+       // Adjust the layout to keep icon and label side-by-side
+       <div className="flex items-center gap-2">
+         {React.Children.map(children, (child, index) => {
+            // Assuming the first child is the icon and the rest is the label/chevron
+            if (index === 0 && React.isValidElement(child)) {
+                return React.cloneElement(child as React.ReactElement<any>, {
+                    // className: cn(child.props.className, "[&>svg]:size-5 [&>svg]:shrink-0 [&>svg]:text-sidebar-foreground/70 [&>svg]:group-data-[active=true]/button:text-sidebar-accent-foreground group-data-[collapsible=icon]:[&>svg]:size-6")
+                });
+            }
+            // Render label and potentially chevron
+            return <span className={cn("group-data-[collapsible=icon]:hidden flex-1", isSubmenuTrigger && "flex items-center justify-between w-full")}>
+                {child}
+                {isSubmenuTrigger && state === 'expanded' && (
+                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                )}
+            </span>;
+        })}
+       </div>
     );
 
     const buttonElement = (
