@@ -134,6 +134,11 @@ export default function PreventionPage() {
           toast({ title: "Erro", description: "Preencha Data, Pauta e Status da reunião.", variant: "destructive" });
           return;
       }
+      if (participantsArray.length === 0 || cipaActionsText.trim().length === 0) {
+        toast({ title: "Erro", description: "Preencha os Participantes e as Ações definidas.", variant: "destructive" });
+        return;
+    }
+
 
       // --- Mock CIPA File Upload ---
       let finalMinutesUrl = currentCipaMinutesUrl;
@@ -256,6 +261,16 @@ export default function PreventionPage() {
         toast({ title: "Erro", description: "Preencha Descrição, Categoria, Responsável e Status.", variant: "destructive" });
         return;
     }
+      if (paStatus === 'Concluída' && !paLastCompletedDate) {
+          toast({ title: "Erro", description: "Defina a data da última realização.", variant: "destructive" });
+          return;
+      }
+
+      if (paFrequency === 'Única' && !paDueDate) {
+          toast({ title: "Erro", description: "Defina o prazo para a ação única.", variant: "destructive" });
+          return;
+      }
+
 
      // --- Mock Preventive Evidence Upload ---
      let finalEvidenceUrl = currentPaEvidenceUrl;
@@ -340,13 +355,11 @@ export default function PreventionPage() {
 
  const handleViewFile = (url: string | undefined, fileName: string) => {
         if (url) {
-            // In a real app, you might open the actual URL
-            // window.open(url, '_blank');
-            // For simulation, show a toast message
-            toast({
-                title: "Visualização Simulada",
-                description: `Abriria o arquivo: ${fileName} (${url})`,
-            });
+            try{
+              window.open(url, '_blank');
+            } catch (error) {
+              toast({title: "Erro", description: `Não foi possível abrir ${fileName}.`, variant: "destructive"});
+            }
         } else {
              toast({
                  title: "Arquivo Indisponível",

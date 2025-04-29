@@ -1,24 +1,29 @@
-// src/app/page.tsx (Dashboard)
+
+// src/app/page.tsx
 'use client';
 
 import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from "@/components/ui/badge";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { HardHat, ShieldCheck, Stethoscope, AlertTriangle, CheckCircle, Clock, Activity, Bug, Scale, Users, TrendingUp, TrendingDown, Calculator, Landmark, Target, FileCheck2 } from 'lucide-react'; // Added FileCheck2
 import type { AccidentRecord, OccupationalDiseaseRecord, LawsuitRecord, CipaMeetingRecord, StatisticsData } from '@/lib/types';
 import { calculateFrequencyRate, calculateSeverityRate } from '@/lib/utils';
+import { PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line } from 'recharts';
 
 // --- Mock Data - Replace with actual data fetching and processing ---
 // Assume this data comes from respective pages or a central service
 
 const mockAccidents: AccidentRecord[] = [
-  { id: 'acc1', date: new Date(2024, 0, 15), employeeName: 'Carlos Pereira', department: 'Produção', location: 'Máquina XPTO', type: 'Leve', cause: 'Corte', daysOff: 2, description: 'Corte superficial no dedo ao manusear peça.', catIssued: true, investigationStatus: 'Concluída' },
-  { id: 'acc3', date: new Date(2024, 4, 20), time: '10:30', employeeName: 'João Silva', department: 'Manutenção', location: 'Painel Elétrico Z', type: 'Grave', cause: 'Choque_Eletrico', daysOff: 15, description: 'Contato acidental com fiação exposta durante manutenção.', catIssued: true, investigationStatus: 'Em_Andamento', cid10Code: 'T75.4' },
-  { id: 'acc5', date: new Date(2024, 6, 10), employeeName: 'Ana Costa', department: 'Logística', location: 'Empilhadeira 2', type: 'Leve', cause: 'Impacto', daysOff: 0, description: 'Colisão leve com prateleira.', catIssued: false, investigationStatus: 'Concluída' },
-  // Add more relevant accidents for the current period (e.g., 2024)
+    { id: 'acc1', date: new Date(2024, 0, 15), employeeName: 'Carlos Pereira', department: 'Produção', location: 'Máquina XPTO', type: 'Leve', cause: 'Corte', daysOff: 2, description: 'Corte superficial no dedo ao manusear peça.', catIssued: true, investigationStatus: 'Concluida' },
+    { id: 'acc3', date: new Date(2024, 4, 20), time: '10:30', employeeName: 'João Silva', department: 'Manutenção', location: 'Painel Elétrico Z', type: 'Grave', cause: 'Choque_Eletrico', daysOff: 15, description: 'Contato acidental com fiação exposta durante manutenção.', catIssued: true, investigationStatus: 'Em_Andamento', cid10Code: 'T75.4' },
+    { id: 'acc5', date: new Date(2024, 6, 10), employeeName: 'Ana Costa', department: 'Logística', location: 'Empilhadeira 2', type: 'Leve', cause: 'Impacto', daysOff: 0, description: 'Colisão leve com prateleira.', catIssued: false, investigationStatus: 'Concluida' },
+    { id: 'acc6', date: new Date(2024, 7, 10), employeeName: 'Ana Costa', department: 'Logística', location: 'Empilhadeira 2', type: 'Leve', cause: 'Impacto', daysOff: 0, description: 'Colisão leve com prateleira.', catIssued: false, investigationStatus: 'Concluida' },
+    { id: 'acc7', date: new Date(2024, 7, 10), employeeName: 'Ana Costa', department: 'Logística', location: 'Empilhadeira 2', type: 'Leve', cause: 'Corte', daysOff: 0, description: 'Colisão leve com prateleira.', catIssued: false, investigationStatus: 'Concluida' },
+    // Add more relevant accidents for the current period (e.g., 2024)
 ];
 const mockDiseases: OccupationalDiseaseRecord[] = [
     { id: 'dis1', employeeName: 'Maria Oliveira', diseaseType: 'LER/DORT', cid10Code: 'M77.1', diagnosisDate: new Date(2023, 9, 10), relatedTask: 'Digitação', daysOff: 30, status: 'Afastado', medicalReportUrl: 'https://example.com/report/ler-maria' },
@@ -31,13 +36,22 @@ const mockLawsuits: LawsuitRecord[] = [
 const mockCipaMeetings: CipaMeetingRecord[] = [
     { id: 'cipa1', date: new Date(2024, 6, 10), participants: ['João Silva', 'Maria Oliveira', 'Carlos Pereira'], agenda: 'Discussão sobre EPIs, análise de incidente leve.', status: 'Realizada', actionsDefined: [{ id: 'act1', description: 'Verificar validade dos protetores auriculares', responsible: 'Almoxarifado', deadline: new Date(2024, 6, 17), status: 'Concluida' }] },
     { id: 'cipa2', date: new Date(2024, 5, 12), participants: ['João Silva', 'Maria Oliveira', 'Ana Costa'], agenda: 'Planejamento SIPAT, riscos ergonômicos.', status: 'Realizada', minutesUrl: 'https://example.com/cipa/ata-junho', actionsDefined: [{ id: 'act2', description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em_Andamento' }] },
-    { id: 'cipa3', date: new Date(2024, 7, 14), participants: [], agenda: 'Próxima reunião ordinária.', status: 'Agendada', actionsDefined: [] },
+    { id: 'cipa3', date: new Date(2024, 7, 14), participants: ['João Silva', 'Maria Oliveira', 'Carlos Pereira', 'Ana Costa', 'Pedro Santos'], agenda: 'Próxima reunião ordinária.', status: 'Agendada', actionsDefined: [] },
 ];
 const mockHoursWorked = 500000; // Example HHT for the period (e.g., YTD 2024)
 const NATIONAL_TF_AVERAGE = 14.3; // Example national average TF (adjust per industry/year)
 const NATIONAL_FATALITIES_2022 = 2538; // National data (example)
 const NATIONAL_ACCIDENTS_2022 = 612920; // National data (example)
 const COMPANY_TF_TARGET = 15; // Company specific target for TF
+const mockPreventiveActions = [
+  { id: 'pa1', description: 'Verificar validade dos protetores auriculares', responsible: 'Almoxarifado', deadline: new Date(2024, 6, 17), status: 'Concluida', startDate: new Date(2024, 6, 10) },
+  { id: 'pa2', description: 'Contratar palestra sobre ergonomia', responsible: 'RH', deadline: new Date(2024, 7, 1), status: 'Em_Andamento', startDate: new Date(2024, 5, 12) },
+  { id: 'pa3', description: 'Revisar os extintores de incêndio.', responsible: 'Segurança', deadline: new Date(2024, 8, 1), status: 'Em_Andamento', startDate: new Date(2024, 7, 1) },
+  { id: 'pa4', description: 'Verificar validade do treinamento de NR-35.', responsible: 'Segurança', deadline: new Date(2024, 5, 17), status: 'Concluida', startDate: new Date(2024, 5, 10) },
+  { id: 'pa5', description: 'Criar um laudo ergonômico.', responsible: 'Segurança', deadline: new Date(2023, 12, 17), status: 'Concluida', startDate: new Date(2023, 11, 10) },
+  { id: 'pa6', description: 'Manutenção da empilhadeira', responsible: 'Manutenção', deadline: new Date(2023, 11, 17), status: 'Atrasada', startDate: new Date(2023, 11, 10) },
+  { id: 'pa7', description: 'Treinamento de brigada de incendio', responsible: 'Segurança', deadline: new Date(2024, 1, 17), status: 'Concluida', startDate: new Date(2023, 12, 10) },
+];
 
 // Mock Compliance Data (from action-plan page)
 interface ComplianceItem {
@@ -60,9 +74,9 @@ const complianceStatus: ComplianceItem[] = [
 
 
 // --- Chart Configurations ---
-const trainingsData = [ // Example data, fetch from trainings page/service
-  { month: 'Jan', count: 12 }, { month: 'Fev', count: 18 }, { month: 'Mar', count: 15 },
-  { month: 'Abr', count: 22 }, { month: 'Mai', count: 19 }, { month: 'Jun', count: 25 },
+const trainingsData = [// Example data, fetch from trainings page/service
+    { month: 'Jan', count: 12 }, { month: 'Fev', count: 18 }, { month: 'Mar', count: 15 },
+    { month: 'Abr', count: 22 }, { month: 'Mai', count: 19 }, { month: 'Jun', count: 25 },
 ];
 const asoStatusData = [ // Example data, fetch from asos page/service
   { name: 'Válido', value: 95, fill: "hsl(var(--chart-1))" },
@@ -93,6 +107,39 @@ export default function HomePage() {
       const tf = calculateFrequencyRate(accidentsWithLostTime, mockHoursWorked);
       const tg = calculateSeverityRate(totalDaysLost, mockHoursWorked);
 
+      // Calculate common accident types
+      const commonAccidentTypes = periodAccidents.reduce((acc, curr) => {
+        acc[curr.cause] = (acc[curr.cause] || 0) + 1;
+            return acc;
+        }, {} as { [key: string]: number });
+
+        // Calculate CIPA meeting status counts
+        const cipaMeetingsStatus = mockCipaMeetings.reduce((acc, curr) => {
+            if (curr.status === 'Agendada') {
+                acc.scheduled = (acc.scheduled || 0) + 1;
+            } else if (curr.status === 'Realizada') {
+                acc.Realizada = (acc.Realizada || 0) + 1;
+            } else if (curr.status === 'Cancelada') {
+                acc.Cancelada = (acc.Cancelada || 0) + 1;
+            }
+            return acc;
+        }, {} as { Agendada?: number; Realizada?: number; Cancelada?: number });
+
+        // Calculate overdue and completed preventive actions
+        const preventiveActionsOverdue = mockPreventiveActions.filter(a => a.status === 'Atrasada').length;
+
+        const preventiveActionsCompleted = mockPreventiveActions.filter(a => a.status === 'Concluida' ).length;
+
+
+        // Calculate overdue and completed preventive actions
+        // const preventiveActionsOverdue = mockPreventiveActions.filter(a => a.status === 'Atrasada').length;
+
+      const preventiveActionsCompletedCurrentYear = mockPreventiveActions.filter(pa => {
+        const currentYear = new Date().getFullYear();
+          return pa.status === 'Concluida' && pa.startDate.getFullYear() === currentYear
+        }).length;
+
+
       return {
         totalHoursWorked: mockHoursWorked,
         numberOfAccidents,
@@ -102,11 +149,17 @@ export default function HomePage() {
         period: `Ano ${currentYear}`, // Example period label
         fatalAccidents: fatalAccidents,
         // Optional: Add these if needed for display, fetching mock data
-        activeLawsuits: mockLawsuits.filter(l => l.status === 'Em_Andamento').length,
-        cipaMeetingsHeld: mockCipaMeetings.filter(m => m.status === 'Realizada' && m.date.getFullYear() === currentYear).length,
-        occupationalDiseases: mockDiseases.filter(d => d.diagnosisDate.getFullYear() === currentYear).length,
+        commonAccidentTypes,
+          activeLawsuits: mockLawsuits.filter(l => l.status === 'Em_Andamento').length,
+            cipaMeetingsHeld: mockCipaMeetings.filter(m => m.status === 'Realizada' && m.date.getFullYear() === currentYear).length,
+            occupationalDiseases: mockDiseases.filter(d => d.diagnosisDate.getFullYear() === currentYear).length,
+            cipaMeetingsStatus,
+            preventiveActionsOverdue,
+        preventiveActionsCompleted: preventiveActionsCompletedCurrentYear
+
+
       };
-  }, [/* mockAccidents, mockDiseases, mockLawsuits, mockCipaMeetings, mockHoursWorked */]); // Add dependencies if they change
+  }, []); // Removed dependencies as they are mock data defined outside
 
   // Prepare incident trend data inside the component or move outside if static
   const incidentTrendData = useMemo(() => [
@@ -117,7 +170,7 @@ export default function HomePage() {
       { month: 'Mai', incidents: mockAccidents.filter(a => a.date.getMonth() === 4 && a.date.getFullYear() === new Date().getFullYear()).length },
       { month: 'Jun', incidents: mockAccidents.filter(a => a.date.getMonth() === 5 && a.date.getFullYear() === new Date().getFullYear()).length },
       // Add more months as needed or make dynamic
-  ], [/* mockAccidents */]); // Add dependency if mockAccidents can change
+  ], []); // Removed dependency as mockAccidents is defined outside
 
   // Calculate comparisons for KPIs
   const tfComparison = calculatedStats.tf !== null && calculatedStats.tf > NATIONAL_TF_AVERAGE ? 'Acima da média BR' : 'Abaixo/Igual média BR';
@@ -185,7 +238,7 @@ export default function HomePage() {
         </Card>
          <Card className="bg-card border-l-4 border-orange-500">
            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-             <CardTitle className="text-sm font-medium">Dias Perdidos (TG)</CardTitle>
+             <CardTitle className="text-sm font-medium">Dias Perdidos</CardTitle>
              <TrendingDown className="h-4 w-4 text-muted-foreground" />
            </CardHeader>
            <CardContent>
@@ -211,26 +264,87 @@ export default function HomePage() {
            */}
       </div>
 
-      {/* --- Charts Row --- */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+         <Card>
            <CardHeader>
-             <CardTitle>Tendência de Acidentes</CardTitle>
-             <CardDescription>Número de acidentes registrados por mês ({calculatedStats.period}).</CardDescription>
+             <CardTitle>Tipos de Acidentes</CardTitle>
+             <CardDescription>Principais tipos de acidentes registrados.</CardDescription>
            </CardHeader>
            <CardContent>
-             <ChartContainer config={incidentChartConfig} className="h-[300px] w-full">
-               <LineChart data={incidentTrendData} margin={{ left: 12, right: 12 }} accessibilityLayer>
-                 <CartesianGrid vertical={false} />
-                 <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
-                 <YAxis allowDecimals={false} />
-                 <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                 <Line dataKey="incidents" type="monotone" stroke="var(--color-incidents)" strokeWidth={2} dot={true} />
-               </LineChart>
-             </ChartContainer>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={Object.entries(calculatedStats.commonAccidentTypes).map(([name, value]) => ({ name, value }))} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 10 }}>
+                    <CartesianGrid horizontal={false} />
+                    <XAxis type="number" />
+                    <YAxis type="category" dataKey="name" />
+                    <RechartsTooltip />
+                    <Bar dataKey="value" fill="#8884d8" />
+                </BarChart>
+             </ResponsiveContainer>
+
            </CardContent>
          </Card>
+
+
+      {/* --- New Stats Row --- */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                <Card className="bg-card border-l-4 border-blue-500">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Reuniões CIPA</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            Agendadas: {calculatedStats.cipaMeetingsStatus?.Agendada ?? '0'}
+                        </div>
+                        <div className="text-2xl font-bold">
+                            Realizadas: {calculatedStats.cipaMeetingsStatus?.Realizada ?? '0'}
+                        </div>
+                        <div className="text-2xl font-bold">
+                            Canceladas: {calculatedStats.cipaMeetingsStatus?.Cancelada ?? '0'}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-card border-l-4 border-orange-500">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Ações Atrasadas</CardTitle>
+                        <Clock className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{calculatedStats.preventiveActionsOverdue}</div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-card border-l-4 border-green-500">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Ações Concluídas</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" /> {/* Changed icon */}
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{calculatedStats.preventiveActionsCompleted}</div>
+                         <p className="text-xs text-muted-foreground">No ano atual</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+        <Card>
+                    <CardHeader>
+                        <CardTitle>Tendência de Acidentes</CardTitle>
+                        <CardDescription>Número de acidentes registrados por mês ({calculatedStats.period}).</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ChartContainer config={incidentChartConfig} className="h-[300px] w-full">
+                            <LineChart data={incidentTrendData} margin={{ left: 12, right: 12 }} accessibilityLayer>
+                                <CartesianGrid vertical={false} />
+                                <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => value.slice(0, 3)} />
+                                <YAxis allowDecimals={false} />
+                                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                                <ChartLegend content={<ChartLegendContent />} />
+                                <Line dataKey="incidents" type="monotone" stroke="var(--color-incidents)" strokeWidth={2} dot={true} />
+                            </LineChart>
+                        </ChartContainer>
+                    </CardContent>
+                </Card>
+
+
+
         <Card>
           <CardHeader>
             <CardTitle>Status dos ASOs</CardTitle>
@@ -245,12 +359,13 @@ export default function HomePage() {
                  </Pie>
                   <ChartLegend content={<ChartLegendContent nameKey="name" className="flex -translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center" />} />
                </PieChart>
+
+
              </ChartContainer>
           </CardContent>
         </Card>
-      </div>
 
-       {/* --- Action Plan / Compliance Table --- */}
+        {/* --- Action Plan / Compliance Table --- */}
        <Card>
            <CardHeader>
                <div className="flex items-center gap-2">
