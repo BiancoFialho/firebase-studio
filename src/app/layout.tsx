@@ -17,16 +17,16 @@ import {
     SidebarMenuItem,
     SidebarMenuButton,
     SidebarSubmenu,
-    SidebarSubmenuItem, // Import the new item wrapper
+    SidebarSubmenuItem, // Import the item wrapper
     SidebarSubmenuTrigger,
     SidebarSubmenuContent,
 } from '@/components/ui/sidebar'; // Ensure all necessary sidebar components are imported
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FlaskConical, ClipboardList,
-    Users, GraduationCap, ListPlus, UserPlus, Wrench, FileCheck2, Folder, // Added Folder
-    Bug, Activity, Landmark, Settings, LayoutDashboard, // Added LayoutDashboard
-} from 'lucide-react'; // Removed unused icons
+    Users, GraduationCap, ListPlus, UserPlus, Wrench, FileCheck2, Folder,
+    Bug, Activity, Landmark, Settings, LayoutDashboard, BarChart3, Scale // Added BarChart3 for Reports
+} from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react'; // Import React
 
@@ -64,7 +64,7 @@ export default function RootLayout({
                 <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
              </SidebarHeader>
 
-             <SidebarContent> {/* Removed padding from here, added to SidebarMenu */}
+             <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-1 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2"> {/* Sidebar Content adjustments */}
                <SidebarMenu>
                  {/* Dashboard Link */}
                  <SidebarMenuItem>
@@ -77,50 +77,50 @@ export default function RootLayout({
                  </SidebarMenuItem>
 
                   {/* Cadastros Section - Collapsible Submenu */}
-                  <SidebarSubmenu>
-                      <SidebarSubmenuItem value="cadastros-submenu"> {/* Wrap trigger/content in Item */}
-                          <SidebarSubmenuTrigger tooltip="Cadastros">
-                              <ListPlus />
-                              <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
-                              {/* ChevronDown is now inside the SidebarMenuButton via CSS */}
-                          </SidebarSubmenuTrigger>
-                          <SidebarSubmenuContent>
-                              {/* Submenu items */}
+                   <SidebarSubmenu value="cadastros"> {/* Add a value for the accordion item */}
+                     {/* Wrap trigger/content in Item */}
+                     <SidebarSubmenuItem value="cadastros-trigger"> {/* Ensure value matches parent */}
+                         <SidebarSubmenuTrigger tooltip="Cadastros">
+                             <ListPlus />
+                             <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
+                         </SidebarSubmenuTrigger>
+                         <SidebarSubmenuContent>
+                             {/* Submenu items */}
+                             <SidebarMenuItem>
+                                 <SidebarMenuButton asChild tooltip="Colaboradores">
+                                     <Link href="/cadastros/colaboradores">
+                                         <Users className="text-sidebar-foreground/80" />
+                                         Colaboradores
+                                     </Link>
+                                 </SidebarMenuButton>
+                             </SidebarMenuItem>
+                             <SidebarMenuItem>
+                                 <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
+                                     <Link href="/cadastros/treinamentos">
+                                         <GraduationCap className="text-sidebar-foreground/80" />
+                                         Tipos Treinamento
+                                     </Link>
+                                 </SidebarMenuButton>
+                             </SidebarMenuItem>
                               <SidebarMenuItem>
-                                  <SidebarMenuButton asChild tooltip="Colaboradores">
-                                      <Link href="/cadastros/colaboradores">
-                                          <Users className="text-sidebar-foreground/80" />
-                                          Colaboradores
-                                      </Link>
-                                  </SidebarMenuButton>
-                              </SidebarMenuItem>
-                              <SidebarMenuItem>
-                                  <SidebarMenuButton asChild tooltip="Tipos de Treinamento">
-                                      <Link href="/cadastros/treinamentos">
-                                          <GraduationCap className="text-sidebar-foreground/80" />
-                                          Tipos Treinamento
+                                  <SidebarMenuButton asChild tooltip="Instrutores">
+                                      <Link href="/cadastros/instrutores">
+                                          <UserPlus className="text-sidebar-foreground/80" />
+                                          Instrutores
                                       </Link>
                                   </SidebarMenuButton>
                               </SidebarMenuItem>
                                <SidebarMenuItem>
-                                   <SidebarMenuButton asChild tooltip="Instrutores">
-                                       <Link href="/cadastros/instrutores">
-                                           <UserPlus className="text-sidebar-foreground/80" />
-                                           Instrutores
+                                   <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
+                                       <Link href="/cadastros/responsaveis">
+                                           <Wrench className="text-sidebar-foreground/80" />
+                                           Responsáveis Téc.
                                        </Link>
                                    </SidebarMenuButton>
                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild tooltip="Responsáveis Técnicos">
-                                        <Link href="/cadastros/responsaveis">
-                                            <Wrench className="text-sidebar-foreground/80" />
-                                            Responsáveis Téc.
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                          </SidebarSubmenuContent>
-                      </SidebarSubmenuItem>
-                  </SidebarSubmenu>
+                         </SidebarSubmenuContent>
+                     </SidebarSubmenuItem>
+                   </SidebarSubmenu>
 
 
                  {/* Core Management Modules */}
@@ -202,12 +202,21 @@ export default function RootLayout({
                    </SidebarMenuButton>
                  </SidebarMenuItem>
 
-                 {/* Statistics & Compliance */}
+                 {/* Statistics, Reports & Compliance */}
                  <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0"> {/* Separator look */}
                    <SidebarMenuButton asChild tooltip="Estatísticas Acidentes">
                      <Link href="/statistics">
                        <Activity />
                        <span className="group-data-[collapsible=icon]:hidden">Estatísticas</span>
+                     </Link>
+                   </SidebarMenuButton>
+                 </SidebarMenuItem>
+                  {/* New Reports Menu Item */}
+                 <SidebarMenuItem>
+                   <SidebarMenuButton asChild tooltip="Relatórios">
+                     <Link href="/reports">
+                       <BarChart3 />
+                       <span className="group-data-[collapsible=icon]:hidden">Relatórios</span>
                      </Link>
                    </SidebarMenuButton>
                  </SidebarMenuItem>

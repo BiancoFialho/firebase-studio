@@ -417,6 +417,16 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button";
     const { isMobile, state } = useSidebar();
 
+    const buttonContent = (
+      <>
+        {children}
+         {isSubmenuTrigger && ( // Add chevron only for submenu triggers
+              <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[collapsible=icon]:hidden" />
+         )}
+      </>
+    );
+
+
     // Direct children are now passed, Slot/Button handles the layout
     const buttonElement = (
       <Comp
@@ -428,7 +438,7 @@ const SidebarMenuButton = React.forwardRef<
         {...(Comp === "button" && !asChild && { type: "button" })}
         {...props}
       >
-         {children}
+         {buttonContent}
       </Comp>
     );
 
@@ -494,6 +504,7 @@ const SidebarSubmenuItem = React.forwardRef<
 ));
 SidebarSubmenuItem.displayName = "SidebarSubmenuItem";
 
+
 const SidebarSubmenuTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> & {
@@ -501,25 +512,22 @@ const SidebarSubmenuTrigger = React.forwardRef<
       tooltip?: string | React.ComponentProps<typeof TooltipContent>;
       isActive?: boolean; // Add isActive prop
   }
->(({ className, children, tooltip, isActive, asChild = true, ...props }, ref) => ( // Default asChild to true
-    <AccordionPrimitive.Header className="flex w-full">
-        {/* Pass SidebarMenuButton as the child to AccordionPrimitive.Trigger */}
-         <AccordionPrimitive.Trigger asChild>
-             <SidebarMenuButton
-                ref={ref}
-                className={cn("w-full", className)}
-                isActive={isActive} // Pass isActive
-                tooltip={tooltip} // Pass tooltip
-                isSubmenuTrigger={true} // Mark as submenu trigger
-                asChild={false} // Important: Render as button, not Slot
-                {...props}
-             >
-                {/* Content and Chevron are children of SidebarMenuButton */}
-                {children}
-                <ChevronDown /> {/* Chevron is now a direct child */}
-             </SidebarMenuButton>
-         </AccordionPrimitive.Trigger>
-    </AccordionPrimitive.Header>
+>(({ className, children, tooltip, isActive, asChild = false, ...props }, ref) => ( // Default asChild to false
+     // Removed AccordionHeader, Trigger now wraps SidebarMenuButton directly
+     <AccordionPrimitive.Trigger asChild>
+         <SidebarMenuButton
+            ref={ref}
+            className={cn("w-full", className)}
+            isActive={isActive} // Pass isActive
+            tooltip={tooltip} // Pass tooltip
+            isSubmenuTrigger={true} // Mark as submenu trigger
+            asChild={asChild} // Pass asChild through
+            {...props}
+         >
+             {children} {/* Button content */}
+             {/* Chevron is now part of SidebarMenuButton */}
+         </SidebarMenuButton>
+     </AccordionPrimitive.Trigger>
 ));
 SidebarSubmenuTrigger.displayName = "SidebarSubmenuTrigger";
 
