@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 // Use Geist Sans & Mono directly from the geist package
 import { GeistSans } from 'geist/font/sans';
@@ -20,6 +19,7 @@ import {
     SidebarSubmenuItem,
     SidebarSubmenuTrigger,
     SidebarSubmenuContent,
+    SidebarSeparator, // Import SidebarSeparator
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import {
@@ -65,9 +65,9 @@ export default function RootLayout({
                   <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
                </SidebarHeader>
 
-               {/* Adjusted Sidebar Content padding */}
-               <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-1 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2">
-                 <SidebarMenu>
+               {/* Adjusted Sidebar Content padding and menu gap */}
+               <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-1 group-data-[collapsible=icon]:p-2">
+                 <SidebarMenu className="gap-1"> {/* Increased gap slightly */}
                    {/* Dashboard Link */}
                    <SidebarMenuItem>
                       <SidebarMenuButton asChild tooltip="Dashboard BI">
@@ -122,10 +122,10 @@ export default function RootLayout({
                        </SidebarSubmenuItem>
                      </SidebarSubmenu>
 
+                    <SidebarSeparator /> {/* Use dedicated separator */}
 
-                   {/* --- Separator --- */}
-                   <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0"> {/* Add margin top */}
-                     {/* --- Módulos Principais --- */}
+                   {/* --- Módulos Principais --- */}
+                   <SidebarMenuItem>
                       <SidebarMenuButton asChild tooltip="Registros de Treinamentos">
                         <Link href="/trainings">
                            <GraduationCap />
@@ -166,9 +166,10 @@ export default function RootLayout({
                      </SidebarMenuButton>
                    </SidebarMenuItem>
 
-                    {/* --- Separator --- */}
-                    <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0">
-                       {/* --- Análise e Planejamento --- */}
+                    <SidebarSeparator /> {/* Use dedicated separator */}
+
+                    {/* --- Análise e Planejamento --- */}
+                   <SidebarMenuItem>
                      <SidebarMenuButton asChild tooltip="Análise de Riscos (JSA)">
                        <Link href="/jsa">
                          <ClipboardList />
@@ -185,9 +186,10 @@ export default function RootLayout({
                      </SidebarMenuButton>
                    </SidebarMenuItem>
 
-                   {/* --- Separator --- */}
-                   <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0">
+                   <SidebarSeparator /> {/* Use dedicated separator */}
+
                     {/* --- Prevenção e Saúde --- */}
+                   <SidebarMenuItem>
                      <SidebarMenuButton asChild tooltip="Prevenção (CIPA)">
                        <Link href="/prevention">
                          <Users />
@@ -204,9 +206,10 @@ export default function RootLayout({
                      </SidebarMenuButton>
                    </SidebarMenuItem>
 
-                   {/* --- Separator --- */}
-                   <SidebarMenuItem className="mt-2 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:border-t-0">
+                   <SidebarSeparator /> {/* Use dedicated separator */}
+
                    {/* --- Estatísticas, Relatórios e Compliance --- */}
+                   <SidebarMenuItem>
                      <SidebarMenuButton asChild tooltip="Estatísticas Acidentes">
                        <Link href="/statistics">
                          <Activity />

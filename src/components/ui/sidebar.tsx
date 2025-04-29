@@ -23,11 +23,14 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-// Adjusted widths using a ratio closer to the golden ratio inverse (~1:1.618)
-const BASE_UNIT = 56 // Approx width for icon-only state (adjust as needed)
-const EXPANDED_RATIO = 1.618 * 3.5 // Adjust multiplier for desired width
+// Adjusted widths based on feedback for better proportion
+const BASE_UNIT = 56 // Approx width for icon-only state (adjust as needed) - e.g., 3.5rem
+// Apply golden ratio more directly: expanded width = base * phi^2 (phi ≈ 1.618)
+// phi^2 ≈ 2.618. Let's try base * 4.5 for a slightly wider look.
+const EXPANDED_RATIO = 4.5 // Adjust multiplier for desired width (e.g., 4.5 * 56 = 252px)
 const SIDEBAR_WIDTH_ICON = `${BASE_UNIT}px`
-const SIDEBAR_WIDTH = `${Math.round(BASE_UNIT * EXPANDED_RATIO)}px` // e.g., ~306px
+// const SIDEBAR_WIDTH = `${Math.round(BASE_UNIT * EXPANDED_RATIO)}px` // e.g., ~252px
+const SIDEBAR_WIDTH = "260px" // Use a fixed width that feels balanced
 const SIDEBAR_WIDTH_MOBILE = "280px" // Keep a fixed reasonable mobile width
 
 // --- Context Setup ---
@@ -117,7 +120,7 @@ const SidebarProvider = React.forwardRef<
           <div
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH,
+                "--sidebar-width": SIDEBAR_WIDTH, // Use variable
                 "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
                 ...style,
               } as React.CSSProperties
@@ -209,19 +212,19 @@ const Sidebar = React.forwardRef<
         <div
           className={cn(
             "relative h-svh transition-[width] duration-300 ease-in-out",
-            "w-[var(--sidebar-width)]",
-            "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]"
+            "w-[var(--sidebar-width)]", // Use CSS variable for width
+            "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]" // Use CSS variable for icon width
           )}
         />
         {/* Fixed Sidebar Container */}
         <div
           className={cn(
             "fixed inset-y-0 z-10 hidden h-svh transition-[left,right,width] duration-300 ease-in-out md:flex",
-            "w-[var(--sidebar-width)]",
+            "w-[var(--sidebar-width)]", // Use CSS variable
             side === "left"
               ? "left-0 border-r border-sidebar-border" // Use sidebar border
               : "right-0 border-l border-sidebar-border",
-            "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]",
+            "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]", // Use CSS variable
             variant === "floating" && "m-2 rounded-lg shadow-lg border border-sidebar-border", // Use sidebar border
              // Removed explicit class, rely on props/context
           )}
@@ -333,7 +336,7 @@ const SidebarContent = React.forwardRef<
       data-sidebar="content"
       className={cn(
         "flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-2 py-1.5", // Consistent padding
-        "group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-1.5", // Icon mode adjustments
+        "group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-1.5 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-1.5", // Icon mode adjustments - Centered
         className
       )}
       {...props}
@@ -351,8 +354,8 @@ const SidebarMenu = React.forwardRef<
     <ul
       ref={ref}
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-0.5", // Maintained reduced gap
-        "group-data-[collapsible=icon]:gap-1.5", // Slightly larger gap in icon mode
+      className={cn("flex w-full min-w-0 flex-col", // Removed gap-0.5, rely on item margins
+        // "group-data-[collapsible=icon]:gap-1.5", // Remove icon mode specific gap
         className)}
       {...props}
     />
@@ -368,7 +371,7 @@ const SidebarMenuItem = React.forwardRef<
     <li
       ref={ref}
       data-sidebar="menu-item"
-      className={cn("group/menu-item relative", className)}
+      className={cn("group/menu-item relative", className)} // Add margin bottom for spacing
       {...props}
     />
   )
@@ -376,7 +379,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-    "peer/menu-button group/button flex w-full items-center gap-2.5 overflow-hidden rounded-md px-2.5 py-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg:first-child]:size-4 [&>svg:first-child]:shrink-0 [&>svg:first-child]:text-sidebar-foreground/70 [&>svg:first-child]:group-data-[active=true]/button:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:px-[11px] group-data-[collapsible=icon]:py-0 [&>svg:first-child]:group-data-[collapsible=icon]:size-5", // Adjust padding/centering for icon mode
+    "peer/menu-button group/button flex w-full items-center justify-start gap-2.5 overflow-hidden rounded-md px-2.5 py-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg:first-child]:size-4 [&>svg:first-child]:shrink-0 [&>svg:first-child]:text-sidebar-foreground/70 [&>svg:first-child]:group-data-[active=true]/button:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 [&>svg:first-child]:group-data-[collapsible=icon]:size-5 group-data-[collapsible=icon]:text-transparent", // Adjusted padding/centering/text for icon mode
     {
         variants: {
             variant: {
@@ -392,7 +395,6 @@ const sidebarMenuButtonVariants = cva(
         },
     }
 )
-
 
 const SidebarMenuButton = React.forwardRef<
   HTMLElement,
@@ -420,15 +422,15 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button";
     const { isMobile, state } = useSidebar();
 
+    // Wrap children in a fragment to ensure a single element is passed down when needed.
     const buttonContent = (
       <>
         {children}
          {isSubmenuTrigger && state === 'expanded' && ( // Add chevron only for submenu triggers in expanded state
-              <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[collapsible=icon]:hidden" />
+              <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 group-data-[collapsible=icon]:hidden" /> // Keep chevron hidden in icon mode
          )}
       </>
     );
-
 
     const buttonElement = (
       <Comp
@@ -458,9 +460,8 @@ const SidebarMenuButton = React.forwardRef<
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-           {/* Wrap the button element in a span or div when using tooltip + asChild to avoid the error */}
-           {asChild ? <span>{buttonElement}</span> : buttonElement}
-         </TooltipTrigger>
+            {buttonElement}
+        </TooltipTrigger>
         <TooltipContent
           side="right"
           align="center"
@@ -546,8 +547,9 @@ const SidebarSubmenuContent = React.forwardRef<
     )}
     {...props}
   >
-    <div className="py-1 pl-8 pr-1"> {/* Indent submenu items */}
-        <SidebarMenu className="gap-0.5">
+    {/* Adjust padding and menu gap for submenu items */}
+    <div className="py-1 pl-8 pr-1">
+        <SidebarMenu className="gap-1"> {/* Consistent gap for submenu */}
            {children}
         </SidebarMenu>
     </div>
@@ -610,3 +612,5 @@ export {
   SidebarSubmenuContent,
   useSidebar,
 }
+
+    
