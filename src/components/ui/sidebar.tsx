@@ -25,7 +25,7 @@ const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem" // Standard width
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3.5rem" // Slightly wider icon mode
+const SIDEBAR_WIDTH_ICON = "4rem" // Adjusted icon mode width for better spacing
 
 // --- Context Setup ---
 type SidebarContext = {
@@ -254,14 +254,14 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-8 w-8", className)}
+      className={cn("h-9 w-9", className)} // Slightly larger trigger
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <PanelLeft />
+      <PanelLeft className="h-5 w-5" /> {/* Slightly larger icon */}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -299,7 +299,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-3", className)}
+      className={cn("flex flex-col gap-2 p-4", className)} // Increased padding
       {...props}
     />
   )
@@ -314,7 +314,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-3", className)}
+      className={cn("flex flex-col gap-2 p-4", className)} // Increased padding
       {...props}
     />
   )
@@ -330,8 +330,8 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden p-1",
-        "group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:p-2",
+        "flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden p-2", // Increased gap and padding
+        "group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:p-3", // Adjusted icon mode padding
         className
       )}
       {...props}
@@ -349,8 +349,8 @@ const SidebarMenu = React.forwardRef<
     <ul
       ref={ref}
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-1",
-        "group-data-[collapsible=icon]:gap-2",
+      className={cn("flex w-full min-w-0 flex-col gap-1", // Slightly smaller gap between items
+        "group-data-[collapsible=icon]:gap-1.5", // Slightly larger gap in icon mode
         className)}
       {...props}
     />
@@ -374,21 +374,21 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2", // Use sidebar colors
-  {
-    variants: {
-      variant: {
-        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-      },
-      size: {
-        default: "h-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
+    "peer/menu-button group/button flex w-full items-center gap-3 overflow-hidden rounded-md px-3 py-2.5 text-left text-sm font-medium outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg:first-child]:size-5 [&>svg:first-child]:shrink-0 [&>svg:first-child]:text-sidebar-foreground/70 [&>svg:first-child]:group-data-[active=true]/button:text-sidebar-accent-foreground [&>svg:last-child:not(:first-child)]:ml-auto [&>svg:last-child:not(:first-child)]:size-4 [&>svg:last-child:not(:first-child)]:shrink-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-3 [&>svg:first-child]:group-data-[collapsible=icon]:size-6", // Increased padding, icon size adjustments
+    {
+        variants: {
+            variant: {
+                default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            },
+            size: {
+                default: "h-10", // Slightly taller button
+            },
+        },
+        defaultVariants: {
+            variant: "default",
+            size: "default",
+        },
+    }
 )
 
 const SidebarMenuButton = React.forwardRef<
@@ -409,7 +409,7 @@ const SidebarMenuButton = React.forwardRef<
       tooltip,
       className,
       children,
-      isSubmenuTrigger = false, // Default to false
+      isSubmenuTrigger = false,
       ...props
     },
     ref
@@ -417,12 +417,7 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button";
     const { isMobile, state } = useSidebar();
 
-    const buttonContent = (
-        <div className="flex w-full items-center justify-start gap-3 overflow-hidden group-data-[collapsible=icon]:justify-center">
-          {children}
-        </div>
-      );
-
+    // Direct children are now passed, Slot/Button handles the layout
     const buttonElement = (
       <Comp
         ref={ref as any}
@@ -433,7 +428,7 @@ const SidebarMenuButton = React.forwardRef<
         {...(Comp === "button" && !asChild && { type: "button" })}
         {...props}
       >
-         {buttonContent}
+         {children}
       </Comp>
     );
 
@@ -506,25 +501,24 @@ const SidebarSubmenuTrigger = React.forwardRef<
       tooltip?: string | React.ComponentProps<typeof TooltipContent>;
       isActive?: boolean; // Add isActive prop
   }
->(({ className, children, tooltip, isActive, asChild = false, ...props }, ref) => (
-    // REMOVED SidebarMenuItem wrapper - Trigger must be direct descendant of Header which is descendant of Item
+>(({ className, children, tooltip, isActive, asChild = true, ...props }, ref) => ( // Default asChild to true
     <AccordionPrimitive.Header className="flex w-full">
-        <AccordionPrimitive.Trigger asChild>
-            <SidebarMenuButton
-               ref={ref}
-               className={cn("w-full", className)}
-               isActive={isActive} // Pass isActive
-               tooltip={tooltip} // Pass tooltip
-               isSubmenuTrigger={true} // Mark as submenu trigger for styling
-               {...props} // Pass other props down
-            >
-                {/* Ensure content and chevron are siblings */}
-                <div className="flex flex-1 items-center gap-3 overflow-hidden">
-                    {children}
-                </div>
-                <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-            </SidebarMenuButton>
-        </AccordionPrimitive.Trigger>
+        {/* Pass SidebarMenuButton as the child to AccordionPrimitive.Trigger */}
+         <AccordionPrimitive.Trigger asChild>
+             <SidebarMenuButton
+                ref={ref}
+                className={cn("w-full", className)}
+                isActive={isActive} // Pass isActive
+                tooltip={tooltip} // Pass tooltip
+                isSubmenuTrigger={true} // Mark as submenu trigger
+                asChild={false} // Important: Render as button, not Slot
+                {...props}
+             >
+                {/* Content and Chevron are children of SidebarMenuButton */}
+                {children}
+                <ChevronDown /> {/* Chevron is now a direct child */}
+             </SidebarMenuButton>
+         </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
 ));
 SidebarSubmenuTrigger.displayName = "SidebarSubmenuTrigger";
@@ -543,8 +537,8 @@ const SidebarSubmenuContent = React.forwardRef<
     {...props}
   >
     {/* Indent submenu items */}
-    <div className="py-1 pl-6">
-        <SidebarMenu> {/* Nest SidebarMenu for submenu items */}
+    <div className="py-1 pl-6 pr-2"> {/* Adjusted padding */}
+        <SidebarMenu className="gap-0.5"> {/* Reduced gap for submenu items */}
            {children}
         </SidebarMenu>
     </div>
@@ -580,7 +574,7 @@ const SidebarSeparator = React.forwardRef<
     <Separator
       ref={ref}
       data-sidebar="separator"
-      className={cn("mx-3 my-1 w-auto bg-sidebar-border", className)} // Use sidebar border color
+      className={cn("mx-3 my-1.5 w-auto bg-sidebar-border", className)} // Increased margin, use sidebar border color
       {...props}
     />
   )

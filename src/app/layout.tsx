@@ -6,27 +6,27 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarFooter,
-  SidebarTrigger,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarSubmenu,
-  SidebarSubmenuItem, // Import the new item wrapper
-  SidebarSubmenuTrigger,
-  SidebarSubmenuContent,
+    SidebarProvider,
+    Sidebar,
+    SidebarHeader,
+    SidebarContent,
+    SidebarFooter,
+    SidebarTrigger,
+    SidebarInset,
+    SidebarMenu,
+    SidebarMenuItem,
+    SidebarMenuButton,
+    SidebarSubmenu,
+    SidebarSubmenuItem, // Import the new item wrapper
+    SidebarSubmenuTrigger,
+    SidebarSubmenuContent,
 } from '@/components/ui/sidebar'; // Ensure all necessary sidebar components are imported
 import Link from 'next/link';
 import {
     HardHat, ShieldCheck, Stethoscope, FlaskConical, ClipboardList,
     Users, GraduationCap, ListPlus, UserPlus, Wrench, FileCheck2, Folder, // Added Folder
     Bug, Activity, Landmark, Settings, LayoutDashboard, // Added LayoutDashboard
-} from 'lucide-react'; // Removed unused icons like BarChart3, Target, Scale, ListChecks, ChevronDown
+} from 'lucide-react'; // Removed unused icons
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react'; // Import React
 
@@ -64,7 +64,7 @@ export default function RootLayout({
                 <SidebarTrigger className="md:hidden" /> {/* Trigger for mobile */}
              </SidebarHeader>
 
-             <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden p-1 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2">
+             <SidebarContent> {/* Removed padding from here, added to SidebarMenu */}
                <SidebarMenu>
                  {/* Dashboard Link */}
                  <SidebarMenuItem>
@@ -78,11 +78,11 @@ export default function RootLayout({
 
                   {/* Cadastros Section - Collapsible Submenu */}
                   <SidebarSubmenu>
-                      <SidebarSubmenuItem value="cadastros-submenu"> {/* Wrap trigger/content in Item and provide a value */}
+                      <SidebarSubmenuItem value="cadastros-submenu"> {/* Wrap trigger/content in Item */}
                           <SidebarSubmenuTrigger tooltip="Cadastros">
                               <ListPlus />
                               <span className="group-data-[collapsible=icon]:hidden">Cadastros</span>
-                              {/* ChevronDown is now inside the Trigger component */}
+                              {/* ChevronDown is now inside the SidebarMenuButton via CSS */}
                           </SidebarSubmenuTrigger>
                           <SidebarSubmenuContent>
                               {/* Submenu items */}
@@ -240,7 +240,7 @@ export default function RootLayout({
            {/* Main Content Area */}
            <SidebarInset>
              <header className="flex items-center justify-between p-4 border-b sticky top-0 bg-background/80 backdrop-blur-sm z-10 md:justify-end">
-                {/* Trigger for desktop moved to the right for better alignment with content */}
+                {/* Trigger for desktop moved to the right */}
                 <SidebarTrigger className="hidden md:flex"/>
                {/* Placeholder for potential header content like user profile */}
                <div className="flex items-center gap-4 md:hidden"> {/* Only show company name on mobile header */}
